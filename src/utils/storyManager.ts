@@ -33,7 +33,56 @@ const STORAGE_KEY = 'mahean_stories';
 // Internal helper to get raw list
 const getRawStories = (): Story[] => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) {
+        // Seed with initial data if empty
+        const initialStories: Story[] = [
+            {
+                id: '1',
+                title: 'পুরানো সেই দিনের কথা',
+                excerpt: 'গ্রামের মেঠোপথ ধরে হেঁটে চলা এক স্মৃতির গল্প...',
+                content: 'অনেক দিন আগের কথা...',
+                authorId: '1',
+                categoryId: 'memoir',
+                views: 120,
+                date: new Date().toISOString(),
+                author: 'রবীন্দ্রনাথ ঠাকুর',
+                category: 'স্মৃতিকথা',
+                image: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=2070&auto=format&fit=crop',
+                status: 'published'
+            },
+            {
+                id: '2',
+                title: 'অচিনপুরের যাত্রী',
+                excerpt: 'এক অদ্ভুত রাতের ট্রেন জার্নির লোমহর্ষক অভিজ্ঞতা...',
+                content: 'ট্রেনটা যখন থামল, তখন রাত গভীর...',
+                authorId: '2',
+                categoryId: 'thriller',
+                views: 85,
+                date: new Date(Date.now() - 86400000).toISOString(),
+                author: 'হুমায়ূন আহমেদ',
+                category: 'থ্রিলার',
+                image: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?q=80&w=2070&auto=format&fit=crop',
+                status: 'published'
+            },
+            {
+                id: '3',
+                title: 'মেঘের কোলে রোদ',
+                excerpt: 'বর্ষার দিনে জানালার পাশে বসে থাকা এক কিশোরীর ভাবনা...',
+                content: 'আজ সকাল থেকেই বৃষ্টি পড়ছে...',
+                authorId: '3',
+                categoryId: 'romance',
+                views: 200,
+                date: new Date(Date.now() - 172800000).toISOString(),
+                author: 'সুনীল গঙ্গোপাধ্যায়',
+                category: 'রোমান্টিক',
+                image: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=1000&auto=format&fit=crop',
+                status: 'published'
+            }
+        ];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialStories));
+        return initialStories;
+    }
+    return JSON.parse(stored);
 };
 
 // Public facing - only published
