@@ -2,37 +2,52 @@
 
 /* Design Tokens & Variables */
 :root {
-  /* Color Palette - Vibrant Orange/Amber */
-  --primary-hue: 35;
-  --primary-sat: 95%;
-  --primary-light: 50%;
+  /* Premium Palette - Gold & Deep Slate */
+  --primary-hue: 45;
+  /* True Gold */
 
-  --bg-primary: hsl(220, 15%, 8%);
-  --bg-secondary: hsl(220, 12%, 12%);
-  --bg-tertiary: hsl(220, 10%, 16%);
+  /* Backgrounds - Rich Deep Slate/Black */
+  --bg-primary: #050505;
+  /* Pure Deep Black */
+  --bg-secondary: #0a0a0a;
+  /* Slightly lighter for cards */
+  --bg-tertiary: #121212;
+  /* Inputs and accents */
 
-  --accent-primary: hsl(35, 95%, 50%);
-  /* Orange/Amber */
-  --accent-secondary: hsl(45, 95%, 55%);
+  /* Accent - Luxurious Gold */
+  --accent-primary: #D4AF37;
+  /* Classic Metallic Gold */
+  --accent-secondary: #F1C40F;
+  /* Brighter Gold */
+
+  /* Sophisticated Gradient - Gold to Deep Amber */
   --accent-gradient: linear-gradient(135deg,
-      hsl(35, 95%, 50%) 0%,
-      hsl(45, 95%, 55%) 50%,
-      hsl(35, 95%, 45%) 100%);
+      #D4AF37 0%,
+      #AA8A2E 50%,
+      #D4AF37 100%);
 
-  --text-primary: hsl(0, 0%, 98%);
-  --text-secondary: hsl(0, 0%, 75%);
-  --text-tertiary: hsl(0, 0%, 55%);
+  /* Text Colors */
+  --text-primary: #F5F5F5;
+  /* Off-white for better readability on black */
+  --text-secondary: #A3A3A3;
+  /* Neutral gray */
+  --text-tertiary: #525252;
+  /* Darker gray */
 
-  /* Glassmorphism */
-  --glass-bg: hsla(240, 12%, 12%, 0.75);
-  --glass-border: hsla(0, 0%, 100%, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* Glassmorphism - Premium & Clean */
+  --glass-bg: rgba(18, 18, 18, 0.7);
+  /* Darker glass tint */
+  --glass-border: rgba(212, 175, 55, 0.15);
+  /* Subtle Gold border */
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  /* Deeper shadow */
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-glow: none;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
+  /* Gold glow */
 
   /* Spacing */
   --spacing-xs: 0.5rem;
@@ -41,16 +56,16 @@
   --spacing-lg: 4rem;
   --spacing-xl: 6rem;
 
-  /* Border Radius */
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* Border Radius - Refined */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition-fast: 0.2s ease;
-  --transition-base: 0.3s ease;
-  --transition-slow: 0.5s ease;
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Typography */
   --font-primary: 'Hind Siliguri', sans-serif;
@@ -216,7 +231,8 @@ a:hover {
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-base);
-  text-decoration: none;
+  text-decoration: none !important;
+  /* Added !important to enforce no underline */
   position: relative;
   overflow: hidden;
 }
@@ -236,6 +252,8 @@ a:hover {
   background: none !important;
   background-clip: unset !important;
   -webkit-background-clip: unset !important;
+  text-decoration: none !important;
+  /* Forces removal of underline */
 }
 
 .btn-primary::before {
