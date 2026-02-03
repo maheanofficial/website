@@ -25,20 +25,7 @@ const AuthorsGrid = () => {
         <section className="authors-grid-section py-20">
             <div className="container mx-auto px-4">
 
-                {/* Header Section */}
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 text-amber-500 bg-amber-500/10 px-4 py-1.5 rounded-full mb-4 border border-amber-500/20">
-                        <PenTool size={16} />
-                        <span className="text-sm font-medium">আমাদের লেখকবৃন্দ</span>
-                    </div>
-
-                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                        জনপ্রিয় <span className="text-gray-500">লেখকগণ</span>
-                    </h2>
-                    <p className="text-gray-400 text-base max-w-xl mx-auto">
-                        যাদের কলমে উঠে আসে অসাধারণ সব গল্প ও চরিত্র।
-                    </p>
-                </div>
+                {/* Header Section Removed to avoid duplication */}
 
                 {/* Grid Layout - Matching StoriesPage.css grid classes if possible, or using standard grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
