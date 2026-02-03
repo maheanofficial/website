@@ -1,8 +1,13 @@
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import Hero from '../components/Hero';
 import Skills from '../components/Skills';
 import Contact from '../components/Contact';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
+import StoryCard from '../components/StoryCard';
+import StoryCarousel from '../components/StoryCarousel';
+import { getStories } from '../utils/storyManager';
 
 const HomePage = () => {
     const schemaData = {
@@ -37,6 +42,37 @@ const HomePage = () => {
             />
 
             <Hero />
+
+            {/* Featured Stories Section */}
+            <div className="container py-12">
+                <div className="section-header text-center mb-12">
+                    <h2 className="section-title text-4xl font-bold mb-4 gradient-text">জনপ্রিয় গল্পসমূহ</h2>
+                    <p className="section-subtitle text-gray-400">যে গল্পগুলো পাঠকদের হৃদয়ে জায়গা করে নিয়েছে</p>
+                </div>
+                <StoryCarousel stories={getStories().filter(s => s.views > 50).slice(0, 5)} />
+            </div>
+
+            {/* Latest Stories Grid */}
+            <div className="container py-8">
+                <div className="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-2">সর্বশেষ প্রকাশিত</h2>
+                        <p className="text-gray-400 text-sm">আমাদের নতুন সব কালেকশন</p>
+                    </div>
+                    <Link to="/stories?tab=latest" className="text-amber-500 hover:text-amber-400 font-medium text-sm flex items-center gap-1">
+                        সব দেখুন <ChevronRight size={16} />
+                    </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {getStories()
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 4)
+                        .map(story => (
+                            <StoryCard key={story.id} story={story} />
+                        ))}
+                </div>
+            </div>
 
             <div className="container py-8">
                 <AdComponent slot="homepage-middle-ad" />
