@@ -95,17 +95,28 @@
     color: var(--accent-primary);
 }
 
-/* Subscription Form - Clean & Minimal */
+/* Subscription Form - Centered */
+.footer-centered-section {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--glass-border);
+}
+
 .footer-subscription {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     padding: var(--spacing-md);
     border-radius: var(--radius-md);
-    margin-top: var(--spacing-md);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
 }
 
 .footer-heading-sm {
-    font-size: var(--text-base);
+    font-size: var(--text-lg);
     color: var(--text-primary);
     font-weight: 600;
     margin-bottom: 4px;
@@ -114,13 +125,13 @@
 .footer-small-text {
     font-size: var(--text-xs);
     color: var(--text-tertiary);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
 .subscription-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
 }
 
 .input-group {
@@ -130,7 +141,7 @@
 
 .input-icon {
     position: absolute;
-    left: 12px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-tertiary);
@@ -142,9 +153,9 @@
     background: var(--bg-tertiary);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
-    padding: 10px 10px 10px 40px;
+    padding: 12px 12px 12px 42px;
     border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-family: var(--font-primary);
     transition: all var(--transition-fast);
 }
@@ -162,20 +173,22 @@
     /* Dark text on bright button for contrast */
     font-weight: 600;
     border: none;
-    padding: 10px;
+    padding: 12px;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
 }
 
 .subscription-btn:hover {
-    opacity: 0.9;
+    opacity: 0.95;
     transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 768px) {

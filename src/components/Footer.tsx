@@ -31,24 +31,28 @@ export default function Footer() {
                             <a href="https://youtube.com/@maheanstoryvoice" className="footer-link">YouTube</a>
                         </div>
 
-                        <div className="footer-subscription">
-                            <h4 className="footer-heading-sm">নতুন গল্পের আপডেট পান</h4>
-                            <p className="footer-small-text">আমরা স্প্যাম করি না, কথা দিলাম। 🤞</p>
 
-                            <form className="subscription-form" onSubmit={(e) => e.preventDefault()}>
-                                <div className="input-group">
-                                    <Mail className="input-icon" size={18} />
-                                    <input
-                                        type="email"
-                                        placeholder="আপনার ইমেইল দিন..."
-                                        className="subscription-input"
-                                    />
-                                </div>
-                                <button className="subscription-btn">
-                                    সাবস্ক্রাইব করুন <ArrowRight size={16} />
-                                </button>
-                            </form>
-                        </div>
+                    </div>
+                </div>
+
+                <div className="footer-centered-section">
+                    <div className="footer-subscription">
+                        <h4 className="footer-heading-sm">নতুন গল্পের আপডেট পান</h4>
+                        <p className="footer-small-text">আমরা স্প্যাম করি না, কথা দিলাম। 🤞</p>
+
+                        <form className="subscription-form" onSubmit={(e) => e.preventDefault()}>
+                            <div className="input-group">
+                                <Mail className="input-icon" size={18} />
+                                <input
+                                    type="email"
+                                    placeholder="আপনার ইমেইল দিন..."
+                                    className="subscription-input"
+                                />
+                            </div>
+                            <button className="subscription-btn">
+                                সাবস্ক্রাইব করুন <ArrowRight size={16} />
+                            </button>
+                        </form>
                     </div>
                 </div>
 
