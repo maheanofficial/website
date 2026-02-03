@@ -1,0 +1,457 @@
+import { useState, useRef, useEffect } from 'react';
+import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Mic2, X, Check, Settings2 } from 'lucide-react';
+import './AudioPlayer.css';
+
+interface AudioPlayerProps {
+    src?: string;
+    text?: string; // Content to read if no audio file
+    title?: string;
+    cover?: string;
+}
+
+const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerProps) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+
+    // TTS State
+    const [isTTS, setIsTTS] = useState(false);
+    const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+    // Voice Selection State
+    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+    const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+    const [showVoiceModal, setShowVoiceModal] = useState(false);
+
+    // Initial Setup
+    useEffect(() => {
+        // Force TTS if src is missing or is the placeholder, AND text contains content
+        const shouldUseTTS = (!src || src.includes('demo-story.mp3')) && !!text;
+        setIsTTS(shouldUseTTS);
+    }, [src, text]);
+
+    // Load Voices
+    useEffect(() => {
+        const loadVoices = () => {
+            const allVoices = window.speechSynthesis.getVoices();
+
+            // 1. Filter all Bangla Voices
+            const candidates = allVoices.filter(v =>
+                v.lang.includes('bn') ||
+                v.name.toLowerCase().includes('bangla') ||
+                v.name.toLowerCase().includes('bengali')
+            );
+
+            // 2. Classify by Gender (Heuristics)
+            // Common Female identifiers: 'Female', 'Google', 'Microsoft' (default desktop voices are usually female), 'Tripti'
+            // Common Male identifiers: 'Male', 'Pradeep', 'Bashkar', 'Suhas'
+
+            const femaleCandidates = candidates.filter(v =>
+                v.name.toLowerCase().includes('female') ||
+                v.name.includes('Google') ||
+                v.name.includes('Microsoft') ||
+                v.name.includes('Tripti')
+            );
+
+            const maleCandidates = candidates.filter(v =>
+                v.name.toLowerCase().includes('male') ||
+                v.name.includes('Pradeep') ||
+                v.name.includes('Bashkar') ||
+                v.name.includes('Suhas')
+            );
+
+            // 3. Select Best Pair (1 Female + 1 Male)
+            // If explicit male found, great. If not, and we have multiple candidates not marked female, assume potential male or alternate.
+
+            let bestFemale = femaleCandidates[0];
+            // If we didn't find a 'female' tagged one, but have candidates, pick the first one as primary (usually female)
+            if (!bestFemale && candidates.length > 0) bestFemale = candidates[0];
+
+            // Find a male that isn't the same as the female voice
+            let bestMale = maleCandidates.find(v => v.name !== bestFemale?.name);
+
+            // If explicitly identified male not found, look for *any* other voice that isn't the female one
+            if (!bestMale && candidates.length > 1) {
+                bestMale = candidates.find(v => v.name !== bestFemale?.name);
+            }
+
+            // 4. Construct Final List
+            const curatedList: SpeechSynthesisVoice[] = [];
+            if (bestFemale) curatedList.push(bestFemale);
+            if (bestMale) curatedList.push(bestMale);
+
+            setVoices(curatedList);
+
+            // Auto-select preferred (Default to Female/Primary)
+            if (!selectedVoice && curatedList.length > 0) {
+                setSelectedVoice(curatedList[0]);
+            }
+        };
+
+        loadVoices();
+
+        // Voice loading is async in some browsers (Chrome)
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        }
+    }, [selectedVoice]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (speechRef.current) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || isTTS) return;
+
+        const setAudioData = () => {
+            setDuration(audio.duration);
+        };
+
+        const setAudioTime = () => {
+            setCurrentTime(audio.currentTime);
+        };
+
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+        };
+
+        // Add event listeners
+        audio.addEventListener('loadeddata', setAudioData);
+        audio.addEventListener('timeupdate', setAudioTime);
+        audio.addEventListener('ended', handleEnded);
+
+        // Cleanup
+        return () => {
+            audio.removeEventListener('loadeddata', setAudioData);
+            audio.removeEventListener('timeupdate', setAudioTime);
+            audio.removeEventListener('ended', handleEnded);
+        };
+    }, [isTTS]);
+
+    // TTS Logic
+    // Helper to clean Markdown/HTML for TTS
+    const cleanTextForTTS = (rawText: string) => {
+        if (!rawText) return "";
+        return rawText
+            .replace(/\*\*/g, '')   // Remove bold markers
+            .replace(/\*/g, '')     // Remove italic markers
+            .replace(/^#+\s/gm, '') // Remove headers
+            .replace(/`/g, '')      // Remove code ticks
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Keep link text, remove URL
+            .replace(/<[^>]*>?/gm, ''); // Remove any HTML tags if present
+    };
+
+    // TTS Logic
+    const initTTS = () => {
+        if (!text) return;
+
+        // Cancel any existing speech
+        window.speechSynthesis.cancel();
+
+        const cleanedText = cleanTextForTTS(text);
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+
+        // Priority: Selected Voice > bn-BD default
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+            utterance.lang = selectedVoice.lang;
+        } else {
+            utterance.lang = 'bn-BD';
+        }
+
+        utterance.volume = volume;
+        // Storyteller Mode Settings:
+        utterance.rate = 0.85;
+        utterance.pitch = 0.95;
+
+        utterance.onend = () => {
+            setIsPlaying(false);
+        };
+
+        utterance.onpause = () => setIsPlaying(false);
+        utterance.onresume = () => setIsPlaying(true);
+        utterance.onstart = () => setIsPlaying(true);
+
+        // Error handling
+        utterance.onerror = (e) => {
+            console.error("TTS Error:", e);
+            setIsPlaying(false);
+        };
+
+        speechRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const togglePlay = () => {
+        if (isTTS) {
+            if (isPlaying) {
+                window.speechSynthesis.pause();
+                setIsPlaying(false);
+            } else {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    setIsPlaying(true);
+                } else {
+                    // Start fresh
+                    initTTS();
+                }
+            }
+        } else {
+            // HTML5 Audio Logic
+            if (audioRef.current) {
+                if (isPlaying) {
+                    audioRef.current.pause();
+                } else {
+                    audioRef.current.play();
+                }
+                setIsPlaying(!isPlaying);
+            }
+        }
+    };
+
+    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isTTS) return;
+
+        const time = parseFloat(e.target.value);
+        if (audioRef.current) {
+            audioRef.current.currentTime = time;
+            setCurrentTime(time);
+        }
+    };
+
+    const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const vol = parseFloat(e.target.value);
+        setVolume(vol);
+        setIsMuted(vol === 0);
+
+        if (isTTS) {
+            // Dynamic TTS volume update varies by browser
+        } else if (audioRef.current) {
+            audioRef.current.volume = vol;
+        }
+    };
+
+    const toggleMute = () => {
+        const newMuted = !isMuted;
+        setIsMuted(newMuted);
+
+        if (audioRef.current) {
+            audioRef.current.volume = newMuted ? 0 : volume || 1;
+        }
+    };
+
+    const formatTime = (time: number) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    };
+
+    const handleVoiceSelect = (voice: SpeechSynthesisVoice) => {
+        setSelectedVoice(voice);
+        // If playing, restart with new voice
+        if (isPlaying && isTTS) {
+            window.speechSynthesis.cancel();
+            setTimeout(() => {
+                // Restart with new voice
+                const cleanedText = cleanTextForTTS(text || "");
+                const utterance = new SpeechSynthesisUtterance(cleanedText);
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+                utterance.volume = volume;
+                utterance.rate = 0.85; // Keep consistent rate
+                utterance.pitch = 0.95;
+
+                utterance.onend = () => setIsPlaying(false);
+                utterance.onpause = () => setIsPlaying(false);
+                utterance.onresume = () => setIsPlaying(true);
+                utterance.onstart = () => setIsPlaying(true);
+
+                speechRef.current = utterance;
+                window.speechSynthesis.speak(utterance);
+                setIsPlaying(true);
+            }, 100);
+        }
+        setShowVoiceModal(false);
+    };
+
+    return (
+        <div className="audio-player glass-panel">
+            {!isTTS && <audio ref={audioRef} src={src} preload="metadata" />}
+
+            <div className="ap-info">
+                {cover && (
+                    <div className="ap-cover-wrapper">
+                        <img src={cover} alt="Cover" className={`ap-cover ${isPlaying ? 'spinning' : ''}`} />
+                    </div>
+                )}
+                <div className="ap-text">
+                    <h4 className="ap-title">{title}</h4>
+                    <span className="ap-status">
+                        {isPlaying ? (isTTS ? 'Reading Story...' : 'Now Playing...') : (isTTS ? 'Ready to Read' : 'Paused')}
+                    </span>
+                    {isTTS && selectedVoice && (
+                        <span className="text-[10px] text-amber-400 opacity-80 mt-1 truncate max-w-[150px]">
+                            Voice: {selectedVoice.name.replace(/Google|Microsoft|Bangla|Bengali|India/gi, '').replace(/[\(\)-]/g, '').trim() || 'Default'}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="ap-controls-container">
+                <div className="ap-main-controls">
+                    {!isTTS && (
+                        <button className="ap-btn secondary" onClick={() => {
+                            if (audioRef.current) audioRef.current.currentTime -= 10;
+                        }}>
+                            <SkipBack size={18} />
+                        </button>
+                    )}
+
+                    <button className="ap-btn primary play-btn" onClick={togglePlay}>
+                        {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+                    </button>
+
+                    {!isTTS && (
+                        <button className="ap-btn secondary" onClick={() => {
+                            if (audioRef.current) audioRef.current.currentTime += 10;
+                        }}>
+                            <SkipForward size={18} />
+                        </button>
+                    )}
+                </div>
+
+                {!isTTS ? (
+                    <div className="ap-progress-container">
+                        <span className="ap-time">{formatTime(currentTime)}</span>
+                        <input
+                            type="range"
+                            min="0"
+                            max={duration || 0}
+                            value={currentTime}
+                            onChange={handleSeek}
+                            className="ap-slider progress-slider"
+                        />
+                        <span className="ap-time">{formatTime(duration)}</span>
+                    </div>
+                ) : (
+                    <div className="w-full flex flex-col items-center justify-center gap-3 mt-4 border-t border-white/10 pt-4">
+                        {isPlaying && (
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                <span className="text-xs text-gray-200 font-medium tracking-wide opacity-90 uppercase text-center">
+                                    Reading in Progress...
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Premium Voice Selection Button */}
+                        <button
+                            className="voice-change-btn group"
+                            onClick={() => setShowVoiceModal(!showVoiceModal)}
+                            title="Change Reading Voice"
+                        >
+                            <Settings2 size={13} className="text-white/90 group-hover:rotate-90 transition-transform duration-500" />
+                            <span>Change Narrator Voice</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <div className="ap-volume-container">
+                <button className="ap-btn icon-only" onClick={toggleMute}>
+                    {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                </button>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolume}
+                    className="ap-slider volume-slider"
+                />
+            </div>
+
+            {/* Voice Selection Modal */}
+            {showVoiceModal && (
+                <div className="voice-selection-modal">
+                    <div className="voice-header">
+                        <span className="voice-title">Select Narrator Voice</span>
+                        <button className="close-btn" onClick={() => setShowVoiceModal(false)}>
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <div className="voice-list">
+                        {voices.length > 0 ? (
+                            voices.map((voice, idx) => {
+                                // Determine display label
+                                let label = voice.name.replace(/Google|Microsoft|Bangla|Bengali|India/gi, '').replace(/[\(\)-]/g, '').trim();
+                                let subLabel = "Natural Voice";
+
+                                if (voice.name.toLowerCase().includes('female') || voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Tripti')) {
+                                    label = "Female Narrator";
+                                    subLabel = voice.name.split(' ')[0] + " (Bangla)"; // e.g., Google (Bangla)
+                                } else if (voice.name.toLowerCase().includes('male') || voice.name.includes('Pradeep') || voice.name.includes('Bashkar')) {
+                                    label = "Male Narrator";
+                                    subLabel = voice.name.split(' ')[0] + " (Bangla)";
+                                } else {
+                                    label = `Narrator ${idx + 1}`;
+                                }
+
+                                return (
+                                    <button
+                                        key={`${voice.name}-${idx}`}
+                                        className={`voice-option ${selectedVoice?.name === voice.name ? 'active' : ''}`}
+                                        onClick={() => handleVoiceSelect(voice)}
+                                    >
+                                        <div className="flex flex-col items-start">
+                                            <span className="voice-name font-semibold text-sm">
+                                                {label}
+                                            </span>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">
+                                                    {subLabel}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {selectedVoice?.name === voice.name && <Check size={16} className="text-amber-400" />}
+                                    </button>
+                                )
+                            })
+                        ) : (
+                            <div className="text-xs text-center text-gray-400 py-6 flex flex-col items-center gap-3">
+                                <Mic2 size={24} className="opacity-40" />
+                                <div>
+                                    <p className="font-medium">No Bangla voice detected!</p>
+                                    <p className="opacity-60 text-[10px] mt-1 max-w-[200px]">
+                                        Please enable 'Text-to-Speech' data for Bengali in your device settings.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="text-[10px] text-amber-400 hover:underline mt-2"
+                                >
+                                    Click to Reload Voices
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default AudioPlayer;
