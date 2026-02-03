@@ -95,6 +95,89 @@
     color: var(--accent-primary);
 }
 
+/* Subscription Form - Clean & Minimal */
+.footer-subscription {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+}
+
+.footer-heading-sm {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.footer-small-text {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.subscription-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.input-group {
+    position: relative;
+    width: 100%;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+}
+
+.subscription-input {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 10px 10px 10px 40px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-family: var(--font-primary);
+    transition: all var(--transition-fast);
+}
+
+.subscription-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+}
+
+.subscription-btn {
+    width: 100%;
+    background: var(--accent-gradient);
+    color: var(--bg-primary);
+    /* Dark text on bright button for contrast */
+    font-weight: 600;
+    border: none;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all var(--transition-fast);
+}
+
+.subscription-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
 @media (max-width: 768px) {
     .footer-content {
         grid-template-columns: 1fr;
