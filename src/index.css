@@ -2,52 +2,51 @@
 
 /* Design Tokens & Variables */
 :root {
-  /* Premium Palette - Gold & Deep Slate */
-  --primary-hue: 45;
-  /* True Gold */
+  /* Reader-Friendly Premium Palette */
 
-  /* Backgrounds - Rich Deep Slate/Black */
-  --bg-primary: #050505;
-  /* Pure Deep Black */
-  --bg-secondary: #0a0a0a;
-  /* Slightly lighter for cards */
-  --bg-tertiary: #121212;
-  /* Inputs and accents */
+  /* Primary Hue - Antique Gold (Warmer, less harsh) */
+  --primary-hue: 40;
 
-  /* Accent - Luxurious Gold */
-  --accent-primary: #D4AF37;
-  /* Classic Metallic Gold */
-  --accent-secondary: #F1C40F;
-  /* Brighter Gold */
+  /* Backgrounds - Soft Charcoal & Deep Gray (Better for long reading) */
+  --bg-primary: #121212;
+  /* Soft Black (Charcoal) */
+  --bg-secondary: #1E1E1E;
+  /* Dark Gray for cards */
+  --bg-tertiary: #252525;
+  /* Lighter Gray for inputs */
 
-  /* Sophisticated Gradient - Gold to Deep Amber */
+  /* Accent - Antique Gold & Soft Amber */
+  --accent-primary: #C5A065;
+  /* Elegant Antique Gold */
+  --accent-secondary: #E0C080;
+  /* Soft Gold Highlight */
+
+  /* Gradient - Smooth & subtle */
   --accent-gradient: linear-gradient(135deg,
-      #D4AF37 0%,
-      #AA8A2E 50%,
-      #D4AF37 100%);
+      #C5A065 0%,
+      #AF8D55 50%,
+      #C5A065 100%);
 
-  /* Text Colors */
-  --text-primary: #F5F5F5;
-  /* Off-white for better readability on black */
-  --text-secondary: #A3A3A3;
-  /* Neutral gray */
-  --text-tertiary: #525252;
-  /* Darker gray */
+  /* Text Colors - High Readability */
+  --text-primary: #FAFAFA;
+  /* Creamy White (Not stark white) */
+  --text-secondary: #B0B0B0;
+  /* Warm Gray */
+  --text-tertiary: #757575;
+  /* Soft Muted Gray */
 
-  /* Glassmorphism - Premium & Clean */
-  --glass-bg: rgba(18, 18, 18, 0.7);
-  /* Darker glass tint */
-  --glass-border: rgba(212, 175, 55, 0.15);
-  /* Subtle Gold border */
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  /* Deeper shadow */
+  /* Glassmorphism - Frosted & Matte */
+  --glass-bg: rgba(30, 30, 30, 0.75);
+  /* Matte dark glass */
+  --glass-border: rgba(197, 160, 101, 0.15);
+  /* Soft Gold border */
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
-  /* Gold glow */
+  /* Shadows - Softer diffusion */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 25px rgba(197, 160, 101, 0.1);
 
   /* Spacing */
   --spacing-xs: 0.5rem;
@@ -56,10 +55,10 @@
   --spacing-lg: 4rem;
   --spacing-xl: 6rem;
 
-  /* Border Radius - Refined */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  /* Border Radius - Friendly & Modern */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
   --radius-full: 9999px;
 
   /* Transitions */
