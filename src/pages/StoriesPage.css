@@ -732,10 +732,37 @@
         justify-content: flex-start;
         padding-left: 20px;
         padding-right: 20px;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth scrolling on iOS */
+        scrollbar-width: none;
+        /* Hide scrollbar Firefox */
+        -ms-overflow-style: none;
+        /* Hide scrollbar IE/Edge */
+    }
+
+    .stories-sub-nav::-webkit-scrollbar {
+        display: none;
+        /* Hide scrollbar Chrome/Safari */
     }
 
     .sub-nav-item {
         white-space: nowrap;
+        flex-shrink: 0;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        /* Slight background for buttons */
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .sub-nav-item.active {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+    }
+
+    /* Remove underline on mobile since we use button style */
+    .sub-nav-item.active::after {
+        display: none;
     }
 
 
