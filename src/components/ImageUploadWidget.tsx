@@ -80,7 +80,7 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
                 />
             </div>
             {!value && (
-                <div className="flex justify-between items-center mt-5">
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
                     <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium ml-1">Max size: 2MB</span>
                     <button
                         type="button"
