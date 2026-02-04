@@ -36,7 +36,7 @@ const ImageUploader = ({ value, onChange, label = "Image", placeholder = "Image"
             <div className="flex items-start gap-4">
                 <div
                     className={`relative shrink-0 ${isRound ? 'rounded-full' : 'rounded-lg'} border border-white/10 bg-white/5 group shadow-lg`}
-                    style={{ width: '64px', height: '64px', minWidth: '64px', minHeight: '64px', flexShrink: 0, overflow: 'hidden', display: 'block' }}
+                    style={{ width: '150px', height: '150px', minWidth: '150px', minHeight: '150px', flexShrink: 0, overflow: 'hidden', display: 'block' }}
                 >
                     <SmartImage
                         src={value}
