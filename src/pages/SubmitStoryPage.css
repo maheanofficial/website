@@ -19,50 +19,40 @@
     background: rgba(30, 30, 30, 0.6);
 }
 
-.submit-btn-premium {
-    background: linear-gradient(135deg, #c5a065 0%, #e0c080 50%, #c5a065 100%);
-    background-size: 200% auto;
+/* Main Solid Gold Button Style (Like Screenshot) */
+.btn-gold-solid {
+    background-color: #C5A065;
     color: #000 !important;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(197, 160, 101, 0.3);
-    position: relative;
-    overflow: hidden;
-    animation: shine 3s infinite linear;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    /* Slightly rounded as per typical UI standards or screenshot */
+    box-shadow: none;
     transition: all 0.3s ease;
+    text-transform: none;
+    /* Screenshot shows normal text, not all-caps if not specified */
+    letter-spacing: normal;
 }
 
-.submit-btn-premium:hover {
-    background-position: right center;
+.btn-gold-solid:hover {
+    background-color: #b08d55;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(197, 160, 101, 0.5);
+    box-shadow: 0 4px 12px rgba(197, 160, 101, 0.4);
 }
 
-@keyframes shine {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    100% {
-        background-position: 200% 50%;
-    }
-}
-
-.add-part-btn {
-    background: rgba(197, 160, 101, 0.05);
-    border: 1px dashed rgba(197, 160, 101, 0.5);
-    color: #c5a065;
-    font-weight: 600;
+/* Secondary / Outline Button Style (For Add Part) */
+.btn-gold-outline {
+    background: transparent;
+    border: 2px solid #C5A065;
+    color: #C5A065 !important;
+    font-weight: 700;
+    border-radius: 8px;
     transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
 }
 
-.add-part-btn:hover {
-    background: rgba(197, 160, 101, 0.15);
+.btn-gold-outline:hover {
+    background: rgba(197, 160, 101, 0.1);
+    color: #e0c080 !important;
     border-color: #e0c080;
-    color: #ffd700;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }

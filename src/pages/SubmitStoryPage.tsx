@@ -229,7 +229,7 @@ const SubmitStoryPage = () => {
                             <button
                                 type="button"
                                 onClick={handleAddPart}
-                                className="text-sm bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1"
+                                className="text-sm text-amber-500 hover:text-amber-400 font-medium transition-colors flex items-center gap-1"
                             >
                                 <Plus size={14} /> নতুন পর্ব
                             </button>
@@ -274,7 +274,7 @@ const SubmitStoryPage = () => {
                         <button
                             type="button"
                             onClick={handleAddPart}
-                            className="add-part-btn w-full py-3 rounded-xl mb-8 flex items-center justify-center gap-2"
+                            className="btn-gold-outline w-full py-3 mb-8 flex items-center justify-center gap-2"
                         >
                             <Plus size={18} /> আরো একটি পর্ব যোগ করুন
                         </button>
@@ -283,7 +283,7 @@ const SubmitStoryPage = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`submit-btn-premium w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`btn-gold-solid w-full py-4 text-lg flex items-center justify-center gap-2 hover:scale-[1.01] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : (
                                 <>
