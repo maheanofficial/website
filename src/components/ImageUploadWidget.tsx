@@ -75,6 +75,7 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
                     type="file"
                     accept="image/*"
                     className="hidden"
+                    style={{ display: 'none' }}
                     onChange={handleFileChange}
                 />
             </div>
