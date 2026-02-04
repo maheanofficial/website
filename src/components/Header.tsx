@@ -35,38 +35,36 @@ export default function Header() {
         <header className={`header ${scrolled ? 'header-scrolled' : ''}`}>
             <div className="container">
                 <nav className="nav">
-                    <Link to="/" className="logo">
-                        <span className="logo-text" style={{ color: 'white' }}>মাহিয়ানের গল্পকথা</span>
-                        <Link to="/" className="text-2xl font-bold font-display tracking-tight flex items-center gap-2 z-50">
-                            <span className="text-white">Mahean</span>
-                            <span className="text-amber-500">Ahmed</span>
-                            <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">Beta</span>
-                        </Link>
+                    <Link to="/" className="text-2xl font-bold font-display tracking-tight flex items-center gap-2 z-50">
+                        <span className="text-white">Mahean</span>
+                        <span className="text-amber-500">Ahmed</span>
+                        <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">Beta</span>
+                    </Link>
 
-                        {/* Mobile Menu Toggle */}
-                        <button
-                            className={`menu-toggle ${isMenuOpen ? 'menu-toggle-open' : ''}`}
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            aria-label="Toggle menu"
-                        >
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </button>
+                    {/* Mobile Menu Toggle */}
+                    <button
+                        className={`menu-toggle ${isMenuOpen ? 'menu-toggle-open' : ''}`}
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        aria-label="Toggle menu"
+                    >
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
 
-                        <div className={`nav-links ${isMenuOpen ? 'nav-links-open' : ''}`}>
-                            {navigation.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    to={item.path}
-                                    className={`nav-link ${isActive(item.path) ? 'nav-link-active' : ''}`}
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
-                            <Link to="/admin" className="nav-link" style={{ fontSize: '0.7rem', opacity: 0.5 }}>লগিন / সাইন আপ</Link>
-                        </div>
+                    <div className={`nav-links ${isMenuOpen ? 'nav-links-open' : ''}`}>
+                        {navigation.map((item) => (
+                            <Link
+                                key={item.name}
+                                to={item.path}
+                                className={`nav-link ${isActive(item.path) ? 'nav-link-active' : ''}`}
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                        <Link to="/admin" className="nav-link" style={{ fontSize: '0.7rem', opacity: 0.5 }}>লগিন / সাইন আপ</Link>
+                    </div>
                 </nav>
             </div>
         </header>
