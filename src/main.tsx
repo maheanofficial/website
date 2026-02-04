@@ -4,8 +4,8 @@ import './index.css'
 import App from './App.tsx'
 import MaintenancePage from './components/MaintenancePage.tsx';
 
-// Check if we are in production (Netlify) or development (Localhost)
-const isProduction = import.meta.env.PROD;
+// Check if we are in production (Netlify) or simply NOT on localhost
+const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
 
 try {
   console.log("Mounting React Root...");
