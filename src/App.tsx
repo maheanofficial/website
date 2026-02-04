@@ -6,28 +6,51 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { trackVisit } from './utils/analyticsManager'
 
 // Pages
+import HomePage from './pages/HomePage'
+import AudiobooksPage from './pages/AudiobooksPage'
+import SkillsPage from './pages/SkillsPage'
+import ContactPage from './pages/ContactPage'
+import StoriesPage from './pages/StoriesPage'
+import StoryDetailsPage from './pages/StoryDetailsPage'
 import SubmitStoryPage from './pages/SubmitStoryPage'
+import AdminPage from './pages/AdminPage'
+import PrivacyPage from './pages/PrivacyPage'
+import TermsPage from './pages/TermsPage'
+import AboutPage from './pages/AboutPage'
+import LinksPage from './pages/LinksPage'
 
-// ... imports
+import ScrollToTop from './components/ScrollToTop'
+import './index.css'
 
-<Routes>
-  <Route path="/" element={<HomePage />} />
-  <Route path="/audiobooks" element={<AudiobooksPage />} />
-  <Route path="/stories" element={<StoriesPage />} />
-  <Route path="/stories/:id" element={<StoryDetailsPage />} />
-  <Route path="/submit-story" element={<SubmitStoryPage />} />
-  <Route path="/admin" element={<AdminPage />} />
-  <Route path="/skills" element={<SkillsPage />} />
-  <Route path="/contact" element={<ContactPage />} />
-  <Route path="/privacy" element={<PrivacyPage />} />
-  <Route path="/terms" element={<TermsPage />} />
-  <Route path="/about" element={<AboutPage />} />
-  <Route path="/links" element={<LinksPage />} />
-</Routes>
-        </main >
-  <Footer />
-      </Router >
-    </ErrorBoundary >
+function App() {
+  useEffect(() => {
+    trackVisit();
+  }, [])
+
+  return (
+    <ErrorBoundary>
+      <Router>
+        <ScrollToTop />
+        <Header />
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/audiobooks" element={<AudiobooksPage />} />
+            <Route path="/stories" element={<StoriesPage />} />
+            <Route path="/stories/:id" element={<StoryDetailsPage />} />
+            <Route path="/submit-story" element={<SubmitStoryPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/skills" element={<SkillsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/links" element={<LinksPage />} />
+          </Routes>
+        </main>
+        <Footer />
+      </Router>
+    </ErrorBoundary>
   )
 }
 
