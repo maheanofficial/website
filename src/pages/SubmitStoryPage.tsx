@@ -265,13 +265,14 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Action Buttons Container */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }} className="mt-8">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }} className="mt-10 mb-8">
                             <button
                                 type="button"
                                 onClick={handleAddPart}
-                                className="btn-gold-outline w-full py-3 flex items-center justify-center gap-2 group"
+                                style={{ marginBottom: '16px' }}
+                                className="btn-gold-outline w-full py-4 flex items-center justify-center gap-2 group"
                             >
-                                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                                <Plus size={20} className="group-hover:scale-110 transition-transform" />
                                 <span>আরো একটি পর্ব যোগ করুন</span>
                             </button>
 
