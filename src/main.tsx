@@ -3,9 +3,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-// FORCE RESET: Clear old data so only new 10 stories appear
-localStorage.clear();
-
 try {
   console.log("Mounting React Root...");
   createRoot(document.getElementById('root')!).render(
