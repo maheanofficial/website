@@ -4,6 +4,7 @@ import { PenTool, Image as ImageIcon, BookOpen, Send, User, Plus, Trash2, Globe,
 import { saveStory, type Story } from '../utils/storyManager';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
+import ImageUploadWidget from '../components/ImageUploadWidget';
 
 const SubmitStoryPage = () => {
     const navigate = useNavigate();
@@ -163,12 +164,6 @@ const SubmitStoryPage = () => {
                                 />
                             </div>
                         </div>
-
-                        import ImageUploadWidget from '../components/ImageUploadWidget';
-
-                        // ... existing imports ...
-
-                        // ... inside component ...
 
                         {/* Author Image & Category */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
