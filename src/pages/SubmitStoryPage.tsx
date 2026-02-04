@@ -271,30 +271,33 @@ const SubmitStoryPage = () => {
                             ))}
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={handleAddPart}
-                            className="btn-gold-outline w-full py-3 mb-8 flex items-center justify-center gap-2"
-                        >
-                            <Plus size={18} /> আরো একটি পর্ব যোগ করুন
-                        </button>
+                        {/* Action Buttons Container */}
+                        <div className="flex flex-col gap-6 mt-8">
+                            <button
+                                type="button"
+                                onClick={handleAddPart}
+                                className="btn-gold-outline w-full py-4 flex items-center justify-center gap-2 group"
+                            >
+                                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                                <span>আরো একটি পর্ব যোগ করুন</span>
+                            </button>
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className={`btn-gold-solid w-full py-4 text-lg flex items-center justify-center gap-2 hover:scale-[1.01] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                            {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : (
-                                <>
-                                    <Send size={20} /> গল্প জমা দিন
-                                </>
-                            )}
-                        </button>
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className={`btn-gold-solid w-full py-4 text-lg flex items-center justify-center gap-3 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : (
+                                    <>
+                                        <Send size={20} /> গল্প জমা দিন
+                                    </>
+                                )}
+                            </button>
 
-                        <p className="text-center text-gray-500 text-sm mt-4">
-                            * জমা দেওয়ার পর এডমিন প্যানেল থেকে রিভিউ করে পাবলিশ করা হবে।
-                        </p>
+                            <p className="text-center text-gray-500 text-sm mt-4">
+                                * জমা দেওয়ার পর এডমিন প্যানেল থেকে রিভিউ করে পাবলিশ করা হবে।
+                            </p>
 
                     </form>
                 </div>
