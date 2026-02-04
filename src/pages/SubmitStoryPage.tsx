@@ -265,7 +265,7 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Action Buttons Container */}
-                        <div className="flex flex-col gap-4 mt-8">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }} className="mt-8">
                             <button
                                 type="button"
                                 onClick={handleAddPart}
