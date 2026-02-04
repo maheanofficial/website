@@ -2,14 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import MaintenancePage from './components/MaintenancePage.tsx';
 
-// localStorage.clear(); // Temporary fix for bad data
+// Check if we are in production (Netlify) or development (Localhost)
+const isProduction = import.meta.env.PROD;
 
 try {
   console.log("Mounting React Root...");
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      {/* Show Maintenance Page ONLY in Production, otherwise show App */}
+      {isProduction ? <MaintenancePage /> : <App />}
     </StrictMode>,
   )
 } catch (e) {
