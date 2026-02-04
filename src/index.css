@@ -395,7 +395,7 @@ a:hover {
 }
 
 .fade-in-up {
-  animation: fadeInUp 0.8s ease-out;
+  animation: fadeInUp 0.8s ease-out backwards;
 }
 
 .float {

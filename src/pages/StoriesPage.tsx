@@ -138,7 +138,7 @@ export default function StoriesPage() {
     } : undefined;
 
     return (
-        <div className="stories-page-container">
+        <div className="stories-page-container fade-in-up">
             <SEO
                 title={authorFilter ? `${authorFilter} - বাংলা গল্প সমগ্র` : "বাংলা গল্প ও অডিওবুক কালেকশন - Mahean Ahmed"}
                 description={authorDetails?.bio || "সেরা বাংলা গল্পের কালেকশন। থ্রিলার, হরর, রোমান্টিক এবং সাসপেন্স সব ধরণের গল্প পড়ুন এখানে।"}

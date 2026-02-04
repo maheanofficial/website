@@ -35,9 +35,8 @@ export default function Header() {
         <header className={`header ${scrolled ? 'header-scrolled' : ''}`}>
             <div className="container">
                 <nav className="nav">
-                    <Link to="/" className="text-2xl font-bold font-display tracking-tight flex items-center gap-2 z-50">
-                        <span className="text-white">Mahean</span>
-                        <span className="text-amber-500">Ahmed</span>
+                    <Link to="/" className="logo">
+                        <span className="logo-text" style={{ color: 'white' }}>মাহিয়ানের গল্পকথা</span>
                     </Link>
 
                     {/* Mobile Menu Toggle */}
