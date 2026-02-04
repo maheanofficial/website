@@ -233,12 +233,12 @@ const SubmitStoryPage = () => {
                                 <div key={index} className="part-editor p-4 bg-black/20 rounded-xl border border-white/5 relative">
                                     <div className="flex justify-between items-center mb-3">
                                         <div className="w-full mr-4">
-                                            <label className="text-xs text-gray-400 block mb-1">পর্বের নাম</label>
+                                            <label className="text-sm text-gray-300 block mb-3 font-medium">পর্বের নাম</label>
                                             <input
                                                 type="text"
                                                 value={part.title}
                                                 onChange={(e) => handlePartChange(index, 'title', e.target.value)}
-                                                className="bg-transparent border-b border-white/10 w-full text-white focus:border-amber-500 focus:outline-none py-1 font-medium"
+                                                className="form-input bg-black/20 border border-white/10 rounded-lg p-3 w-full text-white focus:border-amber-500 focus:outline-none transition-colors"
                                             />
                                         </div>
                                         {parts.length > 1 && (
