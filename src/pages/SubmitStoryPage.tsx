@@ -265,11 +265,10 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Action Buttons Container */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }} className="mt-10 mb-8">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }} className="mt-8 mb-8">
                             <button
                                 type="button"
                                 onClick={handleAddPart}
-                                style={{ marginBottom: '16px' }}
                                 className="btn-gold-outline w-full py-4 flex items-center justify-center gap-2 group"
                             >
                                 <Plus size={20} className="group-hover:scale-110 transition-transform" />
