@@ -11,3 +11,34 @@
 .submit-form {
     background: rgba(30, 30, 30, 0.6);
 }
+
+.submit-btn-premium {
+    background: linear-gradient(135deg, #c5a065 0%, #e0c080 50%, #c5a065 100%);
+    background-size: 200% auto;
+    color: #000 !important;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(197, 160, 101, 0.3);
+    position: relative;
+    overflow: hidden;
+    animation: shine 3s infinite linear;
+    transition: all 0.3s ease;
+}
+
+.submit-btn-premium:hover {
+    background-position: right center;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(197, 160, 101, 0.5);
+}
+
+@keyframes shine {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
+}

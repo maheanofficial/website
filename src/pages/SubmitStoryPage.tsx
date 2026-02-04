@@ -174,7 +174,7 @@ const SubmitStoryPage = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`btn-primary w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`submit-btn-premium w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : (
                                 <>
