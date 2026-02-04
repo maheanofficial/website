@@ -1,0 +1,278 @@
+// import { supabase } from '../lib/supabase';
+
+export interface StoryPart {
+    id?: string;
+    title: string;
+    content: string;
+}
+
+export interface Story {
+    id: string;
+    title: string;
+    excerpt: string;
+    content: string;
+    authorId: string;
+    categoryId: string;
+    views: number;
+    image?: string;
+    date: string;
+    slug?: string;
+    author?: string;
+    category?: string;
+    cover_image?: string;
+    parts?: StoryPart[];
+    comments?: number;
+    is_featured?: boolean;
+    readTime?: string;
+    status?: 'published' | 'pending' | 'rejected';
+    submittedBy?: string; // userId of the writer
+}
+
+const STORAGE_KEY = 'mahean_stories';
+
+// Internal helper to get raw list
+const getRawStories = (): Story[] => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+        // Seed with initial data if empty
+        const initialStories: Story[] = [
+            {
+                id: '1',
+                title: 'পুরানো সেই দিনের কথা', // Rabindranath
+                excerpt: 'অতীতের স্মৃতিচারণ আর হারানো দিনের গল্প...',
+                content: 'অনেক দিন আগের কথা, যখন সময়টা ছিল বড্ড ধীরগতির...',
+                authorId: '1',
+                categoryId: 'classic',
+                views: 1250,
+                date: new Date().toISOString(),
+                author: 'রবীন্দ্রনাথ ঠাকুর',
+                category: 'ক্লাসিক',
+                image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8',
+                status: 'published'
+            },
+            {
+                id: '2',
+                title: 'দেবী', // Humayun Ahmed
+                excerpt: 'রানুর স্বপ্নের মধ্যে কি সত্যিই কোনো রহস্য লুকিয়ে আছে?',
+                content: 'রানুকে আমি প্রথম দেখি যখন তার বয়স দশ...',
+                authorId: '2',
+                categoryId: 'thriller',
+                views: 3400,
+                date: new Date(Date.now() - 86400000).toISOString(),
+                author: 'হুমায়ূন আহমেদ',
+                category: 'মিসির আলি',
+                image: 'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a',
+                status: 'published'
+            },
+            {
+                id: '3',
+                title: 'নীলোপল', // Sunil
+                excerpt: 'কাকাবাবু কি পারবেন নীল বিদ্রোহের রহস্য ভেদ করতে?',
+                content: 'পাহাড়ের উপর থেকে নিচের খাদটা দেখা যাচ্ছে...',
+                authorId: '3',
+                categoryId: 'adventure',
+                views: 2100,
+                date: new Date(Date.now() - 172800000).toISOString(),
+                author: 'সুনীল গঙ্গোপাধ্যায়',
+                category: 'অ্যাডভেঞ্চার',
+                image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
+                status: 'published'
+            },
+            {
+                id: '4',
+                title: 'মহেশ', // Sarat Chandra
+                excerpt: 'গফুর আর তার প্রিয় ষাঁড় মহেশের এক করুণ কাহিনী।',
+                content: 'তর্করত্ন মশাই যখন গফুরের উঠোনে পা দিলেন...',
+                authorId: '4',
+                categoryId: 'tragedy',
+                views: 1800,
+                date: new Date(Date.now() - 259200000).toISOString(),
+                author: 'শরৎচন্দ্র চট্টোপাধ্যায়',
+                category: 'ট্র্যাজেডি',
+                image: 'https://images.unsplash.com/photo-1599905952671-55883d65017e',
+                status: 'published'
+            },
+            {
+                id: '5',
+                title: 'সোনার কেল্লা', // Satyajit Ray
+                excerpt: 'মুকুল কি পারবে তার পূর্বজন্মের স্মৃতি খুঁজে পেতে?',
+                content: 'ফেলুদা বললেন, তোপসে তৈরী হয়ে নে...',
+                authorId: '5',
+                categoryId: 'mystery',
+                views: 4500,
+                date: new Date(Date.now() - 345600000).toISOString(),
+                author: 'সত্যজিৎ রায়',
+                category: 'গোয়েন্দা',
+                image: 'https://images.unsplash.com/photo-1476900966873-12c82823b10b',
+                status: 'published'
+            },
+            {
+                id: '6',
+                title: 'পথের পাঁচালী', // Bibhutibhushan
+                excerpt: 'অপু আর দুর্গার শৈশব, গ্রামীণ বাংলার এক শাশ্বত চিত্র।',
+                content: 'হরিহর রায়ের আদি নিবাস ছিল যশোহর জেলার...',
+                authorId: '6',
+                categoryId: 'novel',
+                views: 2800,
+                date: new Date(Date.now() - 432000000).toISOString(),
+                author: 'বিভূতিভূষণ বন্দ্যোপাধ্যায়',
+                category: 'উপন্যাস',
+                image: 'https://images.unsplash.com/photo-1516934024742-b461fba47600',
+                status: 'published'
+            },
+            {
+                id: '7',
+                title: 'ভূতুড়ে ঘড়ি', // Shirshendu
+                excerpt: 'পুরানো বাড়ির চিলেকোঠায় পাওয়া অদ্ভুত এক ঘড়ির গল্প।',
+                content: 'ঘড়িটা যখন দম দিলাম, তখন রাত বারোটা...',
+                authorId: '7',
+                categoryId: 'ghost',
+                views: 1560,
+                date: new Date(Date.now() - 518400000).toISOString(),
+                author: 'শীর্ষেন্দু মুখোপাধ্যায়',
+                category: 'ভূতের গল্প',
+                image: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744',
+                status: 'published'
+            },
+            {
+                id: '8',
+                title: 'বিদ্রোহী', // Nazrul
+                excerpt: 'বল বীর, বল উন্নত মম শির...',
+                content: 'মহা-বিদ্রোহী রণক্লান্ত, আমি সেই দিন হব শান্ত...',
+                authorId: '8',
+                categoryId: 'poetry',
+                views: 5000,
+                date: new Date(Date.now() - 604800000).toISOString(),
+                author: 'কাজী নজরুল ইসলাম',
+                category: 'কবিতা',
+                image: 'https://images.unsplash.com/photo-1533633658252-4752b07e155c',
+                status: 'published'
+            },
+            {
+                id: '9',
+                title: 'কপালকুণ্ডলা', // Bankim
+                excerpt: 'পথিক, তুমি কি পথ হারাইয়াছ?',
+                content: 'নবকুমার যখন বনমধ্যে প্রবেশ করিলেন...',
+                authorId: '9',
+                categoryId: 'romance',
+                views: 1950,
+                date: new Date(Date.now() - 691200000).toISOString(),
+                author: 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়',
+                category: 'রোমান্টিক',
+                image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
+                status: 'published'
+            },
+            {
+                id: '10',
+                title: 'অশরীরের ছায়া', // Mahean
+                excerpt: 'এক ঝড়ের রাতে রেডিও স্টেশনে ঘটে যাওয়া অদ্ভুত ঘটনা।',
+                content: 'মাঝরাত। আমি স্টুডিওতে একা...',
+                authorId: '10',
+                categoryId: 'horror',
+                views: 890,
+                date: new Date(Date.now() - 777600000).toISOString(),
+                author: 'মাহিয়ান আহমেদ',
+                category: 'হরর',
+                image: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c',
+                status: 'published'
+            }
+        ];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialStories));
+        return initialStories;
+    }
+    return JSON.parse(stored);
+};
+
+// Public facing - only published
+export const getStories = (): Story[] => {
+    const stories = getRawStories();
+    // Default to 'published' for legacy stories that don't have a status
+    return stories.filter(s => !s.status || s.status === 'published');
+};
+
+// Admin facing - all stories
+export const getAllStories = (): Story[] => {
+    return getRawStories();
+};
+
+export const getStoryById = (id: string): Story | null => {
+    // Admins might need to preview pending stories, so check raw list
+    // Ideally we'd separate this, but for now allow ID lookup to find any story
+    const stories = getRawStories();
+    return stories.find(s => s.id === id) || null;
+};
+
+export const saveStory = async (story: Story) => {
+    const stories = getRawStories();
+    const existingIndex = stories.findIndex(s => s.id === story.id);
+
+    // Default status if not provided
+    if (!story.status) {
+        // If it's an update, keep existing status, otherwise default to published (legacy) 
+        // OR pending (if we enforce it). 
+        // For now, let the UI decide, but fallback to 'published' if missing on legacy.
+        story.status = existingIndex >= 0 ? (stories[existingIndex].status || 'published') : 'published';
+    }
+
+    if (existingIndex >= 0) {
+        stories[existingIndex] = story;
+    } else {
+        stories.unshift(story);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+
+    // TODO: Sync to Supabase
+
+    const { logActivity } = await import('./activityLogManager');
+    const action = existingIndex >= 0 ? 'update' : 'create';
+    await logActivity(action, 'story', `${action === 'create' ? 'Created' : 'Updated'} story: ${story.title} (${story.status})`);
+};
+
+export const updateStoryStatus = async (id: string, status: 'published' | 'pending' | 'rejected') => {
+    const stories = getRawStories();
+    const story = stories.find(s => s.id === id);
+    if (story) {
+        story.status = status;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+
+        const { logActivity } = await import('./activityLogManager');
+        await logActivity('update', 'story', `Changed status of "${story.title}" to ${status}`);
+    }
+};
+
+export const deleteStory = async (id: string) => {
+    const stories = getRawStories();
+    const story = stories.find(s => s.id === id);
+    if (!story) return;
+
+    const { moveToTrash } = await import('./trashManager');
+    await moveToTrash('story', id, story, story.title);
+
+    const filtered = stories.filter(s => s.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+
+    // TODO: Sync to Supabase
+
+    const { logActivity } = await import('./activityLogManager');
+    await logActivity('delete', 'story', `Deleted story: ${story.title}`);
+};
+
+export const restoreStory = async (story: Story) => {
+    // When restoring, maybe set to pending if it was deleted? 
+    // For now, keep as is, just save it back.
+    await saveStory(story);
+    const { logActivity } = await import('./activityLogManager');
+    await logActivity('restore', 'story', `Restored story: ${story.title}`);
+};
+
+export const incrementViews = (id: string) => {
+    const stories = getRawStories();
+    const story = stories.find(s => s.id === id);
+    if (story) {
+        story.views = (story.views || 0) + 1;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+
+        // TODO: Sync to Supabase
+    }
+};
