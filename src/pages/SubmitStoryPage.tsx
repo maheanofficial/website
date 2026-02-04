@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenTool, Image as ImageIcon, BookOpen, Send, User, Plus, Trash2, Globe } from 'lucide-react';
+import { PenTool, Image as ImageIcon, BookOpen, Send, User, Plus, Trash2, Globe, ArrowRight } from 'lucide-react';
 import { saveStory, type Story } from '../utils/storyManager';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
@@ -265,11 +265,11 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Action Buttons Container */}
-                        <div className="flex flex-col gap-6 mt-8">
+                        <div className="flex flex-col gap-4 mt-8">
                             <button
                                 type="button"
                                 onClick={handleAddPart}
-                                className="btn-gold-outline w-full py-4 flex items-center justify-center gap-2 group"
+                                className="btn-gold-outline w-full py-3 flex items-center justify-center gap-2 group"
                             >
                                 <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
                                 <span>আরো একটি পর্ব যোগ করুন</span>
@@ -279,11 +279,12 @@ const SubmitStoryPage = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className={`btn-gold-solid w-full py-4 text-lg flex items-center justify-center gap-3 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                className={`btn-gold-solid w-full py-4 text-lg flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
                                 {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : (
                                     <>
-                                        <Send size={20} /> গল্প জমা দিন
+                                        <span>গল্প জমা দিন</span>
+                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
                             </button>
