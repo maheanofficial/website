@@ -164,18 +164,21 @@ const SubmitStoryPage = () => {
                             </div>
                         </div>
 
+                        import ImageUploadWidget from '../components/ImageUploadWidget';
+
+                        // ... existing imports ...
+
+                        // ... inside component ...
+
                         {/* Author Image & Category */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="form-group">
-                                <label className="flex items-center gap-2 text-gray-300 mb-2 text-sm font-medium">
-                                    <ImageIcon size={16} className="text-amber-500" /> লেখকের ছবি (লিংক)
-                                </label>
-                                <input
-                                    type="url"
-                                    className="form-input bg-black/20 border border-white/10 rounded-lg p-3 w-full text-white focus:border-amber-500 focus:outline-none transition-colors"
-                                    placeholder="লেখকের ছবির লিংক দিন"
+                                <ImageUploadWidget
+                                    label="লেখকের ছবি (অপশনাল)"
+                                    icon={<ImageIcon size={16} className="text-amber-500" />}
                                     value={formData.author_image}
-                                    onChange={e => setFormData({ ...formData, author_image: e.target.value })}
+                                    onChange={(val) => setFormData({ ...formData, author_image: val })}
+                                    placeholder="https://example.com/author.jpg"
                                 />
                             </div>
                             <div className="form-group">
@@ -196,15 +199,12 @@ const SubmitStoryPage = () => {
 
                         {/* Cover Info */}
                         <div className="form-group mb-6">
-                            <label className="flex items-center gap-2 text-gray-300 mb-2 text-sm font-medium">
-                                <ImageIcon size={16} className="text-amber-500" /> গল্পের কভার ইমেজ (অপশনাল)
-                            </label>
-                            <input
-                                type="url"
-                                className="form-input bg-black/20 border border-white/10 rounded-lg p-3 w-full text-white focus:border-amber-500 focus:outline-none transition-colors"
-                                placeholder="https://example.com/cover-image.jpg"
+                            <ImageUploadWidget
+                                label="গল্পের কভার ইমেজ (অপশনাল)"
+                                icon={<ImageIcon size={16} className="text-amber-500" />}
                                 value={formData.cover_image}
-                                onChange={e => setFormData({ ...formData, cover_image: e.target.value })}
+                                onChange={(val) => setFormData({ ...formData, cover_image: val })}
+                                placeholder="https://example.com/cover.jpg"
                             />
                         </div>
 
