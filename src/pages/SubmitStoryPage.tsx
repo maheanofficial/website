@@ -61,7 +61,7 @@ const SubmitStoryPage = () => {
                 description="আপনার লেখা গল্প জমা দিন এবং শেয়ার করুন হাজারো পাঠকের সাথে।"
             />
 
-            <div className="container pb-20 pt-36 md:pt-48">
+            <div className="container pb-20">
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-12">
                         <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-500 px-4 py-2 rounded-full border border-amber-500/20 mb-4">
