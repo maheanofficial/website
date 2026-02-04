@@ -80,14 +80,14 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
                 />
             </div>
             {!value && (
-                <div className="flex justify-between items-center mt-2 px-1">
-                    <p className="text-xs text-gray-500">Paste an image link directly.</p>
+                <div className="flex justify-between items-center mt-3">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Max size: 2MB</span>
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-colors"
+                        className="text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500 hover:text-black px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5 transition-all duration-300 shadow-sm"
                     >
-                        <Upload size={12} /> Upload from device
+                        <Upload size={14} /> Upload Image
                     </button>
                 </div>
             )}
