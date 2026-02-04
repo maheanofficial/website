@@ -60,43 +60,23 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
                 </div>
 
                 <div className="flex-1 flex flex-col gap-2">
-                    {!showUrlInput ? (
-                        <div className="flex gap-2 h-10">
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 bg-transparent border border-white/20 hover:border-white/50 text-gray-300 hover:text-white rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                            >
-                                <Upload size={14} /> Upload Pic
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowUrlInput(true)}
-                                className="bg-gray-200 hover:bg-white text-black px-6 rounded-full flex items-center justify-center transition-all shadow-sm min-w-[60px]"
-                                title="Enter URL"
-                            >
-                                <LinkIcon size={18} />
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex gap-2 h-10 animate-fade-in">
-                            <input
-                                type="text"
-                                value={value.startsWith('data:') ? '' : value}
-                                onChange={(e) => onChange(e.target.value)}
-                                placeholder="Paste image link..."
-                                className="flex-1 bg-black/30 border border-amber-500 rounded-lg px-3 text-sm text-white focus:outline-none"
-                                autoFocus
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowUrlInput(false)}
-                                className="px-3 bg-white/10 hover:bg-white/20 rounded-lg text-white"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 btn btn-secondary text-sm flex items-center justify-center gap-2 py-2"
+                        >
+                            <Upload size={16} /> Upload Pic
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowUrlInput(!showUrlInput)}
+                            className="btn btn-outline text-sm px-3"
+                            title="Enter URL"
+                        >
+                            <LinkIcon size={16} />
+                        </button>
+                    </div>
 
                     <input
                         type="file"
@@ -107,8 +87,18 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
                         style={{ display: 'none' }}
                     />
 
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest pl-1">
-                        {value ? 'Image Selected' : 'No image selected • Max 2MB'}
+                    {showUrlInput && (
+                        <input
+                            type="text"
+                            value={value || ''}
+                            onChange={(e) => onChange(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                            className="form-input text-sm py-2"
+                        />
+                    )}
+
+                    <p className="text-xs text-gray-500">
+                        {value ? 'Image selected' : 'No image. Showing name initials.'}
                     </p>
                 </div>
             </div>
