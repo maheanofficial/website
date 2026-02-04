@@ -224,7 +224,6 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Story Parts Section */}
-                        {/* Story Parts Section */}
                         <div className="mb-6 pb-2 border-b border-white/10">
                             <h3 className="text-xl font-bold text-amber-500 mb-1">গল্পের পর্বসমূহ</h3>
                         </div>
