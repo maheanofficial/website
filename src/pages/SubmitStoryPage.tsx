@@ -231,7 +231,7 @@ const SubmitStoryPage = () => {
                         <div className="space-y-6 mb-8">
                             {parts.map((part, index) => (
                                 <div key={index} className="part-editor p-4 bg-black/20 rounded-xl border border-white/5 relative">
-                                    <div className="flex justify-between items-center mb-3">
+                                    <div className="flex justify-between items-center mb-6">
                                         <div className="w-full mr-4">
                                             <label className="text-sm text-gray-300 block mb-3 font-medium">পর্বের নাম</label>
                                             <input
