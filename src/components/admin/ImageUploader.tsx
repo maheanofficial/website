@@ -17,6 +17,10 @@ const ImageUploader = ({ value, onChange, label = "Image", placeholder = "Image"
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert("File size exceeds 2MB limit.");
+                return;
+            }
             const reader = new FileReader();
             reader.onloadend = () => {
                 const base64 = reader.result as string;
