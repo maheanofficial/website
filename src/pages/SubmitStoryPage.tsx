@@ -224,15 +224,9 @@ const SubmitStoryPage = () => {
                         </div>
 
                         {/* Story Parts Section */}
-                        <div className="mb-6 pb-2 border-b border-white/10 flex justify-between items-center">
+                        {/* Story Parts Section */}
+                        <div className="mb-6 pb-2 border-b border-white/10">
                             <h3 className="text-xl font-bold text-amber-500 mb-1">গল্পের পর্বসমূহ</h3>
-                            <button
-                                type="button"
-                                onClick={handleAddPart}
-                                className="text-sm text-amber-500 hover:text-amber-400 font-medium transition-colors flex items-center gap-1"
-                            >
-                                <Plus size={14} /> নতুন পর্ব
-                            </button>
                         </div>
 
                         <div className="space-y-6 mb-8">
@@ -294,10 +288,11 @@ const SubmitStoryPage = () => {
                                     </>
                                 )}
                             </button>
+                        </div>
 
-                            <p className="text-center text-gray-500 text-sm mt-4">
-                                * জমা দেওয়ার পর এডমিন প্যানেল থেকে রিভিউ করে পাবলিশ করা হবে।
-                            </p>
+                        <p className="text-center text-gray-500 text-sm mt-4">
+                            * জমা দেওয়ার পর এডমিন প্যানেল থেকে রিভিউ করে পাবলিশ করা হবে।
+                        </p>
 
                     </form>
                 </div>
