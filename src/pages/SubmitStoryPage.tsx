@@ -274,7 +274,7 @@ const SubmitStoryPage = () => {
                         <button
                             type="button"
                             onClick={handleAddPart}
-                            className="w-full py-3 border border-dashed border-white/20 rounded-xl text-gray-400 hover:text-white hover:border-amber-500/50 hover:bg-amber-500/5 transition-all mb-8 flex items-center justify-center gap-2"
+                            className="add-part-btn w-full py-3 rounded-xl mb-8 flex items-center justify-center gap-2"
                         >
                             <Plus size={18} /> আরো একটি পর্ব যোগ করুন
                         </button>
