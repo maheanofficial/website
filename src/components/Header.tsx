@@ -38,7 +38,6 @@ export default function Header() {
                     <Link to="/" className="text-2xl font-bold font-display tracking-tight flex items-center gap-2 z-50">
                         <span className="text-white">Mahean</span>
                         <span className="text-amber-500">Ahmed</span>
-                        <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">Beta</span>
                     </Link>
 
                     {/* Mobile Menu Toggle */}
