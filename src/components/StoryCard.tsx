@@ -7,11 +7,15 @@ import './StoryCard.css';
 
 interface StoryCardProps {
     story: Story;
+    index?: number;
 }
 
-export default function StoryCard({ story }: StoryCardProps) {
+export default function StoryCard({ story, index = 0 }: StoryCardProps) {
     return (
-        <article className="story-card">
+        <article
+            className="story-card fade-in-up"
+            style={{ animationDelay: `${index * 0.1}s` }}
+        >
             <div className="story-card-image">
                 <SmartImage
                     src={story.cover_image}

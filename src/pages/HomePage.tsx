@@ -68,8 +68,8 @@ const HomePage = () => {
                     {getStories()
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .slice(0, 4)
-                        .map(story => (
-                            <StoryCard key={story.id} story={story} />
+                        .map((story, index) => (
+                            <StoryCard key={story.id} story={story} index={index} />
                         ))}
                 </div>
             </div>

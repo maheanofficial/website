@@ -146,7 +146,7 @@ const StoryDetailsPage = () => {
     };
 
     return (
-        <article className="story-details-page">
+        <article className="story-details-page fade-in-up">
             {/* Reading Progress Bar */}
             <div className="reading-progress-bar">
                 <div

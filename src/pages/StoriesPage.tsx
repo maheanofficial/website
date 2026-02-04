@@ -258,8 +258,8 @@ export default function StoriesPage() {
                     </div>
 
                     <div className="stories-grid-top mb-12">
-                        {filteredStories.map(story => (
-                            <StoryCard key={story.id} story={story} />
+                        {filteredStories.map((story, index) => (
+                            <StoryCard key={story.id} story={story} index={index} />
                         ))}
                     </div>
                 </div>
