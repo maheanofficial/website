@@ -39,18 +39,10 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
                     <div className="relative group">
                         <input
                             type="text"
-                            className="form-input bg-black/20 border border-white/10 rounded-lg p-3 pr-12 w-full text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none transition-colors"
+                            className="form-input bg-black/20 border border-white/10 rounded-lg p-3 w-full text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none transition-colors"
                             placeholder={placeholder}
                             onChange={(e) => onChange(e.target.value)}
                         />
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-amber-500 transition-colors"
-                            title="Upload Image"
-                        >
-                            <Upload size={18} />
-                        </button>
                     </div>
                 ) : (
                     <div
@@ -86,7 +78,18 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
                     onChange={handleFileChange}
                 />
             </div>
-            {!value && <p className="text-xs text-gray-600 mt-1 ml-1">Paste a link or click the upload icon.</p>}
+            {!value && (
+                <div className="flex justify-between items-center mt-2 px-1">
+                    <p className="text-xs text-gray-500">Paste an image link directly.</p>
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-colors"
+                    >
+                        <Upload size={12} /> Upload from device
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
