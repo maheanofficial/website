@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Link as LinkIcon } from 'lucide-react';
-import SmartImage from './SmartImage';
 
 interface ImageUploadWidgetProps {
     label: string;
@@ -33,84 +32,89 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image 
 
     return (
         <div className="form-group mb-6">
-            <label className="flex items-center gap-2 text-gray-300 mb-3 text-sm font-medium">
+            <label className="flex items-center gap-2 text-gray-300 mb-2 text-sm font-medium">
                 {icon} {label}
             </label>
 
-            <div className="flex items-start gap-4 p-4 bg-black/20 border border-white/5 rounded-xl">
-                {/* Preview Box */}
-                <div
-                    className={`relative shrink-0 ${isRound ? 'rounded-full' : 'rounded-lg'} border border-white/10 bg-white/5 overflow-hidden group shadow-lg`}
-                    style={{ width: '80px', height: '80px', minWidth: '80px', minHeight: '80px' }}
-                >
-                    <SmartImage
-                        src={value}
-                        alt={label}
-                        className="w-full h-full object-cover"
-                        isRound={isRound}
-                    />
+            {/* The Main Container */}
+            <div className={`relative ${value ? 'p-3 bg-black/20 border border-white/5 rounded-xl' : ''}`}>
 
-                    {value && (
-                        <button
-                            type="button"
-                            onClick={() => onChange('')}
-                            className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                            title="Remove"
-                        >
-                            <X size={12} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Controls */}
-                <div className="flex-1 flex flex-col gap-3">
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 border border-gray-600 text-gray-300 hover:border-amber-500 hover:text-amber-500 bg-transparent text-xs font-semibold uppercase tracking-wider py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
-                        >
-                            <Upload size={14} /> Upload Pic
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowUrlInput(!showUrlInput)}
-                            className={`border ${showUrlInput ? 'border-amber-500 text-amber-500' : 'border-gray-600 text-gray-400'} hover:border-amber-500 hover:text-amber-500 bg-transparent p-2.5 rounded-lg transition-all duration-300`}
-                            title="Enter URL"
-                        >
-                            <LinkIcon size={16} />
-                        </button>
+                {/* Preview State (If image selected) */}
+                {value ? (
+                    <div className="flex items-center gap-4">
+                        <div className={`relative shrink-0 ${isRound ? 'rounded-full' : 'rounded-lg'} border border-white/10 bg-white/5 overflow-hidden w-16 h-16`}>
+                            <img src={value} alt="Preview" className="w-full h-full object-cover" />
+                            <button
+                                type="button"
+                                onClick={() => onChange('')}
+                                className="absolute top-0 right-0 p-1 bg-black/50 text-white hover:bg-red-500 rounded-bl-lg transition-colors"
+                            >
+                                <X size={12} />
+                            </button>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm text-gray-300 font-medium truncate">Image Selected</p>
+                            <button
+                                onClick={() => onChange('')}
+                                className="text-xs text-red-400 hover:text-red-300 mt-1"
+                            >
+                                Remove & Change
+                            </button>
+                        </div>
                     </div>
+                ) : (
+                    /* Initial State (Buttons) - Matches Screenshot EXACTLY */
+                    !showUrlInput ? (
+                        <div className="flex items-stretch gap-3">
+                            {/* Left Button: Transparent, Bordered, Rectangular */}
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex-[2] border border-gray-600 hover:border-gray-400 bg-transparent rounded-lg py-3 px-4 flex items-center justify-center gap-3 transition-colors h-[50px] group"
+                            >
+                                <Upload size={18} className="text-gray-400 group-hover:text-white" />
+                                <span className="text-gray-400 font-bold text-sm tracking-widest uppercase group-hover:text-white">UPLOAD PIC</span>
+                            </button>
 
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="hidden"
-                        style={{ display: 'none' }}
-                    />
-
-                    {showUrlInput && (
-                        <div className="animate-fade-in-up">
+                            {/* Right Button: White, Pill Shape */}
+                            <button
+                                type="button"
+                                onClick={() => setShowUrlInput(true)}
+                                className="flex-1 bg-gray-200 hover:bg-white text-black rounded-[30px] flex items-center justify-center transition-transform hover:scale-105 h-[50px]"
+                                title="Enter URL"
+                            >
+                                <LinkIcon size={20} strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    ) : (
+                        /* URL Input Mode */
+                        <div className="flex items-center gap-2 animate-fade-in">
                             <input
                                 type="text"
-                                value={value || ''}
                                 onChange={(e) => onChange(e.target.value)}
-                                placeholder="https://example.com/image.jpg"
-                                className="form-input bg-black/40 border border-white/10 rounded-lg p-2.5 w-full text-white text-sm focus:border-amber-500 focus:outline-none transition-colors"
+                                placeholder="Paste image link..."
+                                className="flex-1 bg-transparent border border-amber-500 rounded-lg p-3 text-white focus:outline-none h-[50px]"
                                 autoFocus
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowUrlInput(false)}
+                                className="bg-gray-800 text-gray-400 hover:text-white p-3 rounded-lg h-[50px] w-[50px] flex items-center justify-center"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
-                    )}
+                    )
+                )}
 
-                    <div className="flex justify-between items-center px-1">
-                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">
-                            {value ? 'Image Selected' : 'No Image Selected'}
-                        </p>
-                        <span className="text-[10px] text-gray-600">MAX 2MB</span>
-                    </div>
-                </div>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                    style={{ display: 'none' }}
+                />
             </div>
         </div>
     );
