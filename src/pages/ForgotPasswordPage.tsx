@@ -144,6 +144,7 @@ const ForgotPasswordPage = () => {
                                     placeholder="email@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
                                     required
                                     className="w-full"
                                 />
@@ -157,7 +158,7 @@ const ForgotPasswordPage = () => {
                     </form>
 
                     <div className="login-footer">
-                        অথবা, <Link to="/submit-story" className="signup-link inline-flex items-center gap-1">
+                        অথবা, <Link to="/login" className="signup-link inline-flex items-center gap-1">
                             <ArrowLeft size={14} /> ফিরে যান লগ ইন
                         </Link>
                     </div>

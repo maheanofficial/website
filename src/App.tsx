@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -20,9 +20,28 @@ import TermsPage from './pages/TermsPage'
 import AboutPage from './pages/AboutPage'
 import LinksPage from './pages/LinksPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import UpdatePasswordPage from './pages/UpdatePasswordPage'
 
 import ScrollToTop from './components/ScrollToTop'
 import './index.css'
+
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  // Check if current path starts with /admin or /dashboard
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard');
+
+  return (
+    <>
+      {!isAdminRoute && <Header />}
+      <main>
+        {children}
+      </main>
+      {!isAdminRoute && <Footer />}
+    </>
+  );
+};
+
+
 
 function App() {
   useEffect(() => {
@@ -33,16 +52,15 @@ function App() {
     <ErrorBoundary>
       <Router>
         <ScrollToTop />
-        <Header />
-        <main>
+        <Layout>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/audiobooks" element={<AudiobooksPage />} />
             <Route path="/stories" element={<StoriesPage />} />
             <Route path="/stories/:id" element={<StoryDetailsPage />} />
-            <Route path="/submit-story" element={<SubmitStoryPage />} />
-            <Route path="/submit-story" element={<SubmitStoryPage />} />
+            <Route path="/login" element={<SubmitStoryPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/dashboard" element={<AdminPage />} />
@@ -53,8 +71,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/links" element={<LinksPage />} />
           </Routes>
-        </main>
-        <Footer />
+        </Layout>
       </Router>
     </ErrorBoundary>
   )

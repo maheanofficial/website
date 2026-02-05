@@ -1,0 +1,233 @@
+/* Dashboard Analytics - GolpoHub Style */
+.dashboard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.dashboard-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    /* Align right */
+    margin-bottom: 20px;
+    /* More space */
+    position: relative;
+    z-index: 200;
+    /* Ensure high stacking context */
+}
+
+/* Date Picker Dropdown */
+/* Date Picker Dropdown */
+.date-picker-container {
+    position: relative;
+}
+
+.date-trigger-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #050505;
+    border: 1px solid #2d3748;
+    /* Lighter border */
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+    min-width: 180px;
+    /* Slightly wider */
+    justify-content: space-between;
+    position: relative;
+    z-index: 101;
+    /* High z-index */
+}
+
+.date-trigger-btn:hover,
+.date-trigger-btn.active {
+    border-color: #f59e0b;
+    /* Orange on hover/active */
+    background: #0a0a0a;
+}
+
+.current-range {
+    color: #ffffff;
+    /* White text for date */
+    flex: 1;
+    text-align: left;
+    margin-left: 8px;
+    font-weight: 600;
+}
+
+.chevron {
+    color: #9ca3af;
+    transition: transform 0.2s;
+}
+
+.chevron.rotate {
+    transform: rotate(180deg);
+}
+
+.date-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #050505;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 6px;
+    width: 220px;
+    /* Wider menu */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    animation: fadeIn 0.1s ease-out;
+    z-index: 102;
+    /* Highest */
+}
+
+.date-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    position: relative;
+    transition: all 0.1s;
+}
+
+.date-option:hover {
+    background: #1f2937;
+    color: #fff;
+}
+
+.date-option.selected {
+    color: #fff;
+    background: transparent;
+}
+
+.option-icon-slot {
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    /* White icon */
+}
+
+.date-option span {
+    flex: 1;
+}
+
+.dropdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    /* Covering screen */
+    background: transparent;
+    cursor: default;
+    pointer-events: auto;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stats-grid-hub {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.hub-stat-card {
+    background: #050505;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 140px;
+}
+
+.stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.stat-label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.stat-icon-muted {
+    color: #6b7280;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.stat-sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Sections Grid */
+.dashboard-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.section-card {
+    background: #050505;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 200px;
+}
+
+.section-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.empty-state {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-sections-grid {
+        grid-template-columns: 1fr;
+    }
+}

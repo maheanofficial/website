@@ -155,7 +155,7 @@ export default function StoriesPage() {
                         <Link to="/stories?tab=latest" className={`sub-nav-item ${activeTab === 'latest' ? 'active' : ''}`}>সর্বশেষ প্রকাশিত গল্প</Link>
                         <Link to="/stories?category=featured" className={`sub-nav-item ${selectedCategory === 'featured' ? 'active' : ''}`}>আলোচিত গল্প</Link>
                         <Link to="/stories?tab=authors" className={`sub-nav-item ${activeTab === 'authors' ? 'active' : ''}`}>সব লেখক</Link>
-                        <Link to="/submit-story" className="sub-nav-item">গল্প লিখুন</Link>
+                        <Link to="/login" className="sub-nav-item">গল্প লিখুন</Link>
                     </nav>
                 </div>
             </div>
@@ -177,7 +177,7 @@ export default function StoriesPage() {
                                     বাঙালির প্রাণের মেলা, যেখানে শব্দরা কথা বলে। হাজারো গল্প আর লেখকের ভিড়ে হারিয়ে যান অসীম কল্পনার রাজ্যে। নিজের গল্প শেয়ার করুন লক্ষ লক্ষ পাঠকের সাথে।
                                 </p>
                                 <div className="hero-actions">
-                                    <Link to="/submit-story" className="btn btn-primary">গল্প লেখা শুরু করুন</Link>
+                                    <Link to="/login" className="btn btn-primary">গল্প লেখা শুরু করুন</Link>
                                     <Link to="/stories?tab=latest" className="btn btn-outline">গল্পগুলো পড়ুন</Link>
                                 </div>
                             </div>

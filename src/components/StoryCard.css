@@ -72,6 +72,12 @@
     gap: 2px;
 }
 
+.stats-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .golpo-logo-badge {
     height: 70px;
     width: auto;
@@ -195,8 +201,27 @@
     font-weight: 500;
 }
 
-.stats-right {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+align-items: center;
+gap: 4px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .story-card-poster {
+        height: 160px;
+        /* Slightly smaller poster on mobile */
+        padding: 15px;
+    }
+
+    .poster-title {
+        font-size: 24px;
+    }
+
+    .card-title-small {
+        font-size: 16px;
+    }
+
+    .story-excerpt {
+        font-size: 12px;
+    }
 }

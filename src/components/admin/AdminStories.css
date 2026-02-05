@@ -1,0 +1,244 @@
+/* Admin Stories - GolpoHub Style */
+.admin-stories-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+
+.stories-actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    margin-bottom: 20px;
+}
+
+.search-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.search-wrapper {
+    position: relative;
+    width: 250px;
+}
+
+.search-input {
+    width: 100%;
+    background: #050505;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 10px 12px;
+    padding-left: 36px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #f59e0b;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    pointer-events: none;
+}
+
+.status-dropdown,
+.reset-btn {
+    background: #050505;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 10px 16px;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.reset-btn:hover {
+    color: #fff;
+}
+
+.create-btn {
+    background: #ffffff;
+    color: #000000;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.create-btn:hover {
+    background: #e5e5e5;
+}
+
+/* Data Table */
+.data-table-container {
+    background: #050505;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+.data-table-header {
+    display: flex;
+    padding: 16px 20px;
+    border-bottom: 1px solid #1f2937;
+    background: #0a0a0a;
+}
+
+.col-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.col-header:hover {
+    color: #fff;
+}
+
+/* Column Widths (Grid-like flex) */
+.col-name {
+    flex: 2;
+}
+
+.col-title {
+    flex: 2;
+}
+
+.col-status {
+    flex: 1;
+}
+
+.col-progress {
+    flex: 1;
+}
+
+.col-parts {
+    flex: 0.8;
+}
+
+.col-created {
+    flex: 1.2;
+}
+
+.col-updated {
+    flex: 1.2;
+}
+
+.col-actions {
+    flex: 0.8;
+    text-align: right;
+    justify-content: flex-end;
+}
+
+/* Empty State */
+.empty-state-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 0;
+    color: #6b7280;
+    gap: 10px;
+}
+
+.empty-sub-text {
+    font-size: 12px;
+    font-family: monospace;
+    opacity: 0.6;
+}
+
+/* List Items */
+.data-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #1f2937;
+    transition: background 0.1s;
+}
+
+.data-row:hover {
+    background: #0f0f0f;
+}
+
+.data-table-container .data-row:last-child {
+    border-bottom: none;
+}
+
+.cell-text {
+    font-size: 14px;
+    color: #e5e7eb;
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-published {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.status-draft {
+    background: rgba(107, 114, 128, 0.1);
+    color: #9ca3af;
+}
+
+.action-btn {
+    padding: 6px;
+    border-radius: 4px;
+    color: #6b7280;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.action-btn:hover {
+    color: #fff;
+    background: #1f2937;
+}
+
+/* Editor Modal / View */
+.editor-overlay {
+    background: #000;
+    padding: 20px;
+    height: 100%;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}

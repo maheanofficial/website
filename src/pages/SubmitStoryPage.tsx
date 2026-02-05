@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Eye, EyeOff } from 'lucide-react';
-import { signInWithGoogle } from '../utils/auth';
+import { signInWithGoogle, signInWithEmailOnly } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
 
@@ -83,6 +83,8 @@ const SubmitStoryPage = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleGoogleLogin = async () => {
         try {
@@ -92,9 +94,18 @@ const SubmitStoryPage = () => {
         }
     };
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Login submitting', { email, password });
+        setIsLoading(true);
+        try {
+            await signInWithEmailOnly(email, password);
+            navigate('/dashboard');
+        } catch (error: any) {
+            console.error('Login error:', error);
+            alert(`লগইন ব্যর্থ হয়েছে: ${error.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -147,6 +158,7 @@ const SubmitStoryPage = () => {
                                     placeholder="email@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
                                     required
                                 />
                                 <Mail size={18} className="input-icon" />
@@ -164,6 +176,7 @@ const SubmitStoryPage = () => {
                                     placeholder="পাসওয়ার্ড"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
                                     required
                                 />
                                 <button
@@ -181,8 +194,8 @@ const SubmitStoryPage = () => {
                             <label htmlFor="remember">আমাকে মনে রাখবেন</label>
                         </div>
 
-                        <button type="submit" className="login-submit-btn">
-                            লগ ইন
+                        <button type="submit" className="login-submit-btn" disabled={isLoading}>
+                            {isLoading ? 'লগ ইন হচ্ছে...' : 'লগ ইন'}
                         </button>
                     </form>
 

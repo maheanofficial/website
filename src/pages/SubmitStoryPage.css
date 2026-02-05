@@ -189,7 +189,7 @@
 
 .input-wrapper input:focus {
     outline: none;
-    border-color: #f59e0b;
+    border-color: #FF5C00;
 }
 
 .input-icon {
@@ -224,7 +224,7 @@
 
 .forgot-pass {
     font-size: 12px;
-    color: #f59e0b;
+    color: #FF5C00;
     text-decoration: none;
 }
 
@@ -236,7 +236,7 @@
 }
 
 .form-check input {
-    accent-color: #f59e0b;
+    accent-color: #FF5C00;
 }
 
 .form-check label {
@@ -282,10 +282,28 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .portal-content-wrapper {
-        padding: 40px 20px;
+        padding: 80px 20px 40px;
+        /* Added top padding for fixed header clearance if needed, though this page likely hides header */
+    }
+
+    .portal-logo {
+        height: 180px;
+        /* Reduced from 320px */
+        transform: translateY(0);
+        /* Remove offset */
+        margin-bottom: 20px;
     }
 
     .portal-hero-center h1 {
-        font-size: 32px;
+        font-size: 28px;
+    }
+
+    .portal-hero-center p {
+        font-size: 16px;
+    }
+
+    .login-card-glass {
+        padding: 24px;
+        /* Reduced padding */
     }
 }

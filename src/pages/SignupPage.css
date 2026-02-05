@@ -232,6 +232,16 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .portal-content-wrapper {
-        padding: 40px 20px;
+        padding: 80px 20px 40px;
+    }
+
+    .portal-logo {
+        height: 180px;
+        transform: translateY(0);
+        margin-bottom: 20px;
+    }
+
+    .login-card-glass {
+        padding: 24px;
     }
 }

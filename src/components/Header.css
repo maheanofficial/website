@@ -51,6 +51,17 @@
     align-items: center;
 }
 
+.nav-auth-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: 15px;
+}
+
+.nav-btn-signup {
+    white-space: nowrap;
+}
+
 .nav-link {
     font-size: var(--text-base);
     font-weight: 500;
@@ -140,6 +151,16 @@
 
     .nav-link {
         font-size: var(--text-lg);
+    }
+
+    .nav-auth-group {
+        flex-direction: column;
+        width: 100%;
+        margin-left: 0;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-sm);
+        border-top: 1px solid var(--glass-border);
+        padding-top: var(--spacing-md);
     }
 }
 

@@ -64,12 +64,28 @@ export const onAuthStateChange = (callback: (event: string, session: any) => voi
 export const resetPasswordForEmail = async (email: string) => {
     try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/dashboard/settings/password`,
+            redirectTo: `${window.location.origin}/update-password`,
         });
         if (error) throw error;
         return { success: true };
     } catch (error) {
         console.error('Error sending reset password email:', error);
+    }
+};
+
+/**
+ * Signs in with email and password.
+ */
+export const signInWithEmailOnly = async (email: string, pass: string) => {
+    try {
+        const { error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: pass,
+        });
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Error signing in with Email:', error);
         throw error;
     }
 };

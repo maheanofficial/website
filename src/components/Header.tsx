@@ -64,9 +64,9 @@ export default function Header() {
 
 
                         {/* Auth Buttons Group */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginLeft: '15px' }}>
+                        <div className="nav-auth-group">
                             <Link to="/admin" className="nav-link">লগিন</Link>
-                            <Link to="/signup" className="nav-link" style={{ whiteSpace: 'nowrap' }}>সাইন আপ</Link>
+                            <Link to="/signup" className="nav-link nav-btn-signup">সাইন আপ</Link>
                         </div>
                     </div>
                 </nav>
