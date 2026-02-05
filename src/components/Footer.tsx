@@ -8,7 +8,9 @@ export default function Footer() {
             <div className="container">
                 <div className="footer-content">
                     <div className="footer-section">
-                        <h2 className="footer-title" style={{ color: 'white' }}>মাহিয়ানের গল্পকথা</h2>
+                        <Link to="/">
+                            <img src="/assets/logo.png" alt="মাহিয়ানের গল্পকথা" className="footer-logo" />
+                        </Link>
                         <p className="footer-description">
                             পেশাদার ভয়েস আর্টিস্ট এবং অডিওবুক নির্মাতা। শব্দের জাদুতে গল্প ফুটিয়ে তোলা এবং শ্রোতাদের কাছে পৌঁছে দেওয়াই আমার প্যাশন।
                         </p>

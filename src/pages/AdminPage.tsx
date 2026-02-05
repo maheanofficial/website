@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, BookOpen, Users, Hash, LogOut, Trash2, Activity, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LayoutDashboard, BookOpen, Users, Hash, LogOut, Trash2, Activity, ShieldCheck, Home } from 'lucide-react';
 import './AdminPage.css';
 import AdminStories from '../components/admin/AdminStories';
 import AdminAuthors from '../components/admin/AdminAuthors';
@@ -8,6 +9,7 @@ import AdminTrash from '../components/admin/AdminTrash';
 import AdminActivityLog from '../components/admin/AdminActivityLog';
 import AdminLoginHistory from '../components/admin/AdminLoginHistory';
 import DashboardAnalytics from '../components/admin/DashboardAnalytics';
+import { supabase } from '../lib/supabase';
 import { logLoginAttempt } from '../utils/loginHistoryManager';
 import { loginUser, registerUser, getCurrentUser, setCurrentUserSession, logoutUser, type User } from '../utils/userManager';
 
@@ -28,11 +30,57 @@ const AdminPage = () => {
     const [successMsg, setSuccessMsg] = useState('');
 
     useEffect(() => {
-        const user = getCurrentUser();
-        if (user) {
-            setCurrentUser(user);
+        // Check Local Storage User (Legacy/Admin)
+        const localUser = getCurrentUser();
+        if (localUser) {
+            setCurrentUser(localUser);
             setIsAuthenticated(true);
+            return;
         }
+
+        // Check Supabase Session
+        const checkSupabaseSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const supabaseUser: User = {
+                    id: session.user.id,
+                    username: session.user.email?.split('@')[0] || 'user',
+                    role: 'writer', // Default role for Google Users
+                    createdAt: session.user.created_at,
+                    displayName: session.user.user_metadata?.full_name || session.user.email
+                };
+                setCurrentUser(supabaseUser);
+                setIsAuthenticated(true);
+            }
+        };
+
+        checkSupabaseSession();
+
+        // Listen for Auth Changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session?.user) {
+                const supabaseUser: User = {
+                    id: session.user.id,
+                    username: session.user.email?.split('@')[0] || 'user',
+                    role: 'writer',
+                    createdAt: session.user.created_at,
+                    displayName: session.user.user_metadata?.full_name || session.user.email
+                };
+                setCurrentUser(supabaseUser);
+                setIsAuthenticated(true);
+            } else {
+                // Only clear if not logged in via local admin (optional, but safer to just let local logic handle manual logout)
+                if (!getCurrentUser()) {
+                    // setIsAuthenticated(false); 
+                    // Keeping this simple: if supabase logs out, we might want to clear state, 
+                    // but let's match the existing structure.
+                }
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Persist activeTab when it changes
@@ -75,10 +123,12 @@ const AdminPage = () => {
         setIsLoading(false);
     };
 
-    const handleLogout = () => {
-        logoutUser();
+    const handleLogout = async () => {
+        await supabase.auth.signOut(); // Sign out from Supabase
+        logoutUser(); // Sign out from Local Storage
         setIsAuthenticated(false);
         setCurrentUser(null);
+        window.location.href = '/'; // Force redirect to home
     };
 
     // Components Map
@@ -188,6 +238,13 @@ const AdminPage = () => {
 
                 <nav>
                     <div className="sidebar-title">Menu</div>
+
+                    {!isAdmin && (
+                        <Link to="/" className="sidebar-btn">
+                            <Home size={20} />
+                            <span>হোম</span>
+                        </Link>
+                    )}
 
                     {isAdmin && (
                         <button

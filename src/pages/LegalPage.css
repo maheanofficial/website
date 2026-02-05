@@ -1,7 +1,7 @@
 .legal-container {
     max-width: 900px;
     margin: 0 auto;
-    padding: var(--spacing-xl) var(--spacing-md);
+    padding: 180px var(--spacing-md) var(--spacing-xl) var(--spacing-md);
     min-height: 80vh;
 }
 

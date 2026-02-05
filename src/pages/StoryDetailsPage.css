@@ -1,7 +1,7 @@
 .story-details-page {
-    background: var(--bg-primary);
+    background: #000000;
     min-height: 100vh;
-    padding-top: 100px;
+    padding-top: 180px;
     padding-bottom: calc(var(--spacing-xl) + var(--sab));
 }
 
@@ -57,7 +57,7 @@
 
 /* Info Box */
 .story-info-box {
-    background: var(--glass-bg);
+    background: #000000;
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     padding: var(--spacing-lg);
@@ -247,12 +247,11 @@
 
 /* Content */
 .story-content-container {
-    background: var(--bg-secondary);
-    /* Often white or slight off-white on light mode */
+    background: #000000;
     border-radius: var(--radius-xl);
     padding: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Adjust for dark mode if using variables */

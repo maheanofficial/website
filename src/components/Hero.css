@@ -5,7 +5,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    padding: var(--spacing-lg) 0;
+    padding: 180px 0 var(--spacing-lg) 0;
     background:
         radial-gradient(ellipse at 20% 30%, hsla(35, 95%, 20%, 0.4) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 70%, hsla(45, 95%, 20%, 0.4) 0%, transparent 50%),
@@ -157,7 +157,7 @@
 }
 
 .hero-photo-wrapper {
-    margin-top: 60px;
+    margin-top: 20px;
     margin-bottom: var(--spacing-lg);
     position: relative;
     z-index: 5;

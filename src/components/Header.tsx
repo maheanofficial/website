@@ -36,7 +36,7 @@ export default function Header() {
             <div className="container">
                 <nav className="nav">
                     <Link to="/" className="logo">
-                        <span className="logo-text" style={{ color: 'white' }}>মাহিয়ানের গল্পকথা</span>
+                        <img src="/assets/logo.png" alt="মাহিয়ানের গল্পকথা" className="site-logo" />
                     </Link>
 
                     {/* Mobile Menu Toggle */}
@@ -61,7 +61,13 @@ export default function Header() {
                                 {item.label}
                             </Link>
                         ))}
-                        <Link to="/admin" className="nav-link" style={{ fontSize: '0.7rem', opacity: 0.5 }}>লগিন / সাইন আপ</Link>
+
+
+                        {/* Auth Buttons Group */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginLeft: '15px' }}>
+                            <Link to="/admin" className="nav-link">লগিন</Link>
+                            <Link to="/signup" className="nav-link" style={{ whiteSpace: 'nowrap' }}>সাইন আপ</Link>
+                        </div>
                     </div>
                 </nav>
             </div>

@@ -15,17 +15,17 @@
   --bg-tertiary: #252525;
   /* Lighter Gray for inputs */
 
-  /* Accent - Antique Gold & Soft Amber */
-  --accent-primary: #C5A065;
-  /* Elegant Antique Gold */
-  --accent-secondary: #E0C080;
-  /* Soft Gold Highlight */
+  /* Accent - Logo Orange */
+  --accent-primary: #FF5C00;
+  /* Official Logo Orange */
+  --accent-secondary: #ff7426;
+  /* Lighter Orange Highlight */
 
   /* Gradient - Smooth & subtle */
   --accent-gradient: linear-gradient(135deg,
-      #C5A065 0%,
-      #AF8D55 50%,
-      #C5A065 100%);
+      #FF5C00 0%,
+      #ff7426 50%,
+      #FF5C00 100%);
 
   /* Text Colors - High Readability */
   --text-primary: #FAFAFA;
@@ -38,15 +38,15 @@
   /* Glassmorphism - Frosted & Matte */
   --glass-bg: rgba(30, 30, 30, 0.75);
   /* Matte dark glass */
-  --glass-border: rgba(197, 160, 101, 0.15);
-  /* Soft Gold border */
+  --glass-border: rgba(255, 92, 0, 0.15);
+  /* Soft Orange border */
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
   /* Shadows - Softer diffusion */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
-  --shadow-glow: 0 0 25px rgba(197, 160, 101, 0.1);
+  --shadow-glow: 0 0 25px rgba(255, 92, 0, 0.1);
 
   /* Spacing */
   --spacing-xs: 0.5rem;

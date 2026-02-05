@@ -1,6 +1,6 @@
 .links-page {
     min-height: 100vh;
-    padding: var(--spacing-xl) var(--spacing-md);
+    padding: 180px var(--spacing-md) var(--spacing-xl) var(--spacing-md);
     background: var(--bg-primary);
 }
 

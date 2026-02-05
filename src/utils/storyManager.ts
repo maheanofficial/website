@@ -24,7 +24,7 @@ export interface Story {
     comments?: number;
     is_featured?: boolean;
     readTime?: string;
-    status?: 'published' | 'pending' | 'rejected';
+    status?: 'published' | 'pending' | 'rejected' | 'completed' | 'ongoing';
     submittedBy?: string; // userId of the writer
 }
 
@@ -62,7 +62,7 @@ const getRawStories = (): Story[] => {
                 author: 'হুমায়ূন আহমেদ',
                 category: 'মিসির আলি',
                 image: 'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a',
-                status: 'published'
+                status: 'completed'
             },
             {
                 id: '3',
@@ -76,7 +76,7 @@ const getRawStories = (): Story[] => {
                 author: 'সুনীল গঙ্গোপাধ্যায়',
                 category: 'অ্যাডভেঞ্চার',
                 image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
-                status: 'published'
+                status: 'ongoing'
             },
             {
                 id: '4',
@@ -143,10 +143,9 @@ const getRawStories = (): Story[] => {
                 categoryId: 'poetry',
                 views: 5000,
                 date: new Date(Date.now() - 604800000).toISOString(),
-                author: 'কাজী নজরুল ইসলাম',
-                category: 'কবিতা',
-                image: 'https://images.unsplash.com/photo-1533633658252-4752b07e155c',
-                status: 'published'
+                category: 'রোমান্টিক',
+                image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
+                status: 'completed'
             },
             {
                 id: '9',
@@ -160,7 +159,7 @@ const getRawStories = (): Story[] => {
                 author: 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়',
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
-                status: 'published'
+                status: 'completed'
             },
             {
                 id: '10',

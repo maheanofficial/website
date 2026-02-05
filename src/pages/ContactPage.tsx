@@ -20,7 +20,7 @@ const ContactPage = () => {
                     }
                 }}
             />
-            <div style={{ marginTop: '100px' }}></div>
+            <div style={{ marginTop: '180px' }}></div>
             <Contact />
         </>
     );

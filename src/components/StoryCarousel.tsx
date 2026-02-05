@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import type { Story } from '../utils/storyManager';
-import SmartImage from './SmartImage';
 import './StoryCarousel.css';
 
 interface StoryCarouselProps {
@@ -31,17 +30,9 @@ export default function StoryCarousel({ stories }: StoryCarouselProps) {
 
     return (
         <div className="carousel-wrapper">
-            <div className="carousel-container">
-                {/* Background */}
-                <div className="carousel-background">
-                    <SmartImage
-                        src={currentStory.cover_image}
-                        alt={currentStory.title}
-                        className="carousel-bg-image"
-                        showFullText={true}
-                    />
-                    <div className="carousel-overlay"></div>
-                </div>
+            <div className="carousel-container" style={{ background: '#050505' }}>
+                {/* Typographic Background (No Image) */}
+                <div className="carousel-background" style={{ display: 'none' }}></div>
 
                 {/* Arrows */}
                 <button className="carousel-arrow carousel-arrow-left" onClick={prevSlide}>
@@ -51,35 +42,38 @@ export default function StoryCarousel({ stories }: StoryCarouselProps) {
                     <ChevronRight className="icon" />
                 </button>
 
-                {/* Content */}
-                <div className="carousel-content">
-                    <div className="carousel-header">
-                        <span className="carousel-logo">MAHEAN.COM</span>
+                {/* Typographic Content Content */}
+                <div className="carousel-content" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', paddingTop: '40px' }}>
+
+                    {/* GolpoKotha Badge (Top Right) */}
+                    <div style={{ position: 'absolute', top: '15px', right: '20px' }}>
+                        <Link to="/">
+                            <img src="/assets/logo.png" alt="মাহিয়ানের গল্পকথা" style={{ height: '50px', width: 'auto' }} />
+                        </Link>
                     </div>
 
-                    <div className="carousel-info">
-                        <div className="carousel-category">
-                            <span className="carousel-badge">{currentStory.category}</span>
+                    <div className="carousel-info" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+                        <div className="carousel-category" style={{ marginBottom: '16px' }}>
+                            <span className="carousel-badge" style={{ background: '#22c55e', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                                {currentStory.status === 'completed' ? 'সমাপ্ত' : 'চলমান'}
+                            </span>
                         </div>
-                        <h2 className="carousel-title">{currentStory.title}</h2>
 
-                        <div className="carousel-footer">
-                            <div className="carousel-author">
-                                <SmartImage
-                                    src={undefined}
-                                    alt={currentStory.author || 'Author'}
-                                    className="carousel-avatar"
-                                    isRound={true}
-                                />
-                                <div>
-                                    <div className="carousel-author-label">Author</div>
-                                    <div className="carousel-author-name">{currentStory.author}</div>
+                        <h2 className="carousel-title" style={{ fontFamily: "'Hind Siliguri', sans-serif", fontSize: '48px', color: '#f59e0b', lineHeight: '1.2', marginBottom: '16px', fontWeight: '700' }}>
+                            {currentStory.title}
+                        </h2>
+
+                        <div className="carousel-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                            <div className="carousel-author" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {/* Optional Avatar or just name */}
+                                <div style={{ fontSize: '18px', color: '#e5e7eb', fontWeight: '500' }}>
+                                    {currentStory.author}
                                 </div>
                             </div>
 
-                            <Link to={`/stories/${currentStory.slug || currentStory.id}`} className="carousel-btn">
-                                <Play size={16} fill="white" />
-                                <span>বিস্তারিত পড়ুন</span>
+                            <Link to={`/stories/${currentStory.slug || currentStory.id}`} className="carousel-btn" style={{ background: '#f59e0b', color: 'black', border: 'none', padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                <Play size={16} fill="black" />
+                                <span>এখনই পড়ুন</span>
                             </Link>
                         </div>
                     </div>

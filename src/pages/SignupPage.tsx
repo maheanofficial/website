@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Eye, EyeOff } from 'lucide-react';
+import { Mail, Eye, EyeOff, User } from 'lucide-react';
 import { signInWithGoogle } from '../utils/auth';
 import SEO from '../components/SEO';
-import './SubmitStoryPage.css';
+import './SignupPage.css';
 
-// Constellation Effect Component
+// Constellation Effect Component (Reused logic for consistency)
 const ConstellationCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -19,13 +19,13 @@ const ConstellationCanvas = () => {
         let height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
 
         const stars: { x: number, y: number, vx: number, vy: number }[] = [];
-        const numStars = 80; // Increased star count for full screen
+        const numStars = 80;
 
         for (let i = 0; i < numStars; i++) {
             stars.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
-                vx: (Math.random() - 0.5) * 0.3, // Slightly slower for elegance
+                vx: (Math.random() - 0.5) * 0.3,
                 vy: (Math.random() - 0.5) * 0.3
             });
         }
@@ -33,7 +33,7 @@ const ConstellationCanvas = () => {
         const animate = () => {
             ctx.clearRect(0, 0, width, height);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; // Slightly more visible lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
 
             stars.forEach((star, i) => {
                 star.x += star.vx;
@@ -69,7 +69,6 @@ const ConstellationCanvas = () => {
         const handleResize = () => {
             width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
             height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
-            // Re-initialize stars ideally, but for now just resizing canvas prevents stretch
         };
 
         window.addEventListener('resize', handleResize);
@@ -79,27 +78,34 @@ const ConstellationCanvas = () => {
     return <canvas ref={canvasRef} className="constellation-canvas" />;
 };
 
-const SubmitStoryPage = () => {
+const SignupPage = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
 
-    const handleGoogleLogin = async () => {
+    const handleGoogleSignup = async () => {
         try {
             await signInWithGoogle();
         } catch (error) {
-            alert('গুগল দিয়ে লগ ইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+            alert('গুগল দিয়ে সাইন আপ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
         }
     };
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleSignup = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Login submitting', { email, password });
+        if (password !== confirmPassword) {
+            alert('পাসওয়ার্ড মিলছে না!');
+            return;
+        }
+        console.log('Signup submitting', { name, email, password });
     };
 
     return (
         <div className="author-portal-page">
-            <SEO title="লেখক পোর্টাল - লগ ইন করুন | মাহিয়ানের গল্পকথা" description="মাহিয়ানের গল্পকথা লেখক পোর্টালে লগ ইন করুন।" />
+            <SEO title="সাইন আপ করুন - মাহিয়ানের গল্পকথা" description="মাহিয়ানের গল্পকথায় নতুন অ্যাকাউন্ট তৈরি করুন।" />
 
             {/* Background Animation covering full screen */}
             <ConstellationCanvas />
@@ -114,31 +120,42 @@ const SubmitStoryPage = () => {
                             <img src="/assets/logo.png" alt="মাহিয়ানের গল্পকথা" className="portal-logo" />
                         </Link>
                     </div>
-
-                    <div className="portal-hero-center">
-                        <h1>লেখক পোর্টাল</h1>
-                        <p>""যদি এমন কোনো বই থাকে যা আপনি পড়তে চান, কিন্তু তা এখনও লেখা হয়নি, তবে তা আপনাকেই লিখতে হবে।""</p>
-                        <cite>— টনি মরিসন</cite>
-                    </div>
                 </div>
 
-                {/* Login Form Section */}
+                {/* Signup Form Section */}
                 <div className="login-card-glass">
                     <div className="login-header">
-                        <h2>আপনার অ্যাকাউন্টে লগ ইন করুন</h2>
-                        <p>লগ ইন করতে আপনার ইমেইল এবং পাসওয়ার্ড লিখুন</p>
+                        <h2>একটি অ্যাকাউন্ট তৈরি করুন</h2>
+                        <p>আপনার অ্যাকাউন্ট তৈরি করতে আপনার বিবরণ লিখুন</p>
                     </div>
 
-                    <button className="google-btn" onClick={handleGoogleLogin}>
+                    <button className="google-btn" onClick={handleGoogleSignup}>
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
-                        গুগল দিয়ে লগইন করুন
+                        গুগল দিয়ে রেজিস্টার করুন
                     </button>
 
                     <div className="divider">
                         <span>অথবা</span>
                     </div>
 
-                    <form onSubmit={handleLogin} className="login-form">
+                    <form onSubmit={handleSignup} className="login-form">
+
+                        {/* Name Field */}
+                        <div className="form-group">
+                            <label>নাম</label>
+                            <div className="input-wrapper">
+                                <input
+                                    type="text"
+                                    placeholder="পুরো নাম"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                />
+                                <User size={18} className="input-icon" />
+                            </div>
+                        </div>
+
+                        {/* Email Field */}
                         <div className="form-group">
                             <label>ইমেইল ঠিকানা</label>
                             <div className="input-wrapper">
@@ -153,11 +170,9 @@ const SubmitStoryPage = () => {
                             </div>
                         </div>
 
+                        {/* Password Field */}
                         <div className="form-group">
-                            <div className="label-row">
-                                <label>পাসওয়ার্ড</label>
-                                <Link to="/forgot-password" className="forgot-pass">পাসওয়ার্ড ভুলে গেছেন?</Link>
-                            </div>
+                            <label>পাসওয়ার্ড</label>
                             <div className="input-wrapper">
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -176,18 +191,34 @@ const SubmitStoryPage = () => {
                             </div>
                         </div>
 
-                        <div className="form-check">
-                            <input type="checkbox" id="remember" />
-                            <label htmlFor="remember">আমাকে মনে রাখবেন</label>
+                        {/* Confirm Password Field */}
+                        <div className="form-group">
+                            <label>পাসওয়ার্ড নিশ্চিত করুন</label>
+                            <div className="input-wrapper">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="পাসওয়ার্ড নিশ্চিত করুন"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    className="toggle-pass"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                >
+                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
 
                         <button type="submit" className="login-submit-btn">
-                            লগ ইন
+                            অ্যাকাউন্ট তৈরি করুন
                         </button>
                     </form>
 
                     <div className="login-footer">
-                        কোনো অ্যাকাউন্ট নেই? <Link to="/signup" className="signup-link">সাইন আপ করুন</Link>
+                        ইতিমধ্যে একটি অ্যাকাউন্ট আছে? <Link to="/admin" className="signup-link">লগ ইন</Link>
                     </div>
                 </div>
             </div>
@@ -195,4 +226,4 @@ const SubmitStoryPage = () => {
     );
 };
 
-export default SubmitStoryPage;
+export default SignupPage;

@@ -18,11 +18,12 @@
     gap: var(--spacing-sm);
 }
 
-.footer-title {
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    font-family: var(--font-display);
-    margin-bottom: var(--spacing-xs);
+.footer-logo {
+    height: 160px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    margin-bottom: var(--spacing-sm);
 }
 
 .footer-description,
