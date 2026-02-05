@@ -7,6 +7,7 @@ export interface User {
     role: 'admin' | 'writer';
     createdAt: string;
     displayName?: string;
+    photoURL?: string;
 }
 
 const STORAGE_KEY = 'mahean_users';

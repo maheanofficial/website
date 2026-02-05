@@ -85,8 +85,7 @@ const AdminPage = () => {
             {/* GolpoHub Style Sidebar */}
             <aside className={`admin-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="admin-brand">
-                    <span className="brand-text">গল্প</span>
-                    <span className="brand-hub">Hub</span>
+                    <img src="/assets/logo.png" alt="GolpoHub" className="admin-logo-img" />
                 </div>
 
                 <div className="sidebar-section">
@@ -133,7 +132,11 @@ const AdminPage = () => {
 
                 <div className="sidebar-user-profile">
                     <div className="user-avatar-sm">
-                        {currentUser?.displayName?.charAt(0) || 'U'}
+                        {currentUser?.photoURL ? (
+                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                            currentUser?.displayName?.charAt(0) || 'U'
+                        )}
                     </div>
                     <div className="user-info-mini">
                         <div className="u-name">{currentUser?.displayName || 'User'}</div>
