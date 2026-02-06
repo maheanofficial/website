@@ -74,6 +74,11 @@ const AdminPage = () => {
 
     const activeTab = getActiveTab();
 
+    // Dev-time debug: log current auth state for troubleshooting
+    if (import.meta.env.DEV) {
+        console.log('AdminPage debug - isAuthChecking:', isAuthChecking, 'currentUser:', currentUser);
+    }
+
     const renderBreadcrumbs = () => {
         const path = location.pathname;
         const crumbs: { label: string, path: string, icon?: React.ReactNode }[] = [
@@ -189,6 +194,12 @@ const AdminPage = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
+                {import.meta.env.DEV && (
+                    <div className="debug-overlay">
+                        <div>isAuthChecking: {String(isAuthChecking)}</div>
+                        <div>user: {currentUser ? (currentUser.email || currentUser.id || 'signed-in') : 'null'}</div>
+                    </div>
+                )}
                 <header className="admin-topbar">
                     {renderBreadcrumbs()}
                 </header>
