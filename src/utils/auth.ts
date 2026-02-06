@@ -39,6 +39,20 @@ export const signOut = async () => {
  */
 export const getCurrentUser = async () => {
     try {
+        // If the URL contains an OAuth fragment (after redirect), complete the sign-in
+        // by extracting the session from the URL first. This fixes blank pages after
+        // OAuth redirects which leave tokens in the hash (e.g. /author/dashboard#...).
+        if (typeof window !== 'undefined' && window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('code') || window.location.hash.includes('type='))) {
+            try {
+                // This will parse the URL and set the session in the client
+                await supabase.auth.getSessionFromUrl({ storeSession: true });
+                // Remove fragment to keep URLs clean
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            } catch (err) {
+                console.warn('getSessionFromUrl failed:', err);
+            }
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         return session?.user || null;
