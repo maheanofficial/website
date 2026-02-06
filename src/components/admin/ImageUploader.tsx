@@ -1,17 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { Upload, X, Link as LinkIcon } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Upload, X } from 'lucide-react';
 import SmartImage from '../SmartImage';
 
 interface ImageUploaderProps {
     value?: string;
     onChange: (value: string) => void;
-    label?: string;
-    placeholder?: string; // name/title for fallback
+    placeholder?: string;
     isRound?: boolean;
+    containerClass?: string;
 }
 
-const ImageUploader = ({ value, onChange, label = "Image", placeholder = "Image", isRound = false }: ImageUploaderProps) => {
-    const [showUrlInput, setShowUrlInput] = useState(false);
+const ImageUploader = ({ value, onChange, placeholder = "Image", isRound = false, containerClass = "" }: ImageUploaderProps) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,72 +30,50 @@ const ImageUploader = ({ value, onChange, label = "Image", placeholder = "Image"
     };
 
     return (
-        <div className="form-group">
-            <label className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
-            <div className="flex items-start gap-4">
-                <div
-                    className={`relative shrink-0 ${isRound ? 'rounded-full' : 'rounded-lg'} border border-white/10 bg-white/5 group shadow-lg`}
-                    style={{ width: '150px', height: '150px', minWidth: '150px', minHeight: '150px', flexShrink: 0, overflow: 'hidden', display: 'block' }}
-                >
-                    <SmartImage
-                        src={value}
-                        alt={placeholder || 'Preview'}
-                        className="w-full h-full object-cover"
-                        isRound={isRound}
-                    />
+        <div className="w-full">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                style={{ display: 'none' }}
+            />
 
-                    {value && (
-                        <button
-                            type="button"
-                            onClick={() => onChange('')}
-                            className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                        >
-                            <X size={12} />
-                        </button>
-                    )}
-                </div>
-
-                <div className="flex-1 flex flex-col gap-2">
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 btn btn-secondary text-sm flex items-center justify-center gap-2 py-2"
-                        >
-                            <Upload size={16} /> Upload Pic
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowUrlInput(!showUrlInput)}
-                            className="btn btn-outline text-sm px-3"
-                            title="Enter URL"
-                        >
-                            <LinkIcon size={16} />
-                        </button>
-                    </div>
-
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                    />
-
-                    {showUrlInput && (
-                        <input
-                            type="text"
-                            value={value || ''}
-                            onChange={(e) => onChange(e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                            className="form-input text-sm py-2"
+            <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`${containerClass} overflow-hidden cursor-pointer relative group`}
+            >
+                {value ? (
+                    <>
+                        <SmartImage
+                            src={value}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            isRound={isRound}
                         />
-                    )}
-
-                    <p className="text-xs text-gray-500">
-                        {value ? 'Image selected' : 'No image. Showing name initials.'}
-                    </p>
-                </div>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Upload className="text-white" size={32} />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onChange('');
+                            }}
+                            className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white hover:bg-red-500/80 transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-4 text-gray-500">
+                        <Upload size={48} className="opacity-40" />
+                        <div className="text-center">
+                            <p className="text-sm font-medium text-gray-400">{placeholder}</p>
+                            <p className="text-xs text-gray-600 mt-1">Recommended ratio: 16:9</p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

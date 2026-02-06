@@ -47,8 +47,8 @@
 
 .date-trigger-btn:hover,
 .date-trigger-btn.active {
-    border-color: #f59e0b;
-    /* Orange on hover/active */
+    border-color: #ffffff;
+    /* White on hover/active instead of orange */
     background: #0a0a0a;
 }
 

@@ -1,0 +1,153 @@
+/* Admin Episodes - GolpoHub Style */
+.admin-episodes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+    color: #e6edf3;
+}
+
+.episodes-actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    margin-bottom: 32px;
+}
+
+.search-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-input-flat {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #ffffff;
+    font-size: 13px;
+    width: 240px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input-flat:focus {
+    border-color: #58a6ff;
+}
+
+/* Custom Select Styling */
+.custom-select-wrapper {
+    position: relative;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8d96a0;
+    pointer-events: none;
+}
+
+.select-icon-left {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8d96a0;
+    pointer-events: none;
+}
+
+.form-select-flat {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 16px;
+    padding-right: 36px;
+    color: #e6edf3;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.form-select-flat.has-left-icon {
+    padding-left: 36px;
+}
+
+.form-select-flat:focus {
+    border-color: #58a6ff;
+}
+
+/* Table Container */
+.data-table-container {
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.data-table-header {
+    display: flex;
+    padding: 12px 20px;
+    border-bottom: 1px solid #30363d;
+    background: transparent;
+}
+
+.col-header {
+    font-size: 12px;
+    font-weight: 500;
+    color: #8d96a0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Table Body / Empty State */
+.empty-state-row-main {
+    padding: 100px 0 30px 0;
+    text-align: center;
+}
+
+.empty-main-text {
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.empty-state-row-sub {
+    padding: 30px 0 100px 0;
+    text-align: center;
+    border-top: 1px solid #30363d;
+}
+
+.empty-sub-text {
+    color: #8d96a0;
+    font-size: 13px;
+}
+
+/* Create Button */
+.create-episode-btn {
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.create-episode-btn:hover {
+    background: #e6edf3;
+}

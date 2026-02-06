@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Home, Settings, User as UserIcon, SortDesc, X } from 'lucide-react';
+import { Link, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Home, Settings, User as UserIcon, X, Folder, FileText } from 'lucide-react';
 import './AdminPage.css';
 import AdminStories from '../components/admin/AdminStories';
 import AdminAuthors from '../components/admin/AdminAuthors';
+import AdminEpisodes from '../components/admin/AdminEpisodes';
 import DashboardAnalytics from '../components/admin/DashboardAnalytics';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
-import type { User } from '../utils/userManager'; // Import User type if needed, or define locally
+
 
 const AdminPage = () => {
     const [currentUser, setCurrentUser] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState('dashboard');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isAuthChecking, setIsAuthChecking] = useState(true);
+    const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -34,14 +36,15 @@ const AdminPage = () => {
         };
     }, []);
 
-    // Close mobile menu on tab change
+    // Close mobile menu on path changes
     useEffect(() => {
         setIsMobileMenuOpen(false);
-    }, [activeTab]);
+    }, [location.pathname]);
 
     const handleLogout = async () => {
         try {
             await signOut();
+            navigate('/login');
         } catch (error) {
             console.error("Logout failed", error);
         }
@@ -59,17 +62,56 @@ const AdminPage = () => {
         return <Navigate to="/login" />;
     }
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'dashboard':
-                return <DashboardAnalytics />;
-            case 'stories':
-                return <AdminStories />;
-            case 'authors':
-                return <AdminAuthors />;
-            default:
-                return <DashboardAnalytics />;
+    // Helper to determine active tab for styling
+    const getActiveTab = () => {
+        const path = location.pathname;
+        if (path === '/author/dashboard' || path === '/author/dashboard/') return 'dashboard';
+        if (path.includes('/series')) return 'stories';
+        if (path.includes('/episodes')) return 'episodes';
+        if (path.includes('/authors')) return 'authors';
+        return '';
+    };
+
+    const activeTab = getActiveTab();
+
+    const renderBreadcrumbs = () => {
+        const path = location.pathname;
+        const crumbs: { label: string, path: string, icon?: React.ReactNode }[] = [
+            { label: 'ড্যাশবোর্ড', path: '/author/dashboard', icon: <LayoutDashboard size={14} /> }
+        ];
+
+        if (path.includes('/series')) {
+            crumbs.push({ label: 'সিরিজ', path: '/author/dashboard/series', icon: undefined });
+            if (path.includes('/create')) {
+                crumbs.push({ label: 'তৈরি', path: '', icon: undefined });
+            } else if (path.includes('/edit')) {
+                crumbs.push({ label: 'এডিট', path: '', icon: undefined });
+            }
+        } else if (path.includes('/episodes')) {
+            crumbs.push({ label: 'পর্ব', path: '/author/dashboard/episodes', icon: undefined });
+        } else if (path.includes('/authors')) {
+            crumbs.push({ label: 'লেখক', path: '/author/dashboard/authors', icon: undefined });
         }
+
+        return (
+            <div className="breadcrumbs">
+                {crumbs.map((crumb, index) => (
+                    <div key={index} className="crumb-unit">
+                        {index > 0 && <span className="crumb-sep">&gt;</span>}
+                        <div className="crumb-item">
+                            {crumb.icon && <span className="crumb-icon">{crumb.icon}</span>}
+                            {crumb.path ? (
+                                <Link to={crumb.path} className={`crumb-text ${index === crumbs.length - 1 ? 'active' : ''}`}>
+                                    {crumb.label}
+                                </Link>
+                            ) : (
+                                <span className="crumb-text active">{crumb.label}</span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     return (
@@ -82,40 +124,40 @@ const AdminPage = () => {
                 {isMobileMenuOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
             </button>
 
-            {/* GolpoHub Style Sidebar */}
+            {/* Side Navigation */}
             <aside className={`admin-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="admin-brand">
                     <img src="/assets/logo.png" alt="GolpoHub" className="admin-logo-img" />
                 </div>
 
                 <div className="sidebar-section">
-                    <div className="sidebar-label">স্টুডিও</div>
+                    <div className="sidebar-label">প্লাটফর্ম</div>
                     <nav className="sidebar-nav">
                         <Link to="/" className="sidebar-item">
                             <Home size={18} />
                             <span>হোম</span>
                         </Link>
-                        <button
-                            onClick={() => setActiveTab('dashboard')}
+                        <Link
+                            to="/author/dashboard"
                             className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`}
                         >
                             <LayoutDashboard size={18} />
                             <span>ড্যাশবোর্ড</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('stories')}
+                        </Link>
+                        <Link
+                            to="/author/dashboard/series"
                             className={`sidebar-item ${activeTab === 'stories' ? 'active' : ''}`}
                         >
-                            <BookOpen size={18} />
+                            <Folder size={18} />
                             <span>সিরিজ</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('episodes')}
+                        </Link>
+                        <Link
+                            to="/author/dashboard/episodes"
                             className={`sidebar-item ${activeTab === 'episodes' ? 'active' : ''}`}
                         >
-                            <SortDesc size={18} />
+                            <FileText size={18} />
                             <span>পর্ব</span>
-                        </button>
+                        </Link>
                     </nav>
                 </div>
 
@@ -145,26 +187,23 @@ const AdminPage = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
+            {/* Main Content Area */}
             <main className="admin-main">
                 <header className="admin-topbar">
-                    <div className="breadcrumbs">
-                        <span className="crumb-icon"><BookOpen size={14} /></span>
-                        <span className="crumb-text">ড্যাশবোর্ড</span>
-                        {activeTab !== 'dashboard' && (
-                            <>
-                                <span className="crumb-sep">&gt;</span>
-                                <span className="crumb-text active">
-                                    {activeTab === 'stories' ? 'সিরিজ' :
-                                        activeTab === 'episodes' ? 'পর্ব' : activeTab}
-                                </span>
-                            </>
-                        )}
-                    </div>
+                    {renderBreadcrumbs()}
                 </header>
 
                 <div className="admin-content-scroll">
-                    {renderContent()}
+                    <Routes>
+                        <Route path="/" element={<DashboardAnalytics />} />
+                        <Route path="/series" element={<AdminStories />} />
+                        <Route path="/series/create" element={<AdminStories initialViewMode="create" />} />
+                        <Route path="/series/edit/:id" element={<AdminStories initialViewMode="edit" />} />
+                        <Route path="/episodes" element={<AdminEpisodes />} />
+                        <Route path="/authors" element={<AdminAuthors />} />
+                        {/* Fallback */}
+                        <Route path="*" element={<DashboardAnalytics />} />
+                    </Routes>
                 </div>
             </main>
         </div>

@@ -201,9 +201,7 @@
     font-weight: 500;
 }
 
-align-items: center;
-gap: 4px;
-}
+
 
 /* Mobile Responsive */
 @media (max-width: 480px) {

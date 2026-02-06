@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, ArrowLeft } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css'; // Reusing login styles

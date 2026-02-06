@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, TrendingUp, Users, BookOpen, FileText, Eye, MessageSquare, Clock, Calendar, ChevronDown, Check } from 'lucide-react';
+import { TrendingUp, BookOpen, FileText, Eye, MessageSquare, Calendar, ChevronDown, Check } from 'lucide-react';
 import './DashboardAnalytics.css';
 
 const DashboardAnalytics = () => {

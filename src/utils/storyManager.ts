@@ -20,6 +20,7 @@ export interface Story {
     author?: string;
     category?: string;
     cover_image?: string;
+    tags?: string[];
     parts?: StoryPart[];
     comments?: number;
     is_featured?: boolean;

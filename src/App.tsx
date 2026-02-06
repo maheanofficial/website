@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -27,8 +27,8 @@ import './index.css'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  // Check if current path starts with /admin or /dashboard
-  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard');
+  // Check if current path starts with /admin or /dashboard or /author/dashboard
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/author/dashboard');
 
   return (
     <>
@@ -62,8 +62,10 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/dashboard" element={<AdminPage />} />
+            <Route path="/author/dashboard/*" element={<AdminPage />} />
+            {/* Redirect legacy routes if needed or just remove them. Keeping them for safety but pointing to AdminPage which handles routing or simply removing them if we want strict paths. */}
+            <Route path="/admin" element={<Navigate to="/author/dashboard" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/author/dashboard" replace />} />
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
