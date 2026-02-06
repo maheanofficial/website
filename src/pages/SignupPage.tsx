@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Eye, EyeOff, User } from 'lucide-react';
-import { signInWithGoogle } from '../utils/auth';
+import { signInWithGoogle, signUpWithEmail } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SignupPage.css';
 
@@ -94,13 +94,22 @@ const SignupPage = () => {
         }
     };
 
-    const handleSignup = (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
             alert('পাসওয়ার্ড মিলছে না!');
             return;
         }
-        console.log('Signup submitting', { name, email, password });
+        try {
+            const resp = await signUpWithEmail(email, password, name);
+            // If Supabase requires email confirmation, notify the user
+            alert('রেজিস্ট্রেশন পাঠানো হয়েছে। আপনার ইমেইলটি চেক করে যাচাই করুন (যদি প্রয়োজন)।');
+            // Redirect to dashboard or login page
+            window.location.href = '/dashboard';
+        } catch (err: any) {
+            console.error('Signup error:', err);
+            alert(`সাইন আপ ব্যর্থ হয়েছে: ${err?.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);
+        }
     };
 
     return (

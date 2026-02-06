@@ -89,3 +89,23 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
         throw error;
     }
 };
+
+/**
+ * Signs up a new user with email and password.
+ */
+export const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+        }, {
+            data: { full_name: fullName }
+        });
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error signing up with Email:', error);
+        throw error;
+    }
+};
