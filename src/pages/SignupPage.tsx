@@ -104,8 +104,8 @@ const SignupPage = () => {
             const resp = await signUpWithEmail(email, password, name);
             // If Supabase requires email confirmation, notify the user
             alert('রেজিস্ট্রেশন পাঠানো হয়েছে। আপনার ইমেইলটি চেক করে যাচাই করুন (যদি প্রয়োজন)।');
-            // Redirect to dashboard or login page
-            window.location.href = '/dashboard';
+            // Redirect to the author dashboard which serves the admin area
+            window.location.href = '/author/dashboard';
         } catch (err: any) {
             console.error('Signup error:', err);
             alert(`সাইন আপ ব্যর্থ হয়েছে: ${err?.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);

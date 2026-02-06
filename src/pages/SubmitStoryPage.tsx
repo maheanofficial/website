@@ -5,7 +5,8 @@ import { signInWithGoogle, signInWithEmailOnly } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
 
-// Constellation Effect Component
+            // Go to the author dashboard which mounts the admin UI
+            navigate('/author/dashboard');
 const ConstellationCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
