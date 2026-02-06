@@ -13,3 +13,23 @@ export const safeSupabaseCall = async (operation: Promise<any>) => {
         console.error('Supabase operation failed:', error);
     }
 };
+
+// If the app was redirected back from an OAuth provider, Supabase may place
+// the session tokens in the URL fragment (hash). Parse them early so the
+// client session is established before the app's routing and components mount.
+if (typeof window !== 'undefined' && window.location.hash) {
+    const hash = window.location.hash;
+    if (hash.includes('access_token') || hash.includes('code') || hash.includes('type=')) {
+        // Run asynchronously but don't block import; log any errors for debugging
+        (async () => {
+            try {
+                await supabase.auth.getSessionFromUrl({ storeSession: true });
+                // Clean up the URL fragment
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                console.log('Supabase: restored session from URL fragment');
+            } catch (err) {
+                console.warn('Supabase: getSessionFromUrl failed during init', err);
+            }
+        })();
+    }
+}
