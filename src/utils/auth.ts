@@ -4,18 +4,38 @@
     setCurrentUserSession,
     getCurrentUser as getLocalCurrentUser,
     logoutUser,
+    upsertUser,
     requestPasswordReset,
     consumePasswordReset,
     updateUserPassword,
     getPasswordResetUserId,
     type User
 } from './userManager';
+import { supabase } from '../lib/supabase';
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 type AuthSession = { user: User | null } | null;
 
 type AuthChangeDetail = {
     event: string;
     session: AuthSession;
+};
+
+const AUTH_PROVIDER_KEY = 'mahean_auth_provider';
+
+const setAuthProvider = (provider: 'local' | 'supabase') => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(AUTH_PROVIDER_KEY, provider);
+};
+
+const getAuthProvider = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(AUTH_PROVIDER_KEY);
+};
+
+const clearAuthProvider = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(AUTH_PROVIDER_KEY);
 };
 
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
@@ -29,18 +49,82 @@ const emitAuthChange = (event: string, user: User | null) => {
     authEventTarget.dispatchEvent(new CustomEvent('auth-change', { detail }));
 };
 
+const mapSupabaseUserToLocal = (user: SupabaseUser): User => {
+    const metadata = user.user_metadata || {};
+    const displayName = metadata.full_name
+        || metadata.name
+        || user.email?.split('@')[0]
+        || 'User';
+
+    return {
+        id: user.id,
+        username: user.email || user.id,
+        email: user.email || undefined,
+        role: 'writer',
+        createdAt: user.created_at || new Date().toISOString(),
+        displayName,
+        photoURL: metadata.avatar_url || metadata.picture
+    };
+};
+
+const syncSupabaseSession = (event: string, session: Session | null) => {
+    if (!session?.user) {
+        if (getAuthProvider() === 'supabase') {
+            logoutUser();
+            clearAuthProvider();
+            emitAuthChange(event, null);
+        }
+        return getLocalCurrentUser();
+    }
+
+    const localUser = upsertUser(mapSupabaseUserToLocal(session.user));
+    setCurrentUserSession(localUser);
+    setAuthProvider('supabase');
+    emitAuthChange(event, localUser);
+    return localUser;
+};
+
+let supabaseListenerReady = false;
+const ensureSupabaseAuthListener = () => {
+    if (supabaseListenerReady || typeof window === 'undefined') return;
+    supabaseListenerReady = true;
+
+    supabase.auth.onAuthStateChange((event, session) => {
+        syncSupabaseSession(event, session);
+    });
+};
+
 /**
- * Google OAuth is not available in local-only mode.
+ * Google OAuth via Supabase (requires provider + redirect configured).
  */
 export const signInWithGoogle = async () => {
-    throw new Error('Google sign-in is disabled in local-only mode.');
+    if (typeof window === 'undefined') {
+        throw new Error('Google sign-in is only available in the browser.');
+    }
+
+    ensureSupabaseAuthListener();
+    const redirectTo = `${window.location.origin}/author/dashboard`;
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo }
+    });
+
+    if (error) {
+        throw error;
+    }
 };
 
 /**
  * Signs the current user out.
  */
 export const signOut = async () => {
+    try {
+        await supabase.auth.signOut();
+    } catch (error) {
+        console.warn('Supabase sign out failed:', error);
+    }
     logoutUser();
+    clearAuthProvider();
     emitAuthChange('SIGNED_OUT', null);
 };
 
@@ -48,7 +132,29 @@ export const signOut = async () => {
  * Gets the current session and user.
  */
 export const getCurrentUser = async () => {
-    return getLocalCurrentUser();
+    const localUser = getLocalCurrentUser();
+    if (localUser) {
+        return localUser;
+    }
+
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    try {
+        ensureSupabaseAuthListener();
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+            throw error;
+        }
+        if (data.session?.user) {
+            return syncSupabaseSession('SIGNED_IN', data.session);
+        }
+    } catch (error) {
+        console.warn('Supabase session lookup failed:', error);
+    }
+
+    return null;
 };
 
 /**
@@ -58,6 +164,8 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
     if (!authEventTarget) {
         return { unsubscribe: () => undefined };
     }
+
+    ensureSupabaseAuthListener();
 
     const handler = (event: Event) => {
         const detail = (event as CustomEvent<AuthChangeDetail>).detail;
@@ -91,6 +199,7 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
         throw new Error(result.message);
     }
     setCurrentUserSession(result.user);
+    setAuthProvider('local');
     emitAuthChange('SIGNED_IN', result.user);
     return { success: true };
 };
@@ -104,6 +213,7 @@ export const signUpWithEmail = async (email: string, password: string, fullName?
         throw new Error(result.message);
     }
     setCurrentUserSession(result.user);
+    setAuthProvider('local');
     emitAuthChange('SIGNED_IN', result.user);
     return { user: result.user };
 };

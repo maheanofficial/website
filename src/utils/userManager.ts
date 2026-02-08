@@ -53,6 +53,25 @@ const saveUsers = (users: User[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
 };
 
+export const upsertUser = (user: User): User => {
+    const users = getUsers();
+    const matchIndex = users.findIndex((existing) =>
+        existing.id === user.id
+        || (user.email && existing.email === user.email)
+        || (user.username && existing.username === user.username)
+    );
+    const nextUser = matchIndex >= 0 ? { ...users[matchIndex], ...user } : user;
+
+    if (matchIndex >= 0) {
+        users[matchIndex] = nextUser;
+    } else {
+        users.push(nextUser);
+    }
+
+    saveUsers(users);
+    return nextUser;
+};
+
 const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
 
 const findUserByIdentifier = (users: User[], identifier: string) => {
