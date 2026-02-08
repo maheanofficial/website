@@ -7,6 +7,7 @@ const PrivacyPage = () => {
             <SEO
                 title="গোপনীয়তা নীতি - মাহিয়ান আহমেদ"
                 description="মাহিয়ান আহমেদের ওয়েবসাইটের গোপনীয়তা নীতি এবং ডেটা সুরক্ষা সম্পর্কিত তথ্য।"
+                canonicalUrl="/privacy"
             />
 
             <div className="legal-container">

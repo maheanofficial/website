@@ -92,7 +92,7 @@ const ForgotPasswordPage = () => {
 
         try {
             await resetPasswordForEmail(email);
-            setMessage('পাসওয়ার্ড রিসেট লিংক আপনার ইমেইলে পাঠানো হয়েছে। অনুগ্রহ করে ইনবক্স চেক করুন।');
+            setMessage('????? ?????? ??????? ??? ??????? ??? ???? ?????????? ??? ???? ????? ?????????? ???? ????');
         } catch (err) {
             setError('লিংক পাঠাতে সমস্যা হয়েছে। ইমেইলটি সঠিক কি না যাচাই করুন।');
         } finally {
@@ -102,7 +102,13 @@ const ForgotPasswordPage = () => {
 
     return (
         <div className="author-portal-page">
-            <SEO title="পাসওয়ার্ড ভুলে গেছেন? - মাহিয়ানের গল্পকথা" description="মাহিয়ানের গল্পকথা পাসওয়ার্ড রিসেট পেজ।" />
+            <SEO
+                title="পাসওয়ার্ড ভুলে গেছেন? - মাহিয়ানের গল্পকথা"
+                description="মাহিয়ানের গল্পকথা পাসওয়ার্ড রিসেট পেজ।"
+                noIndex
+                noFollow
+                canonicalUrl="/forgot-password"
+            />
 
             <ConstellationCanvas />
 

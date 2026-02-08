@@ -28,14 +28,37 @@ CREATE TABLE IF NOT EXISTS authors (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Categories Table
+-- 3. Profiles Table (User Settings)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT,
+    username TEXT,
+    email TEXT,
+    phone TEXT,
+    dob DATE,
+    gender TEXT,
+    bio TEXT,
+    youtube TEXT,
+    tiktok TEXT,
+    facebook TEXT,
+    instagram TEXT,
+    address TEXT,
+    zip TEXT,
+    city TEXT,
+    country TEXT,
+    avatar TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Trash/Recycle Bin Table
+-- 5. Trash/Recycle Bin Table
 CREATE TABLE IF NOT EXISTS trash (
     id TEXT PRIMARY KEY,
     original_id TEXT NOT NULL,
@@ -45,7 +68,7 @@ CREATE TABLE IF NOT EXISTS trash (
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Activity Log Table
+-- 6. Activity Log Table
 CREATE TABLE IF NOT EXISTS activity_logs (
     id TEXT PRIMARY KEY,
     action TEXT NOT NULL CHECK (action IN ('create', 'update', 'delete', 'restore', 'permanent_delete', 'login', 'empty_trash')),
@@ -55,7 +78,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. Login History Table
+-- 7. Login History Table
 CREATE TABLE IF NOT EXISTS login_history (
     id TEXT PRIMARY KEY,
     ip TEXT,
@@ -65,7 +88,7 @@ CREATE TABLE IF NOT EXISTS login_history (
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 7. Analytics Data Table (Daily Stats)
+-- 8. Analytics Data Table (Daily Stats)
 CREATE TABLE IF NOT EXISTS analytics_daily (
     date DATE PRIMARY KEY,
     visitors INTEGER DEFAULT 0,
@@ -90,6 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_date ON analytics_daily(date DESC);
 -- Enable Row Level Security (RLS) - Optional but recommended
 ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE authors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trash ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
@@ -99,12 +123,14 @@ ALTER TABLE analytics_daily ENABLE ROW LEVEL SECURITY;
 -- Create policies to allow public read access (adjust as needed)
 CREATE POLICY "Allow public read access on stories" ON stories FOR SELECT USING (true);
 CREATE POLICY "Allow public read access on authors" ON authors FOR SELECT USING (true);
+CREATE POLICY "Allow public read access on profiles" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Allow public read access on categories" ON categories FOR SELECT USING (true);
 
 -- For admin operations, you'll need to authenticate
 -- These policies allow all operations for now (you can restrict later)
 CREATE POLICY "Allow all operations on stories" ON stories FOR ALL USING (true);
 CREATE POLICY "Allow all operations on authors" ON authors FOR ALL USING (true);
+CREATE POLICY "Allow all operations on profiles" ON profiles FOR ALL USING (true);
 CREATE POLICY "Allow all operations on categories" ON categories FOR ALL USING (true);
 CREATE POLICY "Allow all operations on trash" ON trash FOR ALL USING (true);
 CREATE POLICY "Allow all operations on activity_logs" ON activity_logs FOR ALL USING (true);

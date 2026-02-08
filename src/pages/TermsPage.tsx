@@ -7,6 +7,7 @@ const TermsPage = () => {
             <SEO
                 title="ব্যবহারের শর্তাবলী - মাহিয়ান আহমেদ"
                 description="মাহিয়ান আহমেদের ওয়েবসাইট ব্যবহারের শর্তাবলী এবং নিয়মাবলী।"
+                canonicalUrl="/terms"
             />
 
             <div className="legal-container">

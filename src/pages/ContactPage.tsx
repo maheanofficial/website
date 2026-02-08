@@ -8,6 +8,7 @@ const ContactPage = () => {
                 title="যোগাযোগ - মাহিয়ান আহমেদ"
                 description="কাজের ব্যাপারে কথা বলতে বা যেকোনো প্রয়োজনে যোগাযোগ করুন। ইমেইল বা সোশ্যাল মিডিয়ার মাধ্যমে কানেক্টেড থাকুন।"
                 keywords="Contact Mahean Ahmed, Mahean Ahmed Email, Voice Over Service, Audio Story Request"
+                canonicalUrl="/contact"
                 jsonLd={{
                     "@context": "https://schema.org",
                     "@type": "ContactPage",
@@ -20,8 +21,9 @@ const ContactPage = () => {
                     }
                 }}
             />
-            <div style={{ marginTop: '180px' }}></div>
-            <Contact />
+            <div className="page-offset">
+                <Contact />
+            </div>
         </>
     );
 };

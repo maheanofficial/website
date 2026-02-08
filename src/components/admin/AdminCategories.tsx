@@ -134,12 +134,14 @@ const AdminCategories = () => {
                                 rows={3}
                             />
                         </div>
-                        <ImageUploader
-                            label="Category Image"
-                            value={newCatImage}
-                            onChange={setNewCatImage}
-                            placeholder={newCatName}
-                        />
+                        <div className="form-group">
+                            <label>Category Image</label>
+                            <ImageUploader
+                                value={newCatImage}
+                                onChange={setNewCatImage}
+                                placeholder={newCatName}
+                            />
+                        </div>
                         <button type="submit" className={`btn w-full ${editingId ? 'btn-secondary font-bold text-lg' : 'btn-primary'}`}>
                             {editingId ? <Edit2 size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
                             {editingId ? 'SAVE CHANGES' : 'ADD CATEGORY'}

@@ -4,9 +4,6 @@ import { Mail, Eye, EyeOff } from 'lucide-react';
 import { signInWithGoogle, signInWithEmailOnly } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
-
-            // Go to the author dashboard which mounts the admin UI
-            navigate('/author/dashboard');
 const ConstellationCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -111,7 +108,13 @@ const SubmitStoryPage = () => {
 
     return (
         <div className="author-portal-page">
-            <SEO title="লেখক পোর্টাল - লগ ইন করুন | মাহিয়ানের গল্পকথা" description="মাহিয়ানের গল্পকথা লেখক পোর্টালে লগ ইন করুন।" />
+            <SEO
+                title="লেখক পোর্টাল - লগ ইন করুন | মাহিয়ানের গল্পকথা"
+                description="মাহিয়ানের গল্পকথা লেখক পোর্টালে লগ ইন করুন।"
+                noIndex
+                noFollow
+                canonicalUrl="/login"
+            />
 
             {/* Background Animation covering full screen */}
             <ConstellationCanvas />

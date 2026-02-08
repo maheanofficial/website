@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { PenTool, BookOpen, Eye, UserCheck } from 'lucide-react';
+import { BookOpen, Eye, UserCheck } from 'lucide-react';
 import { getAllAuthors } from '../utils/authorManager';
 import { getStories } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';

@@ -9,6 +9,7 @@ import AdComponent from '../components/AdComponent';
 import StoryCard from '../components/StoryCard';
 import StoryCarousel from '../components/StoryCarousel';
 import { getStories } from '../utils/storyManager';
+import './HomePage.css';
 
 const HomePage = () => {
     const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'ongoing'>('all');
@@ -41,6 +42,7 @@ const HomePage = () => {
                 keywords="Mahean Ahmed, বাংলা অডিওবুক, ভয়েস আর্টিস্ট, বাংলা গল্প, অডিও স্টোরিটেলার, Bangla Audio Story, Thriller Story, Horror Story"
                 jsonLd={schemaData}
                 ogType="profile"
+                canonicalUrl="/"
             />
 
             <Hero />
@@ -57,38 +59,32 @@ const HomePage = () => {
             {/* Stories Section with Tabs */}
             <div className="container py-8">
                 {/* Tab Menu Header */}
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                    <div className="flex items-center gap-2 bg-[#1f2937]/50 p-1 rounded-full border border-[#374151]">
+                <div className="home-stories-header">
+                    <div className="home-story-tabs">
                         <button
+                            type="button"
                             onClick={() => setActiveTab('all')}
-                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'all'
-                                ? 'bg-amber-500 text-white shadow-lg'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
+                            className={`home-story-tab ${activeTab === 'all' ? 'is-active is-active--all' : ''}`}
                         >
                             সব
                         </button>
                         <button
+                            type="button"
                             onClick={() => setActiveTab('completed')}
-                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'completed'
-                                ? 'bg-[#22c55e] text-white shadow-lg'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
+                            className={`home-story-tab ${activeTab === 'completed' ? 'is-active is-active--completed' : ''}`}
                         >
                             সমাপ্ত
                         </button>
                         <button
+                            type="button"
                             onClick={() => setActiveTab('ongoing')}
-                            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'ongoing'
-                                ? 'bg-amber-500 text-white shadow-lg'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
+                            className={`home-story-tab ${activeTab === 'ongoing' ? 'is-active is-active--ongoing' : ''}`}
                         >
                             চলমান
                         </button>
                     </div>
 
-                    <Link to="/stories" className="text-amber-500 hover:text-amber-400 font-medium text-sm flex items-center gap-1">
+                    <Link to="/stories" className="home-stories-more">
                         আরও দেখুন <ChevronRight size={16} />
                     </Link>
                 </div>

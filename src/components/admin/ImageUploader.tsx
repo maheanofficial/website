@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Upload, X } from 'lucide-react';
 import SmartImage from '../SmartImage';
+import './ImageUploader.css';
 
 interface ImageUploaderProps {
     value?: string;
@@ -41,18 +42,18 @@ const ImageUploader = ({ value, onChange, placeholder = "Image", isRound = false
 
             <div
                 onClick={() => fileInputRef.current?.click()}
-                className={`${containerClass} overflow-hidden cursor-pointer relative group`}
+                className={`image-uploader ${isRound ? 'image-uploader--round' : 'image-uploader--rect'} ${containerClass}`}
             >
                 {value ? (
                     <>
                         <SmartImage
                             src={value}
                             alt="Preview"
-                            className="w-full h-full object-cover"
+                            className="image-uploader__image"
                             isRound={isRound}
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Upload className="text-white" size={32} />
+                        <div className="image-uploader__overlay">
+                            <Upload className="image-uploader__overlay-icon" size={32} />
                         </div>
                         <button
                             type="button"
@@ -60,17 +61,17 @@ const ImageUploader = ({ value, onChange, placeholder = "Image", isRound = false
                                 e.stopPropagation();
                                 onChange('');
                             }}
-                            className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white hover:bg-red-500/80 transition-colors"
+                            className="image-uploader__remove"
                         >
                             <X size={16} />
                         </button>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center gap-4 text-gray-500">
-                        <Upload size={48} className="opacity-40" />
-                        <div className="text-center">
-                            <p className="text-sm font-medium text-gray-400">{placeholder}</p>
-                            <p className="text-xs text-gray-600 mt-1">Recommended ratio: 16:9</p>
+                    <div className="image-uploader__placeholder">
+                        <Upload size={48} className="image-uploader__placeholder-icon" />
+                        <div className="image-uploader__placeholder-text">
+                            <p className="image-uploader__placeholder-title">{placeholder}</p>
+                            <p className="image-uploader__placeholder-subtitle">Recommended ratio: 16:9</p>
                         </div>
                     </div>
                 )}

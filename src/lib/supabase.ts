@@ -17,18 +17,32 @@ export const safeSupabaseCall = async (operation: Promise<any>) => {
 // If the app was redirected back from an OAuth provider, Supabase may place
 // the session tokens in the URL fragment (hash). Parse them early so the
 // client session is established before the app's routing and components mount.
-if (typeof window !== 'undefined' && window.location.hash) {
-    const hash = window.location.hash;
-    if (hash.includes('access_token') || hash.includes('code') || hash.includes('type=')) {
-        // Run asynchronously but don't block import; log any errors for debugging
+if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    const authCode = url.searchParams.get('code');
+    const hashParams = new URLSearchParams(url.hash.replace('#', ''));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    if (authCode || accessToken) {
         (async () => {
             try {
-                await supabase.auth.getSessionFromUrl({ storeSession: true });
-                // Clean up the URL fragment
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-                console.log('Supabase: restored session from URL fragment');
+                if (authCode) {
+                    await supabase.auth.exchangeCodeForSession(authCode);
+                } else if (accessToken && refreshToken) {
+                    await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                }
+
+                url.hash = '';
+                url.searchParams.delete('code');
+                url.searchParams.delete('type');
+                history.replaceState(null, '', url.pathname + url.search);
+                console.log('Supabase: restored session from URL');
             } catch (err) {
-                console.warn('Supabase: getSessionFromUrl failed during init', err);
+                console.warn('Supabase: session restore failed during init', err);
             }
         })();
     }

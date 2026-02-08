@@ -9,6 +9,7 @@ const AboutPage = () => {
                 description="আমি মাহিয়ান আহমেদ, একজন বাংলা ভয়েস আর্টিস্ট এবং গল্পকার। জানুন আমার কাজ, মিশন এবং ভিশন সম্পর্কে।"
                 keywords="About Mahean Ahmed, Voice Artist Biography, Bangla Storyteller, Mahean's Story"
                 ogType="profile"
+                canonicalUrl="/about"
                 jsonLd={{
                     "@context": "https://schema.org",
                     "@type": "AboutPage",

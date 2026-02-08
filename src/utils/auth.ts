@@ -1,126 +1,139 @@
-import { supabase } from '../lib/supabase';
+﻿import {
+    loginUser,
+    registerUser,
+    setCurrentUserSession,
+    getCurrentUser as getLocalCurrentUser,
+    logoutUser,
+    requestPasswordReset,
+    consumePasswordReset,
+    updateUserPassword,
+    getPasswordResetUserId,
+    type User
+} from './userManager';
+
+type AuthSession = { user: User | null } | null;
+
+type AuthChangeDetail = {
+    event: string;
+    session: AuthSession;
+};
+
+const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
+
+const emitAuthChange = (event: string, user: User | null) => {
+    if (!authEventTarget) return;
+    const detail: AuthChangeDetail = {
+        event,
+        session: { user }
+    };
+    authEventTarget.dispatchEvent(new CustomEvent('auth-change', { detail }));
+};
 
 /**
- * Initiates the Google OAuth sign-in flow.
- * Note: Redirects the user to the Google sign-in page.
+ * Google OAuth is not available in local-only mode.
  */
 export const signInWithGoogle = async () => {
-    try {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                // Redirect to the author dashboard after successful OAuth
-                redirectTo: `${window.location.origin}/author/dashboard`,
-            },
-        });
-
-        if (error) throw error;
-    } catch (error) {
-        console.error('Error signing in with Google:', error);
-        throw error;
-    }
+    throw new Error('Google sign-in is disabled in local-only mode.');
 };
 
 /**
  * Signs the current user out.
  */
 export const signOut = async () => {
-    try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-    } catch (error) {
-        console.error('Error signing out:', error);
-        throw error;
-    }
+    logoutUser();
+    emitAuthChange('SIGNED_OUT', null);
 };
 
 /**
  * Gets the current session and user.
  */
 export const getCurrentUser = async () => {
-    try {
-        // If the URL contains an OAuth fragment (after redirect), complete the sign-in
-        // by extracting the session from the URL first. This fixes blank pages after
-        // OAuth redirects which leave tokens in the hash (e.g. /author/dashboard#...).
-        if (typeof window !== 'undefined' && window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('code') || window.location.hash.includes('type='))) {
-            try {
-                // This will parse the URL and set the session in the client
-                await supabase.auth.getSessionFromUrl({ storeSession: true });
-                // Remove fragment to keep URLs clean
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            } catch (err) {
-                console.warn('getSessionFromUrl failed:', err);
-            }
-        }
-
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        return session?.user || null;
-    } catch (error) {
-        console.error('Error getting current user:', error);
-        return null;
-    }
+    return getLocalCurrentUser();
 };
 
 /**
  * Sets up a listener for auth state changes.
  */
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        callback(event, session);
-    });
+export const onAuthStateChange = (callback: (event: string, session: AuthSession) => void) => {
+    if (!authEventTarget) {
+        return { unsubscribe: () => undefined };
+    }
 
-    return subscription;
+    const handler = (event: Event) => {
+        const detail = (event as CustomEvent<AuthChangeDetail>).detail;
+        callback(detail.event, detail.session);
+    };
+
+    authEventTarget.addEventListener('auth-change', handler);
+
+    return {
+        unsubscribe: () => authEventTarget.removeEventListener('auth-change', handler)
+    };
 };
 
 /**
- * Sends a password reset email to the user.
+ * Stores a local password reset intent for the provided email.
  */
 export const resetPasswordForEmail = async (email: string) => {
-    try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/update-password`,
-        });
-        if (error) throw error;
-        return { success: true };
-    } catch (error) {
-        console.error('Error sending reset password email:', error);
+    const result = requestPasswordReset(email);
+    if (!result.success) {
+        throw new Error(result.message);
     }
+    return { success: true };
 };
 
 /**
- * Signs in with email and password.
+ * Signs in with email and password (local storage).
  */
 export const signInWithEmailOnly = async (email: string, pass: string) => {
-    try {
-        const { error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: pass,
-        });
-        if (error) throw error;
-        return { success: true };
-    } catch (error) {
-        console.error('Error signing in with Email:', error);
-        throw error;
+    const result = loginUser(email, pass);
+    if (!result.success || !result.user) {
+        throw new Error(result.message);
     }
+    setCurrentUserSession(result.user);
+    emitAuthChange('SIGNED_IN', result.user);
+    return { success: true };
 };
 
 /**
- * Signs up a new user with email and password.
+ * Signs up a new user with email and password (local storage).
  */
 export const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
-    try {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-        }, {
-            data: { full_name: fullName }
-        });
-
-        if (error) throw error;
-        return data;
-    } catch (error) {
-        console.error('Error signing up with Email:', error);
-        throw error;
+    const result = registerUser(email, password, fullName);
+    if (!result.success || !result.user) {
+        throw new Error(result.message);
     }
+    setCurrentUserSession(result.user);
+    emitAuthChange('SIGNED_IN', result.user);
+    return { user: result.user };
 };
+
+/**
+ * Updates the current user password in local storage.
+ */
+export const updateCurrentUserPassword = async (currentPassword: string | null, newPassword: string) => {
+    const user = getLocalCurrentUser();
+    if (!user) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    const result = updateUserPassword(user.id, newPassword, currentPassword || undefined);
+    if (!result.success) {
+        throw new Error(result.message);
+    }
+
+    return { success: true };
+};
+
+/**
+ * Applies a pending password reset in local storage.
+ */
+export const applyPasswordReset = async (newPassword: string) => {
+    const result = consumePasswordReset(newPassword);
+    if (!result.success) {
+        throw new Error(result.message);
+    }
+    return { success: true };
+};
+
+export const hasPendingPasswordReset = () => Boolean(getPasswordResetUserId());

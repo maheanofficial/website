@@ -1,6 +1,6 @@
 .links-page {
     min-height: 100vh;
-    padding: 180px var(--spacing-md) var(--spacing-xl) var(--spacing-md);
+    padding: var(--header-space) var(--spacing-md) var(--spacing-xl) var(--spacing-md);
     background: var(--bg-primary);
 }
 
@@ -209,7 +209,7 @@
 /* Responsive */
 @media (max-width: 640px) {
     .links-page {
-        padding: var(--spacing-lg) var(--spacing-sm);
+        padding: var(--header-space) var(--spacing-sm) var(--spacing-lg);
     }
 
     .links-profile-image {

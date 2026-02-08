@@ -8,6 +8,7 @@ const AudiobooksPage = () => {
                 title="অডিওবুক - মাহিয়ান আহমেদ"
                 description="শুনুন মাহিয়ান আহমেদের কণ্ঠে সেরা বাংলা অডিওবুক এবং থ্রিলার গল্প। ইউটিউব এবং অন্যান্য প্ল্যাটফর্মে প্রকাশিত সকল কাজ।"
                 keywords="Bangla Audiobook, Audio Story, Mahean Ahmed, Thriller, Suspense, Horror Audiobook"
+                canonicalUrl="/audiobooks"
                 jsonLd={{
                     "@context": "https://schema.org",
                     "@type": "CollectionPage",
@@ -16,8 +17,9 @@ const AudiobooksPage = () => {
                     "url": "https://mahean.com/audiobooks"
                 }}
             />
-            <div style={{ marginTop: '100px' }}></div>
-            <Projects />
+            <div className="page-offset">
+                <Projects />
+            </div>
         </>
     );
 };

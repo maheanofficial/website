@@ -4,6 +4,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import { trackVisit } from './utils/analyticsManager'
+import { getStoredTheme, initTheme } from './utils/theme'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -21,6 +22,10 @@ import AboutPage from './pages/AboutPage'
 import LinksPage from './pages/LinksPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import UpdatePasswordPage from './pages/UpdatePasswordPage'
+import SeriesPage from './pages/SeriesPage'
+import AuthorsPage from './pages/AuthorsPage'
+import CategoriesPage from './pages/CategoriesPage'
+import TagsPage from './pages/TagsPage'
 
 import ScrollToTop from './components/ScrollToTop'
 import './index.css'
@@ -45,6 +50,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   useEffect(() => {
+    initTheme(getStoredTheme());
     trackVisit();
   }, [])
 
@@ -57,6 +63,10 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/audiobooks" element={<AudiobooksPage />} />
             <Route path="/stories" element={<StoriesPage />} />
+            <Route path="/series" element={<SeriesPage />} />
+            <Route path="/authors" element={<AuthorsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/tags" element={<TagsPage />} />
             <Route path="/stories/:id" element={<StoryDetailsPage />} />
             <Route path="/login" element={<SubmitStoryPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />

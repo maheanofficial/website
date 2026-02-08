@@ -9,6 +9,8 @@ interface AudioPlayerProps {
     cover?: string;
 }
 
+type VoiceMode = 'female' | 'male' | 'neutral';
+
 const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerProps) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -25,6 +27,48 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
+    const [voiceMode, setVoiceMode] = useState<VoiceMode>('neutral');
+
+    const isBanglaVoice = (voice: SpeechSynthesisVoice) => {
+        const lang = voice.lang.toLowerCase();
+        const name = voice.name.toLowerCase();
+        return lang.startsWith('bn') || name.includes('bangla') || name.includes('bengali');
+    };
+
+    const getVoiceGender = (voice: SpeechSynthesisVoice): VoiceMode => {
+        const name = voice.name.toLowerCase();
+        const femaleKeywords = ['female', 'tripti', 'tania', 'aditi', 'microsoft', 'google'];
+        const maleKeywords = ['male', 'pradeep', 'bashkar', 'suhas', 'hemant'];
+
+        if (femaleKeywords.some(keyword => name.includes(keyword))) return 'female';
+        if (maleKeywords.some(keyword => name.includes(keyword))) return 'male';
+        return 'neutral';
+    };
+
+    const getVoiceDisplayName = (voice: SpeechSynthesisVoice) => {
+        const cleaned = voice.name
+            .replace(/Google|Microsoft|Bangla|Bengali|Bangladesh|India/gi, '')
+            .replace(/[\(\)-]/g, '')
+            .trim();
+        return cleaned || voice.name;
+    };
+
+    const voiceModeLabels: Record<VoiceMode, string> = {
+        female: 'বাংলা নারী কণ্ঠ',
+        male: 'বাংলা পুরুষ কণ্ঠ',
+        neutral: 'বাংলা উভয় কণ্ঠ'
+    };
+
+    const getModeSettings = (mode: VoiceMode) => {
+        switch (mode) {
+            case 'female':
+                return { rate: 0.9, pitch: 1.05 };
+            case 'male':
+                return { rate: 0.82, pitch: 0.88 };
+            default:
+                return { rate: 0.85, pitch: 0.95 };
+        }
+    };
 
     // Initial Setup
     useEffect(() => {
@@ -38,56 +82,35 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
         const loadVoices = () => {
             const allVoices = window.speechSynthesis.getVoices();
 
-            // 1. Filter all Bangla Voices
-            const candidates = allVoices.filter(v =>
-                v.lang.includes('bn') ||
-                v.name.toLowerCase().includes('bangla') ||
-                v.name.toLowerCase().includes('bengali')
-            );
+            const candidates = allVoices.filter(isBanglaVoice);
+            const uniqueByName = (list: SpeechSynthesisVoice[]) => {
+                const seen = new Set<string>();
+                return list.filter((voice) => {
+                    if (seen.has(voice.name)) return false;
+                    seen.add(voice.name);
+                    return true;
+                });
+            };
 
-            // 2. Classify by Gender (Heuristics)
-            // Common Female identifiers: 'Female', 'Google', 'Microsoft' (default desktop voices are usually female), 'Tripti'
-            // Common Male identifiers: 'Male', 'Pradeep', 'Bashkar', 'Suhas'
+            const femaleCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'female'));
+            const maleCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'male'));
+            const neutralCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'neutral'));
 
-            const femaleCandidates = candidates.filter(v =>
-                v.name.toLowerCase().includes('female') ||
-                v.name.includes('Google') ||
-                v.name.includes('Microsoft') ||
-                v.name.includes('Tripti')
-            );
-
-            const maleCandidates = candidates.filter(v =>
-                v.name.toLowerCase().includes('male') ||
-                v.name.includes('Pradeep') ||
-                v.name.includes('Bashkar') ||
-                v.name.includes('Suhas')
-            );
-
-            // 3. Select Best Pair (1 Female + 1 Male)
-            // If explicit male found, great. If not, and we have multiple candidates not marked female, assume potential male or alternate.
-
-            let bestFemale = femaleCandidates[0];
-            // If we didn't find a 'female' tagged one, but have candidates, pick the first one as primary (usually female)
-            if (!bestFemale && candidates.length > 0) bestFemale = candidates[0];
-
-            // Find a male that isn't the same as the female voice
-            let bestMale = maleCandidates.find(v => v.name !== bestFemale?.name);
-
-            // If explicitly identified male not found, look for *any* other voice that isn't the female one
-            if (!bestMale && candidates.length > 1) {
-                bestMale = candidates.find(v => v.name !== bestFemale?.name);
-            }
-
-            // 4. Construct Final List
-            const curatedList: SpeechSynthesisVoice[] = [];
-            if (bestFemale) curatedList.push(bestFemale);
-            if (bestMale) curatedList.push(bestMale);
+            const curatedList = uniqueByName([
+                ...femaleCandidates,
+                ...maleCandidates,
+                ...neutralCandidates
+            ]);
 
             setVoices(curatedList);
 
             // Auto-select preferred (Default to Female/Primary)
-            if (!selectedVoice && curatedList.length > 0) {
-                setSelectedVoice(curatedList[0]);
+            if (curatedList.length > 0) {
+                const stillAvailable = selectedVoice && curatedList.some(v => v.name === selectedVoice.name);
+                if (!stillAvailable) {
+                    setSelectedVoice(curatedList[0]);
+                    setVoiceMode(getVoiceGender(curatedList[0]));
+                }
             }
         };
 
@@ -172,8 +195,9 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
 
         utterance.volume = volume;
         // Storyteller Mode Settings:
-        utterance.rate = 0.85;
-        utterance.pitch = 0.95;
+        const modeSettings = selectedVoice ? getModeSettings('neutral') : getModeSettings(voiceMode);
+        utterance.rate = modeSettings.rate;
+        utterance.pitch = modeSettings.pitch;
 
         utterance.onend = () => {
             setIsPlaying(false);
@@ -259,6 +283,7 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
 
     const handleVoiceSelect = (voice: SpeechSynthesisVoice) => {
         setSelectedVoice(voice);
+        setVoiceMode(getVoiceGender(voice));
         // If playing, restart with new voice
         if (isPlaying && isTTS) {
             window.speechSynthesis.cancel();
@@ -269,8 +294,9 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                 utterance.voice = voice;
                 utterance.lang = voice.lang;
                 utterance.volume = volume;
-                utterance.rate = 0.85; // Keep consistent rate
-                utterance.pitch = 0.95;
+                const modeSettings = getModeSettings('neutral');
+                utterance.rate = modeSettings.rate;
+                utterance.pitch = modeSettings.pitch;
 
                 utterance.onend = () => setIsPlaying(false);
                 utterance.onpause = () => setIsPlaying(false);
@@ -282,6 +308,35 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                 setIsPlaying(true);
             }, 100);
         }
+        setShowVoiceModal(false);
+    };
+
+    const handleFallbackVoiceSelect = (mode: VoiceMode) => {
+        setSelectedVoice(null);
+        setVoiceMode(mode);
+
+        if (isPlaying && isTTS) {
+            window.speechSynthesis.cancel();
+            setTimeout(() => {
+                const cleanedText = cleanTextForTTS(text || "");
+                const utterance = new SpeechSynthesisUtterance(cleanedText);
+                utterance.lang = 'bn-BD';
+                utterance.volume = volume;
+                const modeSettings = getModeSettings(mode);
+                utterance.rate = modeSettings.rate;
+                utterance.pitch = modeSettings.pitch;
+
+                utterance.onend = () => setIsPlaying(false);
+                utterance.onpause = () => setIsPlaying(false);
+                utterance.onresume = () => setIsPlaying(true);
+                utterance.onstart = () => setIsPlaying(true);
+
+                speechRef.current = utterance;
+                window.speechSynthesis.speak(utterance);
+                setIsPlaying(true);
+            }, 100);
+        }
+
         setShowVoiceModal(false);
     };
 
@@ -300,9 +355,11 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                     <span className="ap-status">
                         {isPlaying ? (isTTS ? 'Reading Story...' : 'Now Playing...') : (isTTS ? 'Ready to Read' : 'Paused')}
                     </span>
-                    {isTTS && selectedVoice && (
-                        <span className="text-[10px] text-amber-400 opacity-80 mt-1 truncate max-w-[150px]">
-                            Voice: {selectedVoice.name.replace(/Google|Microsoft|Bangla|Bengali|India/gi, '').replace(/[\(\)-]/g, '').trim() || 'Default'}
+                    {isTTS && (
+                        <span className="text-[10px] text-amber-400 opacity-80 mt-1 truncate max-w-[180px]">
+                            Voice: {selectedVoice
+                                ? `${voiceModeLabels[getVoiceGender(selectedVoice)]} • ${getVoiceDisplayName(selectedVoice)}`
+                                : `${voiceModeLabels[voiceMode]} • ডিফল্ট`}
                         </span>
                     )}
                 </div>
@@ -396,19 +453,9 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                     <div className="voice-list">
                         {voices.length > 0 ? (
                             voices.map((voice, idx) => {
-                                // Determine display label
-                                let label = voice.name.replace(/Google|Microsoft|Bangla|Bengali|India/gi, '').replace(/[\(\)-]/g, '').trim();
-                                let subLabel = "Natural Voice";
-
-                                if (voice.name.toLowerCase().includes('female') || voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Tripti')) {
-                                    label = "Female Narrator";
-                                    subLabel = voice.name.split(' ')[0] + " (Bangla)"; // e.g., Google (Bangla)
-                                } else if (voice.name.toLowerCase().includes('male') || voice.name.includes('Pradeep') || voice.name.includes('Bashkar')) {
-                                    label = "Male Narrator";
-                                    subLabel = voice.name.split(' ')[0] + " (Bangla)";
-                                } else {
-                                    label = `Narrator ${idx + 1}`;
-                                }
+                                const gender = getVoiceGender(voice);
+                                const label = voiceModeLabels[gender] || `বাংলা কণ্ঠ ${idx + 1}`;
+                                const subLabel = `${getVoiceDisplayName(voice)} • ${voice.lang.toUpperCase()}`;
 
                                 return (
                                     <button
@@ -431,20 +478,39 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                                 )
                             })
                         ) : (
-                            <div className="text-xs text-center text-gray-400 py-6 flex flex-col items-center gap-3">
-                                <Mic2 size={24} className="opacity-40" />
-                                <div>
-                                    <p className="font-medium">No Bangla voice detected!</p>
-                                    <p className="opacity-60 text-[10px] mt-1 max-w-[200px]">
-                                        Please enable 'Text-to-Speech' data for Bengali in your device settings.
+                            <div className="flex flex-col gap-3">
+                                {(['female', 'male', 'neutral'] as VoiceMode[]).map((mode) => (
+                                    <button
+                                        key={mode}
+                                        className={`voice-option ${!selectedVoice && voiceMode === mode ? 'active' : ''}`}
+                                        onClick={() => handleFallbackVoiceSelect(mode)}
+                                    >
+                                        <div className="flex flex-col items-start">
+                                            <span className="voice-name font-semibold text-sm">
+                                                {voiceModeLabels[mode]}
+                                            </span>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">
+                                                    ডিফল্ট সিস্টেম ভয়েস
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                <div className="text-[10px] text-center text-gray-400 mt-2 flex flex-col items-center gap-2">
+                                    <Mic2 size={20} className="opacity-40" />
+                                    <p className="opacity-80 max-w-[220px]">
+                                        বাংলা কণ্ঠ ডিভাইসে না থাকলে ডিফল্ট ভয়েস ব্যবহার হবে। বাংলা ভয়েস যোগ করতে Windows
+                                        Settings → Speech → Voices এ যান।
                                     </p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="text-[10px] text-amber-400 hover:underline"
+                                    >
+                                        Click to Reload Voices
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => window.location.reload()}
-                                    className="text-[10px] text-amber-400 hover:underline mt-2"
-                                >
-                                    Click to Reload Voices
-                                </button>
                             </div>
                         )}
                     </div>

@@ -5,6 +5,7 @@ import { getStories, incrementViews, type Story } from '../utils/storyManager';
 import { getAuthorByName } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
@@ -22,25 +23,33 @@ const StoryDetailsPage = () => {
     const [showPartsList, setShowPartsList] = useState(false);
     const [readingProgress, setReadingProgress] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
+    const normalizeStory = (entry: Story): Story => {
+        if (entry.parts && entry.parts.length > 0) return entry;
+        return {
+            ...entry,
+            parts: [{ id: '1', title: 'পর্ব ১', content: entry.content }]
+        };
+    };
 
     useEffect(() => {
         const stories = getStories();
         // Try to find by ID or Slug
         const foundStory = stories.find(s => s.id.toString() === id || s.slug === id);
         if (foundStory) {
+            const normalized = normalizeStory(foundStory);
             // Session guard to prevent double counting on refresh/StrictMode
-            const viewKey = `viewed_story_${foundStory.id}`;
+            const viewKey = `viewed_story_${normalized.id}`;
             const hasViewedInSession = sessionStorage.getItem(viewKey);
 
             if (!hasViewedInSession) {
-                incrementViews(foundStory.id);
+                incrementViews(normalized.id);
                 sessionStorage.setItem(viewKey, 'true');
                 // Re-fetch to get the updated count in UI
                 const updatedStories = getStories();
-                const refreshedStory = updatedStories.find(s => s.id === foundStory.id);
-                setStory(refreshedStory || foundStory);
+                const refreshedStory = updatedStories.find(s => s.id === normalized.id);
+                setStory(normalizeStory(refreshedStory || normalized));
             } else {
-                setStory(foundStory);
+                setStory(normalized);
             }
         }
     }, [id]);
@@ -78,7 +87,7 @@ const StoryDetailsPage = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [currentPartNumber]);
 
-    if (!story || !story.parts) {
+    if (!story) {
         return (
             <div className="container py-20 text-center">
                 <h2 className="text-2xl text-white mb-4">গল্পটি লোড করতে সমস্যা হচ্ছে!</h2>
@@ -98,15 +107,24 @@ const StoryDetailsPage = () => {
         );
     }
 
-    const currentPart = story.parts?.find(p => {
-        return (story.parts!.indexOf(p) + 1) === currentPartNumber;
-    }) || story.parts?.[0];
+    const parts = story.parts ?? [];
+    const currentPart = parts.find(p => {
+        return (parts.indexOf(p) + 1) === currentPartNumber;
+    }) || parts[0];
 
-    const totalParts = story.parts?.length || 0;
+    if (!currentPart) {
+        return null;
+    }
+
+    const totalParts = parts.length;
     const nextPartNumber = currentPartNumber < totalParts ? currentPartNumber + 1 : null;
     const prevPartNumber = currentPartNumber > 1 ? currentPartNumber - 1 : null;
     // Author Details
     const authorDetails = getAuthorByName(story.author || '');
+    const storyPath = `/stories/${story.slug || story.id}`;
+    const canonicalUrl = `${SITE_URL}${storyPath}`;
+    const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
+    const articleImage = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
 
     // Format content with simplistic formatter matching demo
     const renderFormattedText = (text: string) => {
@@ -126,7 +144,12 @@ const StoryDetailsPage = () => {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
         "headline": story.title,
-        "image": [story.cover_image, "https://mahean.com/og-image.jpg"],
+        "url": canonicalUrl,
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": canonicalUrl
+        },
+        "image": [articleImage],
         "datePublished": story.date,
         "dateModified": story.date,
         "author": {
@@ -135,15 +158,27 @@ const StoryDetailsPage = () => {
         },
         "publisher": {
             "@type": "Organization",
-            "name": "Mahean Ahmed Blogs",
+            "name": "Mahean Ahmed",
             "logo": {
                 "@type": "ImageObject",
-                "url": "https://mahean.com/logo.png"
+                "url": `${SITE_URL}/logo.png`
             }
         },
         "description": currentPart.content.substring(0, 160) + '...',
-        "articleBody": currentPart.content.substring(0, 1000)
+        "articleBody": currentPart.content.substring(0, 1000),
+        "inLanguage": "bn"
     };
+    const storyTags = (story.tags || []).filter(Boolean);
+    const seoKeywords = [
+        story.category,
+        ...storyTags,
+        'বাংলা গল্প',
+        story.author,
+        'Bangla Story',
+        'Thriller',
+        'Suspense'
+    ].filter(Boolean).join(', ');
+    const toTagLabel = (tag: string) => (tag.startsWith('#') ? tag : `#${tag}`);
 
     return (
         <article className="story-details-page fade-in-up">
@@ -158,10 +193,14 @@ const StoryDetailsPage = () => {
             <SEO
                 title={`${story.title} - ${story.author} `}
                 description={currentPart.content.substring(0, 160) + '...'}
-                keywords={`${story.category}, বাংলা গল্প, ${story.author}, Bangla Story, Thriller, Suspense`}
+                keywords={seoKeywords}
                 ogType="article"
                 author={story.author}
-                ogImage={story.cover_image}
+                ogImage={ogImage}
+                imageAlt={story.title}
+                canonicalUrl={canonicalUrl}
+                publishedTime={story.date}
+                modifiedTime={story.date}
                 jsonLd={articleSchema}
             />
 
@@ -175,7 +214,7 @@ const StoryDetailsPage = () => {
                 {/* Cover Image Banner */}
                 <div className="story-banner">
                     <SmartImage
-                        src={story.cover_image}
+                        src={story.cover_image || story.image}
                         alt={story.title}
                         showFullText={true}
                     />
@@ -185,6 +224,18 @@ const StoryDetailsPage = () => {
                 <div className="story-info-box">
                     <div className="story-categories">
                         <span className="category-badge">{story.category}</span>
+                        {storyTags.length > 0 && (
+                            <div className="story-tags-inline">
+                                {storyTags.map((tag) => {
+                                    const normalized = tag.startsWith('#') ? tag.slice(1) : tag;
+                                    return (
+                                        <Link key={`${story.id}-${tag}`} to={`/stories?tag=${encodeURIComponent(normalized)}`} className="tag">
+                                            {toTagLabel(tag)}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     <h1 className="story-title">{story.title}</h1>
@@ -247,7 +298,7 @@ const StoryDetailsPage = () => {
 
                     {showPartsList && (
                         <div className="parts-dropdown-grid">
-                            {story.parts.map((_, idx) => (
+                            {parts.map((_, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => {
@@ -273,7 +324,7 @@ const StoryDetailsPage = () => {
                         src="" // Empty src triggers TTS mode if text is provided
                         text={currentPart.content}
                         title={`${story.title} - Part ${currentPartNumber}`}
-                        cover={story.cover_image}
+                        cover={story.cover_image || story.image}
                     />
                 </div>
 

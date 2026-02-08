@@ -67,6 +67,7 @@ const LinksPage = () => {
                 title="All Links - Mahean Ahmed"
                 description="Find all my social media links, YouTube channels and online presence in one place."
                 keywords="Mahean Ahmed, Social Media, YouTube Channels, Links"
+                canonicalUrl="/links"
             />
 
             <div className="links-page">

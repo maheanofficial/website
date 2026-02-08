@@ -12,6 +12,11 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
     const isCompleted = story.status === 'completed' || (story.parts && story.parts.length > 10);
     // Demo tags matching the screenshot for visual fidelity
     const mockTags = ['ডার্ক রোমান্স', 'রহস্য', 'থ্রিলার', '#প্রতিশোধ'];
+    const fallbackTags = story.category ? [story.category] : mockTags;
+    const displayTags = (story.tags && story.tags.length > 0 ? story.tags : fallbackTags)
+        .filter(Boolean)
+        .slice(0, 3);
+    const toTagLabel = (tag: string) => (tag.startsWith('#') ? tag : `#${tag}`);
 
     return (
         <article
@@ -55,9 +60,14 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
 
                 {/* Tags */}
                 <div className="story-tags">
-                    {mockTags.slice(0, 3).map((tag, i) => (
-                        <span key={i} className="tag">{tag}</span>
-                    ))}
+                    {displayTags.map((tag) => {
+                        const normalized = tag.startsWith('#') ? tag.slice(1) : tag;
+                        return (
+                            <Link key={`${story.id}-${tag}`} to={`/stories?tag=${encodeURIComponent(normalized)}`} className="tag">
+                                {toTagLabel(tag)}
+                            </Link>
+                        );
+                    })}
                 </div>
 
                 {/* Author Row (Small) */}
@@ -70,15 +80,15 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                 </div>
 
                 {/* Divider & Stats */}
-                <div className="card-divider" style={{ borderColor: '#374151', margin: '12px 0 8px 0' }}></div>
+                <div className="card-divider"></div>
 
-                <div className="story-card-footer-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#e5e7eb', fontWeight: 600, fontFamily: "'Arial', sans-serif" }}>
-                    <div className="stats-left" style={{ display: 'flex', gap: '12px' }}>
+                <div className="story-card-footer-stats">
+                    <div className="stats-left">
                         <span>সিজন : ১</span>
-                        <span>পর্ব : {toBanglaNumber(story.parts?.length || 0)}</span>
+                        <span>পর্ব : {toBanglaNumber(story.parts?.length || 1)}</span>
                     </div>
-                    <div className="stats-right" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className="eye-icon" style={{ fontSize: '14px' }}>👁</span>
+                    <div className="stats-right">
+                        <span className="eye-icon">👁</span>
                         <span>{toBanglaNumber(story.views || 0)} হা.</span>
                     </div>
                 </div>

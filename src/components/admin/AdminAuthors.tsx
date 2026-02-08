@@ -218,7 +218,6 @@ const AdminAuthors = () => {
                             </div>
 
                             <ImageUploader
-                                label="Or Upload Custom Avatar"
                                 value={avatar}
                                 onChange={setAvatar}
                                 placeholder={name || 'Author Name'}

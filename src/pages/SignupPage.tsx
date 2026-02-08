@@ -101,9 +101,8 @@ const SignupPage = () => {
             return;
         }
         try {
-            const resp = await signUpWithEmail(email, password, name);
-            // If Supabase requires email confirmation, notify the user
-            alert('রেজিস্ট্রেশন পাঠানো হয়েছে। আপনার ইমেইলটি চেক করে যাচাই করুন (যদি প্রয়োজন)।');
+            await signUpWithEmail(email, password, name);
+            alert('???????????? ??? ??????! ??????????? ???? ????? ?????...');
             // Redirect to the author dashboard which serves the admin area
             window.location.href = '/author/dashboard';
         } catch (err: any) {
@@ -114,7 +113,13 @@ const SignupPage = () => {
 
     return (
         <div className="author-portal-page">
-            <SEO title="সাইন আপ করুন - মাহিয়ানের গল্পকথা" description="মাহিয়ানের গল্পকথায় নতুন অ্যাকাউন্ট তৈরি করুন।" />
+            <SEO
+                title="সাইন আপ করুন - মাহিয়ানের গল্পকথা"
+                description="মাহিয়ানের গল্পকথায় নতুন অ্যাকাউন্ট তৈরি করুন।"
+                noIndex
+                noFollow
+                canonicalUrl="/signup"
+            />
 
             {/* Background Animation covering full screen */}
             <ConstellationCanvas />

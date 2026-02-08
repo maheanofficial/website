@@ -5,6 +5,8 @@ import './AdminPage.css';
 import AdminStories from '../components/admin/AdminStories';
 import AdminAuthors from '../components/admin/AdminAuthors';
 import AdminEpisodes from '../components/admin/AdminEpisodes';
+import AdminSettings from '../components/admin/AdminSettings';
+import AdminProfile from '../components/admin/AdminProfile';
 import DashboardAnalytics from '../components/admin/DashboardAnalytics';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
 
@@ -69,6 +71,8 @@ const AdminPage = () => {
         if (path.includes('/series')) return 'stories';
         if (path.includes('/episodes')) return 'episodes';
         if (path.includes('/authors')) return 'authors';
+        if (path.includes('/settings')) return 'settings';
+        if (path.includes('/profile')) return 'profile';
         return '';
     };
 
@@ -96,6 +100,17 @@ const AdminPage = () => {
             crumbs.push({ label: 'পর্ব', path: '/author/dashboard/episodes', icon: undefined });
         } else if (path.includes('/authors')) {
             crumbs.push({ label: 'লেখক', path: '/author/dashboard/authors', icon: undefined });
+        } else if (path.includes('/settings')) {
+            crumbs.push({ label: 'সেটিংস', path: '/author/dashboard/settings/profile', icon: undefined });
+            if (path.includes('/password')) {
+                crumbs.push({ label: 'পাসওয়ার্ড', path: '', icon: undefined });
+            } else if (path.includes('/appearance')) {
+                crumbs.push({ label: 'অ্যাপিয়ারেন্স', path: '', icon: undefined });
+            } else {
+                crumbs.push({ label: 'প্রোফাইল', path: '', icon: undefined });
+            }
+        } else if (path.includes('/profile')) {
+            crumbs.push({ label: 'প্রোফাইল', path: '/author/dashboard/profile', icon: undefined });
         }
 
         return (
@@ -118,6 +133,17 @@ const AdminPage = () => {
             </div>
         );
     };
+
+    const userMetadata = (currentUser as any)?.user_metadata || {};
+    const displayName = currentUser?.displayName
+        || userMetadata.full_name
+        || userMetadata.name
+        || currentUser?.email?.split('@')[0]
+        || 'User';
+    const avatarUrl = currentUser?.photoURL
+        || userMetadata.avatar_url
+        || userMetadata.picture;
+    const userInitial = displayName?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
     return (
         <div className="admin-layout">
@@ -167,26 +193,32 @@ const AdminPage = () => {
                 </div>
 
                 <div className="sidebar-footer-menu">
-                    <button className="sidebar-item">
+                    <Link
+                        to="/author/dashboard/settings/profile"
+                        className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
+                    >
                         <Settings size={18} />
                         <span>সেটিংস</span>
-                    </button>
-                    <button className="sidebar-item">
+                    </Link>
+                    <Link
+                        to="/author/dashboard/profile"
+                        className={`sidebar-item ${activeTab === 'profile' ? 'active' : ''}`}
+                    >
                         <UserIcon size={18} />
                         <span>প্রোফাইল</span>
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="sidebar-user-profile">
                     <div className="user-avatar-sm">
-                        {currentUser?.photoURL ? (
-                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover rounded-full" />
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="User" className="w-full h-full object-cover rounded-full" />
                         ) : (
-                            currentUser?.displayName?.charAt(0) || 'U'
+                            userInitial
                         )}
                     </div>
                     <div className="user-info-mini">
-                        <div className="u-name">{currentUser?.displayName || 'User'}</div>
+                        <div className="u-name">{displayName}</div>
                         <button onClick={handleLogout} className="u-logout">Log out</button>
                     </div>
                 </div>
@@ -212,6 +244,8 @@ const AdminPage = () => {
                         <Route path="/series/edit/:id" element={<AdminStories initialViewMode="edit" />} />
                         <Route path="/episodes" element={<AdminEpisodes />} />
                         <Route path="/authors" element={<AdminAuthors />} />
+                        <Route path="/profile" element={<AdminProfile />} />
+                        <Route path="/settings/*" element={<AdminSettings />} />
                         {/* Fallback */}
                         <Route path="*" element={<DashboardAnalytics />} />
                     </Routes>

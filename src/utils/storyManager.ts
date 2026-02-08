@@ -49,6 +49,8 @@ const getRawStories = (): Story[] => {
                 author: 'রবীন্দ্রনাথ ঠাকুর',
                 category: 'ক্লাসিক',
                 image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8',
+                tags: ['ক্লাসিক', 'স্মৃতি', 'গ্রামবাংলা'],
+                is_featured: true,
                 status: 'published'
             },
             {
@@ -63,6 +65,8 @@ const getRawStories = (): Story[] => {
                 author: 'হুমায়ূন আহমেদ',
                 category: 'মিসির আলি',
                 image: 'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a',
+                tags: ['রহস্য', 'মনস্তাত্ত্বিক', 'থ্রিলার'],
+                is_featured: true,
                 status: 'completed'
             },
             {
@@ -77,6 +81,7 @@ const getRawStories = (): Story[] => {
                 author: 'সুনীল গঙ্গোপাধ্যায়',
                 category: 'অ্যাডভেঞ্চার',
                 image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
+                tags: ['অ্যাডভেঞ্চার', 'রোমাঞ্চ', 'ভ্রমণ'],
                 status: 'ongoing'
             },
             {
@@ -91,6 +96,7 @@ const getRawStories = (): Story[] => {
                 author: 'শরৎচন্দ্র চট্টোপাধ্যায়',
                 category: 'ট্র্যাজেডি',
                 image: 'https://images.unsplash.com/photo-1599905952671-55883d65017e',
+                tags: ['ট্র্যাজেডি', 'সমাজ', 'ক্লাসিক'],
                 status: 'published'
             },
             {
@@ -105,6 +111,8 @@ const getRawStories = (): Story[] => {
                 author: 'সত্যজিৎ রায়',
                 category: 'গোয়েন্দা',
                 image: 'https://images.unsplash.com/photo-1476900966873-12c82823b10b',
+                tags: ['গোয়েন্দা', 'রহস্য', 'অভিযান'],
+                is_featured: true,
                 status: 'published'
             },
             {
@@ -119,6 +127,7 @@ const getRawStories = (): Story[] => {
                 author: 'বিভূতিভূষণ বন্দ্যোপাধ্যায়',
                 category: 'উপন্যাস',
                 image: 'https://images.unsplash.com/photo-1516934024742-b461fba47600',
+                tags: ['উপন্যাস', 'পরিবার', 'জীবন'],
                 status: 'published'
             },
             {
@@ -133,6 +142,7 @@ const getRawStories = (): Story[] => {
                 author: 'শীর্ষেন্দু মুখোপাধ্যায়',
                 category: 'ভূতের গল্প',
                 image: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744',
+                tags: ['ভৌতিক', 'ভূত', 'রহস্য'],
                 status: 'published'
             },
             {
@@ -146,6 +156,7 @@ const getRawStories = (): Story[] => {
                 date: new Date(Date.now() - 604800000).toISOString(),
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
+                tags: ['কবিতা', 'রোমান্টিক', 'বিদ্রোহ'],
                 status: 'completed'
             },
             {
@@ -160,6 +171,7 @@ const getRawStories = (): Story[] => {
                 author: 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়',
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
+                tags: ['?????????', '?????', '???????'],
                 status: 'completed'
             },
             {
@@ -174,6 +186,7 @@ const getRawStories = (): Story[] => {
                 author: 'মাহিয়ান আহমেদ',
                 category: 'হরর',
                 image: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c',
+                tags: ['হরর', 'অলৌকিক', 'থ্রিলার'],
                 status: 'published'
             }
         ];
@@ -186,8 +199,8 @@ const getRawStories = (): Story[] => {
 // Public facing - only published
 export const getStories = (): Story[] => {
     const stories = getRawStories();
-    // Default to 'published' for legacy stories that don't have a status
-    return stories.filter(s => !s.status || s.status === 'published');
+    // Show public statuses (published, completed, ongoing); default to published for legacy data
+    return stories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
 };
 
 // Admin facing - all stories

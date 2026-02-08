@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { supabase } from './lib/supabase'
+import { getCurrentUser } from './utils/auth'
 
 try {
   console.log("Mounting React Root...");
@@ -34,8 +34,8 @@ try {
         const pathname = location.pathname + location.search + location.hash;
         let sessionText = 'no-session';
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          sessionText = session?.user?.email || session?.user?.id || (session ? 'signed-in' : 'no-session');
+          const user = await getCurrentUser();
+          sessionText = user?.email || user?.id || (user ? 'signed-in' : 'no-session');
         } catch (e) {
           sessionText = 'err';
         }

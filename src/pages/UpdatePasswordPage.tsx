@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { applyPasswordReset, hasPendingPasswordReset } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css'; // Reusing login styles
 
@@ -14,13 +14,9 @@ const UpdatePasswordPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check if we have a session (Supabase sets this automatically from the magic link)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                // If no session, they might have clicked a link but something went wrong, or navigated here manually.
-                setError('ইনভ্যালিড বা মেয়াদোত্তীর্ণ লিংক। অনুগ্রহ করে আবার রিসেট রিকোয়েস্ট পাঠান।');
-            }
-        });
+        if (!hasPendingPasswordReset()) {
+            setError('????????? ?? ????????????? ????? ??????? ??? ???? ????? ????????? ??????');
+        }
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -41,16 +37,12 @@ const UpdatePasswordPage = () => {
         setError('');
 
         try {
-            const { error } = await supabase.auth.updateUser({
-                password: password
-            });
+            await applyPasswordReset(password);
 
-            if (error) throw error;
-
-            setMessage('পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে! ড্যাশবোর্ডে নিয়ে যাওয়া হচ্ছে...');
+            setMessage('?????????? ??????? ???????? ??? ??????! ???? ???? ???? ????? ?????...');
 
             setTimeout(() => {
-                navigate('/dashboard');
+                navigate('/login');
             }, 2000);
 
         } catch (err: any) {
@@ -62,7 +54,13 @@ const UpdatePasswordPage = () => {
 
     return (
         <div className="author-portal-page">
-            <SEO title="নতুন পাসওয়ার্ড সেট করুন - মাহিয়ানের গল্পকথা" description="আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।" />
+            <SEO
+                title="নতুন পাসওয়ার্ড সেট করুন - মাহিয়ানের গল্পকথা"
+                description="আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।"
+                noIndex
+                noFollow
+                canonicalUrl="/update-password"
+            />
 
             {/* Reusing the canvas background logic would require exporting it or copying. 
                 For simplicity in this standalone component, we'll keep the background black as per CSS. 

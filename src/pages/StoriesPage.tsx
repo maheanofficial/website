@@ -10,6 +10,7 @@ import { getStories } from '../utils/storyManager';
 import { getAuthorByName } from '../utils/authorManager';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
+import { SITE_URL } from '../utils/siteMeta';
 import './StoriesPage.css';
 
 const STORIES_PER_PAGE = 12;
@@ -17,6 +18,7 @@ const STORIES_PER_PAGE = 12;
 export default function StoriesPage() {
     const stories = getStories();
     const location = useLocation();
+    const canonicalUrl = `${SITE_URL}${location.pathname}${location.search}`;
 
     // Search and Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,25 +31,29 @@ export default function StoriesPage() {
     const categoryFromUrl = urlParams.get('category') || 'all';
     const sortFromUrl = urlParams.get('sort') || 'latest';
     const tabFromUrl = urlParams.get('tab');
+    const tagFromUrl = urlParams.get('tag');
 
     const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl);
     const [sortBy, setSortBy] = useState(sortFromUrl);
     const [activeTab, setActiveTab] = useState(tabFromUrl || 'all');
+    const [tagFilter, setTagFilter] = useState<string | null>(tagFromUrl);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const author = params.get('author');
         const sort = params.get('sort');
         const tab = params.get('tab');
+        const tag = params.get('tag');
 
         setAuthorFilter(author);
         setActiveTab(tab || 'all');
+        setTagFilter(tag);
 
         if (sort) {
             setSortBy(sort);
         }
 
-        if (author) {
+        if (author || tag) {
             setSelectedCategory('all');
         } else {
             const cat = params.get('category') || 'all';
@@ -58,9 +64,12 @@ export default function StoriesPage() {
     }, [location.search]);
 
     // Derived Data
-    const categories = ['all', ...Array.from(new Set(stories.map(s => s.category)))];
+    const categories = ['all', ...Array.from(new Set(stories.map(s => s.category).filter(Boolean)))];
+    const tags = Array.from(new Set(stories.flatMap(s => s.tags || []))).sort((a, b) => a.localeCompare(b));
 
     // Filter and sort logic
+    const normalizedTag = tagFilter?.trim().toLowerCase();
+
     let filteredStories = stories.filter(story => {
         const matchesSearch =
             story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -70,7 +79,8 @@ export default function StoriesPage() {
                 selectedCategory === 'featured' ? true : // Include all for featured (we'll sort by popular)
                     story.category === selectedCategory);
         const matchesAuthor = !authorFilter || story.author === authorFilter;
-        return matchesSearch && matchesCategory && matchesAuthor;
+        const matchesTag = !normalizedTag || (story.tags || []).some(tag => tag.toLowerCase() === normalizedTag);
+        return matchesSearch && matchesCategory && matchesAuthor && matchesTag;
     });
 
     // Sort
@@ -103,7 +113,7 @@ export default function StoriesPage() {
         setCurrentPage(1);
     };
 
-    const isMainPage = !authorFilter && !searchQuery && selectedCategory === 'all';
+    const isMainPage = !authorFilter && !tagFilter && !searchQuery && selectedCategory === 'all';
 
     // Top Stories Calculation
     const topStories = [...stories].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 9);
@@ -114,13 +124,13 @@ export default function StoriesPage() {
         "@type": "CollectionPage",
         "name": "Bangla Stories Collection",
         "description": "Read the best collection of Bangla Audiobooks, Thrillers, and Short Stories.",
-        "url": window.location.href,
+        "url": canonicalUrl,
         "mainEntity": {
             "@type": "ItemList",
             "itemListElement": filteredStories.slice(0, 10).map((story, index) => ({
                 "@type": "ListItem",
                 "position": index + 1,
-                "url": `https://mahean.com/stories/${story.id}`,
+                "url": `${SITE_URL}/stories/${story.slug || story.id}`,
                 "name": story.title
             }))
         }
@@ -129,6 +139,7 @@ export default function StoriesPage() {
     const profileSchema = authorFilter ? {
         "@context": "https://schema.org",
         "@type": "ProfilePage",
+        "url": canonicalUrl,
         "mainEntity": {
             "@type": "Person",
             "name": authorDetails?.name || authorFilter,
@@ -137,13 +148,23 @@ export default function StoriesPage() {
         }
     } : undefined;
 
+    const seoTitle = authorFilter
+        ? `${authorFilter} - বাংলা গল্প সংগ্রহ`
+        : tagFilter
+            ? `${tagFilter} ট্যাগের গল্প - Mahean Ahmed`
+            : "বাংলা গল্প ও অডিওবুক কালেকশন - Mahean Ahmed";
+
+    const seoDescription = authorDetails?.bio
+        || (tagFilter ? `${tagFilter} ট্যাগের সেরা গল্প পড়ুন এবং নতুন গল্প আবিষ্কার করুন।` : "সেরা বাংলা গল্পের কালেকশন। থ্রিলার, হরর, রোমান্টিক এবং সাসপেন্স সব ধরনের গল্প পড়ুন এখানে।");
+
     return (
         <div className="stories-page-container fade-in-up">
             <SEO
-                title={authorFilter ? `${authorFilter} - বাংলা গল্প সমগ্র` : "বাংলা গল্প ও অডিওবুক কালেকশন - Mahean Ahmed"}
-                description={authorDetails?.bio || "সেরা বাংলা গল্পের কালেকশন। থ্রিলার, হরর, রোমান্টিক এবং সাসপেন্স সব ধরণের গল্প পড়ুন এখানে।"}
+                title={seoTitle}
+                description={seoDescription}
                 keywords="Bangla Story, Bangla Audio Book, Mahean Ahmed, Thriller Story, Horror Story, Detective Story"
                 ogType={authorFilter ? "profile" : "website"}
+                canonicalUrl={canonicalUrl}
                 jsonLd={authorFilter ? profileSchema! : collectionSchema}
             />
 
@@ -240,6 +261,23 @@ export default function StoriesPage() {
                                     <option value="featured">আলোচিত গল্প</option>
                                     {categories.filter(c => c !== 'all').map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="select-wrapper">
+                                <Filter className="filter-icon" size={16} />
+                                <select
+                                    value={tagFilter || ''}
+                                    onChange={(e) => handleFilterChange(() => {
+                                        const nextTag = e.target.value || null;
+                                        setTagFilter(nextTag);
+                                        if (nextTag) setSelectedCategory('all');
+                                    })}
+                                >
+                                    <option value="">সব ট্যাগ</option>
+                                    {tags.map(tag => (
+                                        <option key={tag} value={tag}>{tag}</option>
                                     ))}
                                 </select>
                             </div>
@@ -406,6 +444,23 @@ export default function StoriesPage() {
                                     </div>
 
                                     <div className="select-wrapper">
+                                        <Filter className="filter-icon" size={16} />
+                                        <select
+                                            value={tagFilter || ''}
+                                            onChange={(e) => handleFilterChange(() => {
+                                                const nextTag = e.target.value || null;
+                                                setTagFilter(nextTag);
+                                                if (nextTag) setSelectedCategory('all');
+                                            })}
+                                        >
+                                            <option value="">সব ট্যাগ</option>
+                                            {tags.map(tag => (
+                                                <option key={tag} value={tag}>{tag}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="select-wrapper">
                                         <select
                                             value={sortBy}
                                             onChange={(e) => setSortBy(e.target.value)}
@@ -425,6 +480,7 @@ export default function StoriesPage() {
                                         {filteredStories.length} টি গল্প পাওয়া গেছে
                                         {selectedCategory !== 'all' && ` "${selectedCategory}" ক্যাটাগরিতে`}
                                         {authorFilter && ` "${authorFilter}" লেখকের`}
+                                        {tagFilter && ` "${tagFilter}" ট্যাগে`}
                                     </p>
                                     <button
                                         onClick={() => {
@@ -432,6 +488,7 @@ export default function StoriesPage() {
                                             setSelectedCategory('all');
                                             window.history.pushState({}, '', '/stories');
                                             setAuthorFilter(null);
+                                            setTagFilter(null);
                                         }}
                                         className="text-purple-400 hover:text-purple-300 text-sm font-bold"
                                     >

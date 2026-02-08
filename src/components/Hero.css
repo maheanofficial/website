@@ -5,7 +5,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    padding: 180px 0 var(--spacing-lg) 0;
+    padding: var(--header-space) 0 var(--spacing-lg) 0;
     background:
         radial-gradient(ellipse at 20% 30%, hsla(35, 95%, 20%, 0.4) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 70%, hsla(45, 95%, 20%, 0.4) 0%, transparent 50%),
@@ -366,7 +366,7 @@
 @media (max-width: 768px) {
     .hero-section {
         min-height: auto;
-        padding: var(--spacing-lg) 0;
+        padding: var(--header-space) 0 var(--spacing-lg) 0;
     }
 
     .hero-content {

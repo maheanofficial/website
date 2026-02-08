@@ -1,7 +1,7 @@
 .story-details-page {
     background: #000000;
     min-height: 100vh;
-    padding-top: 180px;
+    padding-top: var(--header-space);
     padding-bottom: calc(var(--spacing-xl) + var(--sab));
 }
 
@@ -67,6 +67,30 @@
 
 .story-categories {
     margin-bottom: var(--spacing-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.category-badge {
+    background: rgba(255, 92, 0, 0.15);
+    color: #ffb27d;
+    border: 1px solid rgba(255, 92, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.story-tags-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.story-tags-inline .tag {
+    font-size: 0.7rem;
 }
 
 .story-title {

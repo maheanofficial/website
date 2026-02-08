@@ -377,7 +377,7 @@
 }
 
 .stories-page-container {
-    padding-top: 180px;
+    padding-top: var(--header-space);
     background: #000000;
 }
 
@@ -559,7 +559,7 @@
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: sticky;
-    top: 172px;
+    top: calc(var(--header-space) - 8px);
     z-index: 100;
 }
 

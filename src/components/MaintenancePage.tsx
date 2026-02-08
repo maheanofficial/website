@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sparkles, Hammer, Clock } from 'lucide-react';
 
 const MaintenancePage = () => {
