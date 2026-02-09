@@ -1,0 +1,23 @@
+.approval-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon-btn.approve {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.icon-btn.approve:hover {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.icon-btn.reject {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.icon-btn.reject:hover {
+    background: rgba(239, 68, 68, 0.2);
+}

@@ -8,7 +8,17 @@ const Stories = () => {
     const [stories, setStories] = useState<Story[]>([]);
 
     useEffect(() => {
-        setStories(getStories().slice(0, 6)); // Show first 6 stories
+        let isMounted = true;
+        const loadStories = async () => {
+            const data = await getStories();
+            if (isMounted) {
+                setStories(data.slice(0, 6)); // Show first 6 stories
+            }
+        };
+        loadStories();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return (

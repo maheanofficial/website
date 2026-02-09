@@ -32,8 +32,10 @@ import './index.css'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  // Check if current path starts with /admin or /dashboard or /author/dashboard
-  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/author/dashboard');
+  // Check if current path starts with /admin or /dashboard (legacy) or /author/dashboard (legacy)
+  const isAdminRoute = location.pathname.startsWith('/admin')
+    || location.pathname.startsWith('/dashboard')
+    || location.pathname.startsWith('/author/dashboard');
 
   return (
     <>
@@ -51,7 +53,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 function App() {
   useEffect(() => {
     initTheme(getStoredTheme());
-    trackVisit();
+    void trackVisit();
   }, [])
 
   return (
@@ -72,10 +74,11 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/author/dashboard/*" element={<AdminPage />} />
+            <Route path="/admin/dashboard/*" element={<AdminPage />} />
+            <Route path="/author/dashboard/*" element={<Navigate to="/admin/dashboard" replace />} />
             {/* Redirect legacy routes if needed or just remove them. Keeping them for safety but pointing to AdminPage which handles routing or simply removing them if we want strict paths. */}
-            <Route path="/admin" element={<Navigate to="/author/dashboard" replace />} />
-            <Route path="/dashboard" element={<Navigate to="/author/dashboard" replace />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

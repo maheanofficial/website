@@ -10,9 +10,20 @@ CREATE TABLE IF NOT EXISTS stories (
     excerpt TEXT,
     content TEXT NOT NULL,
     author_id TEXT NOT NULL,
+    author TEXT,
     category_id TEXT NOT NULL,
+    category TEXT,
     views INTEGER DEFAULT 0,
     image TEXT,
+    cover_image TEXT,
+    slug TEXT,
+    tags JSONB DEFAULT '[]'::jsonb,
+    parts JSONB DEFAULT '[]'::jsonb,
+    comments INTEGER DEFAULT 0,
+    is_featured BOOLEAN DEFAULT FALSE,
+    read_time TEXT,
+    status TEXT DEFAULT 'published',
+    submitted_by TEXT,
     date TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -24,6 +35,8 @@ CREATE TABLE IF NOT EXISTS authors (
     name TEXT NOT NULL,
     bio TEXT,
     avatar TEXT,
+    username TEXT,
+    links JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -55,6 +68,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    slug TEXT,
+    description TEXT,
+    image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -136,6 +152,26 @@ CREATE POLICY "Allow all operations on trash" ON trash FOR ALL USING (true);
 CREATE POLICY "Allow all operations on activity_logs" ON activity_logs FOR ALL USING (true);
 CREATE POLICY "Allow all operations on login_history" ON login_history FOR ALL USING (true);
 CREATE POLICY "Allow all operations on analytics_daily" ON analytics_daily FOR ALL USING (true);
+
+-- Optional: add missing columns on existing tables
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS author TEXT;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS cover_image TEXT;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS parts JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS comments INTEGER DEFAULT 0;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS read_time TEXT;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'published';
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS submitted_by TEXT;
+
+ALTER TABLE authors ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE authors ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]'::jsonb;
+
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS image TEXT;
 
 -- Success message
 SELECT 'Database schema created successfully!' as message;

@@ -6,7 +6,11 @@ const AdminLoginHistory = () => {
     const [logs, setLogs] = useState<LoginLog[]>([]);
 
     useEffect(() => {
-        setLogs(getLoginLogs());
+        const loadLogs = async () => {
+            const data = await getLoginLogs();
+            setLogs(data);
+        };
+        void loadLogs();
     }, []);
 
     return (

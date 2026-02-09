@@ -1,11 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
+export type UserRole = 'admin' | 'moderator';
+
 export interface User {
     id: string;
     username: string;
     email?: string;
     password?: string; // In a real app, this would be hashed. For local mock, plain text is fine but usually bad practice.
-    role: 'admin' | 'writer';
+    role: UserRole;
     createdAt: string;
     displayName?: string;
     photoURL?: string;
@@ -14,6 +16,7 @@ export interface User {
 const STORAGE_KEY = 'mahean_users';
 const CURRENT_USER_KEY = 'mahean_current_user';
 const PASSWORD_RESET_KEY = 'mahean_password_reset_user';
+const ADMIN_EMAILS = ['mahean4bd@gmail.com'];
 
 // Mock Admin User
 const ADMIN_USER: User = {
@@ -26,10 +29,34 @@ const ADMIN_USER: User = {
     displayName: 'Admin'
 };
 
+const normalizeRole = (role?: string): UserRole => (role === 'admin' ? 'admin' : 'moderator');
+
+const isAdminEmail = (email?: string) => {
+    if (!email) return false;
+    return ADMIN_EMAILS.includes(email.toLowerCase());
+};
+
+const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole) => {
+    if (existingRole === 'admin' || incomingRole === 'admin') {
+        return 'admin';
+    }
+    return 'moderator';
+};
+
+const normalizeUser = (user: User): User => {
+    const normalizedEmail = user.email?.toLowerCase();
+    const role = isAdminEmail(normalizedEmail) ? 'admin' : normalizeRole(user.role);
+    return {
+        ...user,
+        email: normalizedEmail || user.email,
+        role
+    };
+};
+
 const getUsers = (): User[] => {
     const stored = localStorage.getItem(STORAGE_KEY);
     const parsed = stored ? JSON.parse(stored) : [];
-    let users = Array.isArray(parsed) ? parsed : [];
+    let users = Array.isArray(parsed) ? parsed.map((user) => normalizeUser(user as User)) : [];
     let didMutate = false;
 
     if (!users.some(u => u.id === ADMIN_USER.id || u.username === ADMIN_USER.username)) {
@@ -55,12 +82,16 @@ const saveUsers = (users: User[]) => {
 
 export const upsertUser = (user: User): User => {
     const users = getUsers();
+    const normalizedUser = normalizeUser(user);
     const matchIndex = users.findIndex((existing) =>
-        existing.id === user.id
-        || (user.email && existing.email === user.email)
-        || (user.username && existing.username === user.username)
+        existing.id === normalizedUser.id
+        || (normalizedUser.email && existing.email === normalizedUser.email)
+        || (normalizedUser.username && existing.username === normalizedUser.username)
     );
-    const nextUser = matchIndex >= 0 ? { ...users[matchIndex], ...user } : user;
+    const nextRole = mergeRole(users[matchIndex]?.role, normalizedUser.role);
+    const nextUser = matchIndex >= 0
+        ? { ...users[matchIndex], ...normalizedUser, role: nextRole }
+        : { ...normalizedUser, role: nextRole };
 
     if (matchIndex >= 0) {
         users[matchIndex] = nextUser;
@@ -97,7 +128,7 @@ export const registerUser = (email: string, password: string, displayName?: stri
         username: normalizedEmail,
         email: normalizedEmail,
         password,
-        role: 'writer', // Default role for signup
+        role: 'moderator', // Default role for signup
         createdAt: new Date().toISOString(),
         displayName: displayName || normalizedEmail.split('@')[0]
     };
@@ -121,13 +152,19 @@ export const loginUser = (identifier: string, password: string): { success: bool
 
 export const getCurrentUser = (): User | null => {
     const stored = localStorage.getItem(CURRENT_USER_KEY);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    try {
+        return normalizeUser(JSON.parse(stored) as User);
+    } catch (error) {
+        console.warn('Failed to parse stored user session', error);
+        return null;
+    }
 };
 
 export const setCurrentUserSession = (user: User) => {
     // Determine if we need to filter password out before saving to session storage
     // const { password, ...safeUser } = user; 
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(normalizeUser(user)));
 
     // Also set the legacy flag for backward compatibility if needed, though we should migrate away from it.
     localStorage.setItem('mahean_admin_logged', 'true');
@@ -143,7 +180,8 @@ export const updateUserProfile = (userId: string, updates: Partial<User>): User 
     const userIndex = users.findIndex(u => u.id === userId);
     if (userIndex < 0) return null;
 
-    const updated = { ...users[userIndex], ...updates };
+    const nextRole = mergeRole(users[userIndex].role, updates.role);
+    const updated = { ...users[userIndex], ...updates, role: nextRole };
     users[userIndex] = updated;
     saveUsers(users);
 
@@ -177,6 +215,71 @@ export const updateUserPassword = (userId: string, newPassword: string, currentP
     }
 
     return { success: true, message: 'Password updated successfully.', user: updated };
+};
+
+export const getAllUsers = (): User[] => getUsers();
+
+export const getUserById = (userId: string): User | null => {
+    const users = getUsers();
+    return users.find(user => user.id === userId) || null;
+};
+
+export const getUserByIdentifier = (identifier: string): User | null => {
+    const users = getUsers();
+    return findUserByIdentifier(users, identifier) || null;
+};
+
+export const updateUserRole = (userId: string, role: UserRole) => {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex < 0) {
+        return { success: false, message: 'User not found.' };
+    }
+    const updated = { ...users[userIndex], role: normalizeRole(role) };
+    users[userIndex] = updated;
+    saveUsers(users);
+
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+        setCurrentUserSession(updated);
+    }
+
+    return { success: true, message: 'Role updated successfully.', user: updated };
+};
+
+export const createUser = (payload: {
+    username?: string;
+    email?: string;
+    password: string;
+    displayName?: string;
+    role?: UserRole;
+}): { success: boolean; message: string; user?: User } => {
+    const users = getUsers();
+    const normalizedEmail = payload.email ? normalizeIdentifier(payload.email) : '';
+    const normalizedUsername = normalizeIdentifier(payload.username || normalizedEmail);
+
+    if (!normalizedUsername) {
+        return { success: false, message: 'Username is required.' };
+    }
+
+    if (findUserByIdentifier(users, normalizedUsername) || (normalizedEmail && findUserByIdentifier(users, normalizedEmail))) {
+        return { success: false, message: 'Username already exists.' };
+    }
+
+    const newUser: User = {
+        id: uuidv4(),
+        username: normalizedUsername,
+        email: normalizedEmail || undefined,
+        password: payload.password,
+        role: normalizeRole(payload.role),
+        createdAt: new Date().toISOString(),
+        displayName: payload.displayName || normalizedUsername.split('@')[0]
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+
+    return { success: true, message: 'User created successfully.', user: newUser };
 };
 
 export const requestPasswordReset = (identifier: string) => {

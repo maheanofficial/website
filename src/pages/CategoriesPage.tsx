@@ -1,13 +1,28 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 import SmartImage from '../components/SmartImage';
-import { getStories } from '../utils/storyManager';
+import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { SITE_URL } from '../utils/siteMeta';
 import './CategoriesPage.css';
 
 const CategoriesPage = () => {
-    const stories = getStories();
+    const [stories, setStories] = useState<Story[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadStories = async () => {
+            const data = await getStories();
+            if (isMounted) {
+                setStories(data);
+            }
+        };
+        loadStories();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     const categoryDescriptions: Record<string, string> = {
         'ক্লাসিক': 'চিরকালীন বাংলা সাহিত্যের অনন্য সব গল্প ও উপন্যাসের সংগ্রহ।',
         'রোমান্টিক': 'ভালোবাসা, অনুভূতি আর সম্পর্কের গল্প একসাথে।',

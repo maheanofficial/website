@@ -1,4 +1,4 @@
-// import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface Author {
     id: string;
@@ -10,8 +10,44 @@ export interface Author {
 }
 
 const STORAGE_KEY = 'mahean_authors';
+const AUTHOR_TABLE = 'authors';
 
-export const getAllAuthors = (): Author[] => {
+type AuthorRow = {
+    id: string;
+    name: string;
+    bio?: string | null;
+    avatar?: string | null;
+    username?: string | null;
+    links?: unknown;
+};
+
+const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+const mapRowToAuthor = (row: AuthorRow): Author => ({
+    id: row.id,
+    name: row.name,
+    bio: row.bio ?? undefined,
+    avatar: row.avatar ?? undefined,
+    username: row.username ?? undefined,
+    links: toArray<{ name: string; url: string }>(row.links)
+});
+
+const mapAuthorToRow = (author: Author) => ({
+    id: author.id,
+    name: author.name,
+    bio: author.bio ?? null,
+    avatar: author.avatar ?? null,
+    username: author.username ?? null,
+    links: author.links ?? []
+});
+
+const storeAuthors = (authors: Author[]) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(authors));
+};
+
+const getLocalAuthors = (): Author[] => {
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
         const initialAuthors: Author[] = [
@@ -99,24 +135,43 @@ export const getAllAuthors = (): Author[] => {
                 ]
             }
         ];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialAuthors));
+        storeAuthors(initialAuthors);
         return initialAuthors;
     }
     return JSON.parse(stored);
 };
 
-export const getAuthorById = (id: string): Author | null => {
-    const authors = getAllAuthors();
+export const getAllAuthors = async (): Promise<Author[]> => {
+    const localAuthors = getLocalAuthors();
+    try {
+        const { data, error } = await supabase
+            .from(AUTHOR_TABLE)
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        const authors = (data || []).map(mapRowToAuthor);
+        storeAuthors(authors);
+        return authors;
+    } catch (error) {
+        console.warn('Supabase authors fetch failed', error);
+        return localAuthors;
+    }
+};
+
+export const getAuthorById = async (id: string): Promise<Author | null> => {
+    const authors = await getAllAuthors();
     return authors.find(a => a.id === id) || null;
 };
 
-export const getAuthorByName = (name: string): Author | null => {
-    const authors = getAllAuthors();
+export const getAuthorByName = async (name: string): Promise<Author | null> => {
+    const authors = await getAllAuthors();
     return authors.find(a => a.name === name || a.username === name) || null;
 };
 
 export const saveAuthor = async (author: Author) => {
-    const authors = getAllAuthors();
+    const authors = getLocalAuthors();
     const existingIndex = authors.findIndex(a => a.id === author.id);
 
     if (existingIndex >= 0) {
@@ -125,7 +180,16 @@ export const saveAuthor = async (author: Author) => {
         authors.push(author);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(authors));
+    storeAuthors(authors);
+
+    try {
+        const { error } = await supabase
+            .from(AUTHOR_TABLE)
+            .upsert(mapAuthorToRow(author), { onConflict: 'id' });
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase author upsert failed', error);
+    }
 
     const { logActivity } = await import('./activityLogManager');
     await logActivity('create', 'author', `Saved author: ${author.name}`);
@@ -138,7 +202,7 @@ export const updateAuthor = async (author: Author) => {
 };
 
 export const deleteAuthor = async (id: string) => {
-    const authors = getAllAuthors();
+    const authors = getLocalAuthors();
     const author = authors.find(a => a.id === id);
     if (!author) return;
 
@@ -146,7 +210,17 @@ export const deleteAuthor = async (id: string) => {
     await moveToTrash('author', id, author, author.name);
 
     const filtered = authors.filter(a => a.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    storeAuthors(filtered);
+
+    try {
+        const { error } = await supabase
+            .from(AUTHOR_TABLE)
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase author delete failed', error);
+    }
 
     const { logActivity } = await import('./activityLogManager');
     await logActivity('delete', 'author', `Deleted author: ${author.name}`);

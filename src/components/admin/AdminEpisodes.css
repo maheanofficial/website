@@ -1,10 +1,9 @@
-/* Admin Episodes - GolpoHub Style */
+/* Admin Episodes - aligned with Series page */
 .admin-episodes-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
     height: 100%;
-    color: var(--admin-text);
 }
 
 .episodes-actions-bar {
@@ -12,7 +11,7 @@
     justify-content: space-between;
     align-items: center;
     background: transparent;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 12px;
 }
@@ -20,134 +19,64 @@
 .search-filter-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
     flex-wrap: wrap;
 }
 
-.search-input-flat {
-    background: var(--admin-input-bg);
-    border: 1px solid var(--admin-input-border);
-    border-radius: 6px;
-    padding: 8px 16px;
-    color: var(--admin-input-text);
-    font-size: 13px;
-    width: 240px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.search-input-flat:focus {
-    border-color: var(--admin-text);
-}
-
-/* Custom Select Styling */
-.custom-select-wrapper {
+.search-wrapper {
     position: relative;
+    width: 250px;
 }
 
-.select-arrow {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--admin-muted);
-    pointer-events: none;
-}
-
-.select-icon-left {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--admin-muted);
-    pointer-events: none;
-}
-
-.form-select-flat {
+.search-input {
     width: 100%;
     background: var(--admin-input-bg);
     border: 1px solid var(--admin-input-border);
     border-radius: 6px;
-    padding: 8px 16px;
-    padding-right: 36px;
+    padding: 10px 12px;
+    padding-left: 36px;
     color: var(--admin-input-text);
-    font-size: 13px;
-    cursor: pointer;
+    font-size: 14px;
     outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    text-align: center;
     transition: border-color 0.2s;
 }
 
-.form-select-flat.has-left-icon {
-    padding-left: 36px;
-}
-
-.form-select-flat:focus {
+.search-input:focus {
     border-color: var(--admin-text);
 }
 
-/* Table Container */
-.data-table-container {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 6px;
-    overflow: hidden;
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--admin-muted);
+    pointer-events: none;
 }
 
-.data-table-header {
-    display: flex;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--admin-border);
+.status-dropdown {
     background: var(--admin-input-bg);
-}
-
-.col-header {
-    font-size: 12px;
-    font-weight: 500;
+    border: 1px solid var(--admin-input-border);
+    border-radius: 6px;
+    padding: 10px 16px;
     color: var(--admin-muted);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* Table Body / Empty State */
-.empty-state-row-main {
-    padding: 100px 0 30px 0;
-    text-align: center;
-}
-
-.empty-main-text {
-    color: var(--admin-text);
-    font-weight: 500;
     font-size: 14px;
+    cursor: pointer;
+    outline: none;
 }
 
-.empty-state-row-sub {
-    padding: 30px 0 100px 0;
-    text-align: center;
-    border-top: 1px solid var(--admin-border);
-}
-
-.empty-sub-text {
-    color: var(--admin-muted);
-    font-size: 13px;
-}
-
-/* Create Button */
 .create-episode-btn {
     background: var(--admin-text);
     color: var(--admin-bg);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 13px;
     font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
+    font-size: 14px;
     transition: background 0.2s;
 }
 
@@ -155,8 +84,147 @@
     background: var(--admin-text);
 }
 
+/* Data Table */
+.data-table-container {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 360px;
+}
+
+.data-table-header {
+    display: flex;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--admin-border);
+    background: var(--admin-input-bg);
+}
+
+.col-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.col-title {
+    flex: 2;
+}
+
+.col-status {
+    flex: 1;
+}
+
+.col-parts {
+    flex: 0.8;
+}
+
+.col-created {
+    flex: 1.2;
+}
+
+.col-actions {
+    flex: 0.8;
+    text-align: right;
+    justify-content: flex-end;
+}
+
+.data-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--admin-border);
+    transition: background 0.1s;
+}
+
+.data-row:hover {
+    background: var(--admin-hover);
+}
+
+.data-table-container .data-row:last-child {
+    border-bottom: none;
+}
+
+.cell-text {
+    font-size: 14px;
+    color: var(--admin-text);
+    font-weight: 500;
+}
+
+.episode-title {
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.episode-meta {
+    font-size: 12px;
+    color: var(--admin-muted);
+    margin-top: 4px;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-published {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-pending {
+    background: var(--admin-hover);
+    color: var(--admin-text);
+}
+
+.status-draft {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--admin-muted);
+}
+
+.status-rejected {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.action-btn {
+    padding: 6px;
+    border-radius: 4px;
+    color: var(--admin-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.action-btn:hover {
+    color: var(--admin-text);
+    background: var(--admin-hover);
+}
+
+.empty-state-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 0;
+    color: var(--admin-muted);
+    gap: 10px;
+}
+
+.empty-sub-text {
+    font-size: 12px;
+    font-family: monospace;
+    opacity: 0.6;
+}
+
 @media (max-width: 768px) {
-    .search-input-flat {
+    .search-wrapper {
         width: 100%;
     }
 

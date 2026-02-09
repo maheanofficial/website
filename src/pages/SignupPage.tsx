@@ -101,10 +101,14 @@ const SignupPage = () => {
             return;
         }
         try {
-            await signUpWithEmail(email, password, name);
+            const result = await signUpWithEmail(email, password, name);
+            if (result?.needsEmailConfirmation) {
+                alert('Please check your email to confirm your account before logging in.');
+                return;
+            }
             alert('???????????? ??? ??????! ??????????? ???? ????? ?????...');
             // Redirect to the author dashboard which serves the admin area
-            window.location.href = '/author/dashboard';
+            window.location.href = '/admin/dashboard';
         } catch (err: any) {
             console.error('Signup error:', err);
             alert(`সাইন আপ ব্যর্থ হয়েছে: ${err?.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X } from 'lucide-react';
+import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X, Globe, Lock } from 'lucide-react';
 import './AdminStories.css';
 import { getAllStories, saveStory, deleteStory, type Story, type StoryPart } from '../../utils/storyManager';
 import { getCategories } from '../../utils/categoryManager';
+import { getAllAuthors, saveAuthor, type Author } from '../../utils/authorManager';
 import ImageUploader from './ImageUploader';
 import type { User } from '../../utils/userManager';
 
@@ -16,6 +17,61 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [stories, setStories] = useState<Story[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit'>('list');
     const navigate = useNavigate();
+    const isAdmin = user?.role === 'admin';
+    const defaultStatus: Story['status'] = isAdmin ? 'published' : 'pending';
+
+    // Search & Filter
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'public' | 'pending' | 'rejected' | 'private'>('all');
+
+    // Form State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [title, setTitle] = useState('');
+    const [slug, setSlug] = useState('');
+    const [category, setCategory] = useState('');
+    const [tags, setTags] = useState<string[]>([]); // New Tags
+    const [description, setDescription] = useState(''); // Maps to excerpt
+    const [status, setStatus] = useState<Story['status']>(defaultStatus);
+    const [categories, setCategories] = useState<string[]>([]);
+    const [authors, setAuthors] = useState<Author[]>([]);
+    const [authorMode, setAuthorMode] = useState<'existing' | 'new'>('existing');
+    const [selectedAuthorId, setSelectedAuthorId] = useState('');
+    const [newAuthorName, setNewAuthorName] = useState('');
+    const [newAuthorUsername, setNewAuthorUsername] = useState('');
+    const [newAuthorBio, setNewAuthorBio] = useState('');
+    const [newAuthorAvatar, setNewAuthorAvatar] = useState('');
+    const [coverImage, setCoverImage] = useState('');
+    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+    const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+
+    async function loadData() {
+        const [allStories, categoriesData, authorData] = await Promise.all([
+            getAllStories(),
+            getCategories(),
+            getAllAuthors()
+        ]);
+        setStories(allStories);
+        setCategories(categoriesData.map(c => c.name));
+        setAuthors(authorData);
+    }
+
+    function resetForm() {
+        setTitle('');
+        setSlug('');
+        setCategory('');
+        setTags([]);
+        setDescription('');
+        setStatus(defaultStatus);
+        const hasAuthors = authors.length > 0;
+        setAuthorMode(hasAuthors ? 'existing' : 'new');
+        setSelectedAuthorId(hasAuthors ? authors[0]?.id || '' : '');
+        setNewAuthorName(user?.displayName || '');
+        setNewAuthorUsername('');
+        setNewAuthorBio('');
+        setNewAuthorAvatar('');
+        setCoverImage('');
+        setParts([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+    }
 
     // Update viewMode if initialViewMode changes (e.g. navigation)
     useEffect(() => {
@@ -27,40 +83,248 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
     }, [initialViewMode]);
 
-    // Search & Filter
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('All Status');
-
-    // Form State
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [title, setTitle] = useState('');
-    const [slug, setSlug] = useState('');
-    const [category, setCategory] = useState('');
-    const [tags, setTags] = useState<string[]>([]); // New Tags
-    const [description, setDescription] = useState(''); // Maps to excerpt
-    const [categories, setCategories] = useState<string[]>([]);
-    const [coverImage, setCoverImage] = useState('');
-    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: 'Part 01', content: '' }]);
+    useEffect(() => {
+        void loadData();
+    }, []);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (viewMode !== 'create' || editingId) return;
+        if (!authors.length) {
+            setAuthorMode('new');
+            return;
+        }
+        if (!selectedAuthorId) {
+            setAuthorMode('existing');
+            setSelectedAuthorId(authors[0]?.id || '');
+        }
+    }, [authors, viewMode, editingId, selectedAuthorId]);
 
     // Auto-generate slug from title if empty
     useEffect(() => {
         if (viewMode === 'create' && title && !editingId) {
-            setSlug(title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+            setSlug(slugify(title));
         }
     }, [title, viewMode, editingId]);
 
-    const loadData = () => {
-        const allStories = getAllStories();
-        setStories(allStories);
-        setCategories(getCategories().map(c => c.name));
+    const slugify = (value: string) => value
+        .toLowerCase()
+        .trim()
+        .replace(/ /g, '-')
+        .replace(/[^\w-]+/g, '');
+
+    const resolveCoverAuthor = () => {
+        if (authorMode === 'existing' && selectedAuthorId) {
+            const author = authors.find(entry => entry.id === selectedAuthorId);
+            if (author?.name) return author.name;
+        }
+        if (authorMode === 'new' && newAuthorName.trim()) {
+            return newAuthorName.trim();
+        }
+        return user?.displayName || user?.email?.split('@')[0] || '\u09b2\u09c7\u0996\u0995';
+    };
+
+    const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Failed to load image.'));
+        image.src = src;
+    });
+
+    const wrapCanvasText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+        const words = text.split(/\s+/).filter(Boolean);
+        const lines: string[] = [];
+        let currentLine = '';
+
+        const pushLine = () => {
+            if (currentLine.trim()) {
+                lines.push(currentLine.trim());
+                currentLine = '';
+            }
+        };
+
+        const pushWordAsLines = (word: string) => {
+            let chunk = '';
+            for (const char of word) {
+                const testChunk = chunk + char;
+                if (ctx.measureText(testChunk).width > maxWidth && chunk) {
+                    lines.push(chunk);
+                    chunk = char;
+                } else {
+                    chunk = testChunk;
+                }
+            }
+            if (chunk) {
+                lines.push(chunk);
+            }
+        };
+
+        words.forEach((word) => {
+            const nextLine = currentLine ? `${currentLine} ${word}` : word;
+            if (ctx.measureText(nextLine).width <= maxWidth) {
+                currentLine = nextLine;
+                return;
+            }
+
+            pushLine();
+
+            if (ctx.measureText(word).width <= maxWidth) {
+                currentLine = word;
+            } else {
+                pushWordAsLines(word);
+            }
+        });
+
+        pushLine();
+        return lines.length ? lines : [text];
+    };
+
+    const generateStoryCardCover = async () => {
+        if (typeof document !== 'undefined' && document.fonts?.ready) {
+            await document.fonts.ready;
+        }
+
+        const canvas = document.createElement('canvas');
+        const width = 1280;
+        const height = 720;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = '#1f2937';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(18, 18, width - 36, height - 36);
+
+        try {
+            const logo = await loadImage('/assets/logo.png');
+            const targetHeight = Math.round(height * 0.17);
+            const scale = targetHeight / logo.height;
+            const targetWidth = logo.width * scale;
+            const logoX = width - targetWidth - Math.round(width * 0.025);
+            const logoY = Math.round(height * 0.03);
+            ctx.drawImage(logo, logoX, logoY, targetWidth, targetHeight);
+        } catch (error) {
+            console.warn('Logo load failed.', error);
+        }
+
+        const coverTitle = title.trim() || '\u0997\u09b2\u09cd\u09aa\u09c7\u09b0 \u09b6\u09bf\u09b0\u09cb\u09a8\u09be\u09ae';
+        const coverAuthor = resolveCoverAuthor();
+        const fontFamily = '"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
+        const maxTitleWidth = width - 240;
+        const maxTitleHeight = height * 0.46;
+        const maxLines = 4;
+        let titleFontSize = 84;
+        let titleLines: string[] = [];
+        let titleLineHeight = Math.round(titleFontSize * 1.15);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#FF5C00';
+
+        for (let size = 84; size >= 56; size -= 4) {
+            ctx.font = `700 ${size}px ${fontFamily}`;
+            const lines = wrapCanvasText(ctx, coverTitle, maxTitleWidth);
+            const lineHeight = Math.round(size * 1.15);
+            const totalHeight = lines.length * lineHeight;
+            if (lines.length <= maxLines && totalHeight <= maxTitleHeight) {
+                titleFontSize = size;
+                titleLines = lines;
+                titleLineHeight = lineHeight;
+                break;
+            }
+            if (size === 56) {
+                titleFontSize = size;
+                titleLines = lines;
+                titleLineHeight = lineHeight;
+            }
+        }
+
+        const totalTitleHeight = titleLines.length * titleLineHeight;
+        let startY = height * 0.5 - totalTitleHeight / 2;
+
+        titleLines.forEach((line, index) => {
+            ctx.fillText(line, width / 2, startY + index * titleLineHeight);
+        });
+
+        const authorFontSize = Math.max(28, Math.round(titleFontSize * 0.4));
+        ctx.fillStyle = '#e5e7eb';
+        ctx.font = `500 ${authorFontSize}px ${fontFamily}`;
+        ctx.fillText(coverAuthor, width / 2, startY + totalTitleHeight + Math.round(authorFontSize * 1.35));
+
+        return canvas.toDataURL('image/png');
+    };
+
+    const statusLabels: Record<string, string> = {
+        published: '\u09aa\u09be\u09ac\u09b2\u09bf\u0995',
+        pending: '\u09aa\u09c7\u09a8\u09cd\u09a1\u09bf\u0982',
+        rejected: '\u09b0\u09bf\u099c\u09c7\u0995\u09cd\u099f\u09c7\u09a1',
+        draft: '\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f',
+        completed: '\u09b8\u09ae\u09cd\u09aa\u09a8\u09cd\u09a8',
+        ongoing: '\u099a\u09b2\u09ae\u09be\u09a8'
+    };
+
+    const getStatusLabel = (value?: Story['status']) => {
+        const normalized = value ?? 'published';
+        return statusLabels[normalized] || normalized;
+    };
+
+    const getStatusClass = (value?: Story['status']) => {
+        const normalized = value ?? 'published';
+        if (normalized === 'pending') return 'pending';
+        if (normalized === 'rejected') return 'rejected';
+        if (normalized === 'draft') return 'draft';
+        return 'published';
+    };
+
+    const isPublicStatus = (value?: Story['status']) => {
+        const statusValue = value ?? 'published';
+        return statusValue === 'published' || statusValue === 'completed' || statusValue === 'ongoing';
+    };
+
+    const handleGenerateCover = async () => {
+        if (isGeneratingCover) return;
+        setIsGeneratingCover(true);
+        try {
+            const dataUrl = await generateStoryCardCover();
+            if (dataUrl) {
+                setCoverImage(dataUrl);
+            }
+        } catch (error) {
+            console.warn('Cover generation failed.', error);
+        } finally {
+            setIsGeneratingCover(false);
+        }
     };
 
     const handleCreateNew = () => {
-        navigate('/author/dashboard/series/create');
+        navigate('/admin/dashboard/golpo/create');
+    };
+
+    const handleAuthorModeChange = (mode: 'existing' | 'new') => {
+        setAuthorMode(mode);
+        if (mode === 'existing' && !selectedAuthorId && authors.length > 0) {
+            setSelectedAuthorId(authors[0]?.id || '');
+        }
+    };
+
+    const addPart = () => {
+        setParts(prev => {
+            const nextIndex = prev.length + 1;
+            const padded = String(nextIndex).padStart(2, '0');
+            return [...prev, { id: `${Date.now()}-${nextIndex}`, title: `\u09aa\u09b0\u09cd\u09ac ${padded}`, content: '' }];
+        });
+    };
+
+    const updatePart = (id: string, field: 'title' | 'content', value: string) => {
+        setParts(prev => prev.map(part => (part.id === id ? { ...part, [field]: value } : part)));
+    };
+
+    const removePart = (id: string) => {
+        setParts(prev => (prev.length > 1 ? prev.filter(part => part.id !== id) : prev));
     };
 
     const handleEdit = (story: Story) => {
@@ -71,22 +335,59 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setTags(story.tags || []);
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || '');
-        setParts(story.parts || [{ id: '1', title: 'Part 01', content: '' }]);
-        navigate(`/author/dashboard/series/edit/${story.id}`);
+        setParts(story.parts || [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+        setStatus(story.status || defaultStatus);
+        const matchedAuthor = authors.find(author => author.id === story.authorId)
+            || authors.find(author => author.name === story.author);
+        if (matchedAuthor) {
+            setAuthorMode('existing');
+            setSelectedAuthorId(matchedAuthor.id);
+        } else {
+            setAuthorMode('new');
+            setSelectedAuthorId('');
+            setNewAuthorName(story.author || '');
+            setNewAuthorUsername('');
+            setNewAuthorBio('');
+            setNewAuthorAvatar('');
+        }
+        navigate(`/admin/dashboard/golpo/edit/${story.id}`);
     };
 
-    const resetForm = () => {
-        setTitle('');
-        setSlug('');
-        setCategory('');
-        setTags([]);
-        setDescription('');
-        setCoverImage('');
-        setParts([{ id: '1', title: 'Part 01', content: '' }]);
-    };
-
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        const existingStory = editingId ? stories.find(story => story.id === editingId) : null;
+        const nextStatus = isAdmin
+            ? (status || existingStory?.status || 'published')
+            : (status || existingStory?.status || defaultStatus);
+        let authorName = existingStory?.author || user?.displayName || 'Admin';
+        let authorId = existingStory?.authorId || user?.id || 'admin';
+
+        if (authorMode === 'existing' && selectedAuthorId) {
+            const selectedAuthor = authors.find(author => author.id === selectedAuthorId);
+            if (selectedAuthor) {
+                authorName = selectedAuthor.name;
+                authorId = selectedAuthor.id;
+            }
+        }
+
+        if (authorMode === 'new' && newAuthorName.trim()) {
+            const trimmedName = newAuthorName.trim();
+            const trimmedUsername = newAuthorUsername.trim() || slugify(trimmedName);
+            const newAuthor: Author = {
+                id: Date.now().toString(),
+                name: trimmedName,
+                username: trimmedUsername,
+                bio: newAuthorBio.trim() || undefined,
+                avatar: newAuthorAvatar || undefined,
+                links: []
+            };
+            await saveAuthor(newAuthor);
+            setAuthors(prev => [...prev, newAuthor]);
+            setSelectedAuthorId(newAuthor.id);
+            authorName = newAuthor.name;
+            authorId = newAuthor.id;
+        }
+
         const newStory: Story = {
             id: editingId || Date.now().toString(),
             title,
@@ -96,39 +397,68 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             tags,
             cover_image: coverImage,
             parts,
-            status: 'published',
+            status: nextStatus,
             date: new Date().toISOString(),
-            author: user?.displayName || 'Admin',
-            authorId: user?.id || 'admin',
+            author: authorName,
+            authorId: authorId,
+            submittedBy: existingStory?.submittedBy || user?.id || undefined,
             views: 0,
             comments: 0,
             content: parts.map(p => p.content).join('\n'), // Legacy
             excerpt: description || parts[0]?.content.slice(0, 100) || ''
         };
-        saveStory(newStory);
-        loadData();
-        navigate('/author/dashboard/series');
+        await saveStory(newStory);
+        await loadData();
+        navigate('/admin/dashboard/golpo');
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Are you sure?')) {
-            deleteStory(id);
-            loadData();
+            await deleteStory(id);
+            await loadData();
         }
     }
 
+    const handleToggleVisibility = async (story: Story) => {
+        const isPublic = isPublicStatus(story.status);
+        const nextStatus = isAdmin
+            ? (isPublic ? 'draft' : 'published')
+            : (isPublic ? 'draft' : 'pending');
+        await saveStory({ ...story, status: nextStatus });
+        await loadData();
+    };
+
+    const getVisibilityTitle = (story: Story) => {
+        const isPublic = isPublicStatus(story.status);
+        if (isAdmin) {
+            return isPublic
+                ? '\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f \u0995\u09b0\u09c1\u09a8'
+                : '\u09aa\u09be\u09ac\u09b2\u09bf\u0995 \u0995\u09b0\u09c1\u09a8';
+        }
+        return isPublic
+            ? '\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f \u0995\u09b0\u09c1\u09a8'
+            : '\u09b0\u09bf\u09ad\u09bf\u0989\u09a4\u09c7 \u09aa\u09be\u09a0\u09be\u09a8';
+    };
+
     // Filter Logic
-    const filteredStories = stories.filter(s =>
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        (statusFilter === 'All Status' || s.status === statusFilter.toLowerCase())
-    );
+    const filteredStories = stories
+        .filter(story => (isAdmin ? true : story.submittedBy === user?.id))
+        .filter(story => {
+            const matchesQuery = story.title.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!matchesQuery) return false;
+            if (statusFilter === 'all') return true;
+            const storyStatus = story.status || 'published';
+            if (statusFilter === 'public') return isPublicStatus(storyStatus);
+            if (statusFilter === 'private') return storyStatus === 'draft';
+            return storyStatus === statusFilter;
+        });
 
     if (viewMode === 'create' || viewMode === 'edit') {
         return (
             <div className="editor-overlay">
                 <div className="editor-header w-full max-w-5xl mx-auto flex justify-between items-center mb-6">
                     <div></div>
-                    <button onClick={() => navigate('/author/dashboard/series')} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#111] hover:bg-[#222] text-gray-400 transition-colors">
+                    <button onClick={() => navigate('/admin/dashboard/golpo')} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#111] hover:bg-[#222] text-gray-400 transition-colors">
                         <X size={18} />
                     </button>
                 </div>
@@ -136,8 +466,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 <div className="max-w-5xl mx-auto">
                     {/* Header Section */}
                     <div className="mb-8 text-left">
-                        <h2 className="text-3xl font-bold text-white mb-2">{viewMode === 'create' ? 'নতুন সিরিজ যোগ করুন' : 'সিরিজ এডিট করুন'}</h2>
-                        <p className="text-gray-400 text-sm">Fill out the details below to {viewMode === 'create' ? 'add a new series' : 'edit the series'}.</p>
+                        <h2 className="text-3xl font-bold text-white mb-2">{viewMode === 'create' ? 'নতুন গল্প যোগ করুন' : 'গল্প এডিট করুন'}</h2>
+                        <p className="text-gray-400 text-sm">Fill out the details below to {viewMode === 'create' ? 'add a new story' : 'edit the story'}.</p>
                     </div>
 
                     <form onSubmit={handleSave} className="form-container-flat">
@@ -145,7 +475,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         {/* Row 1: Title & Slug */}
                         <div className="form-grid-2 mb-8">
                             <div className="form-group">
-                                <label className="form-label-flat">সিরিজ টাইটেল</label>
+                                <label className="form-label-flat">গল্প টাইটেল</label>
                                 <input
                                     type="text"
                                     value={title}
@@ -160,7 +490,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                     <label className="form-label-flat !mb-0">Slug</label>
                                     <button type="button" className="btn-auto-slug" onClick={() => {
                                         if (title) {
-                                            setSlug(title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''));
+                                            setSlug(slugify(title));
                                         }
                                     }}>
                                         <Sparkles size={12} /> Auto-Generate Slug
@@ -174,6 +504,111 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                     placeholder="e.g., ek-samudro-prem"
                                 />
                             </div>
+                        </div>
+
+                        {/* Author Section */}
+                        <div className="mb-8">
+                            <div className="author-toggle-row">
+                                <button
+                                    type="button"
+                                    className={`author-toggle-btn ${authorMode === 'existing' ? 'active' : ''}`}
+                                    onClick={() => handleAuthorModeChange('existing')}
+                                    disabled={!authors.length}
+                                >
+                                    {'\u09ac\u09bf\u09a6\u09cd\u09af\u09ae\u09be\u09a8 \u09b2\u09c7\u0996\u0995'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`author-toggle-btn ${authorMode === 'new' ? 'active' : ''}`}
+                                    onClick={() => handleAuthorModeChange('new')}
+                                >
+                                    {'\u09a8\u09a4\u09c1\u09a8 \u09b2\u09c7\u0996\u0995 \u09a4\u09c8\u09b0\u09bf'}
+                                </button>
+                            </div>
+
+                            {authorMode === 'existing' ? (
+                                <div className="form-group">
+                                    <label className="form-label-flat">{'\u09b2\u09c7\u0996\u0995 \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8 \u0995\u09b0\u09c1\u09a8'}</label>
+                                    <div className="relative custom-select-wrapper">
+                                        <select
+                                            value={selectedAuthorId}
+                                            onChange={e => setSelectedAuthorId(e.target.value)}
+                                            className="form-select-flat"
+                                        >
+                                            <option value="">{'\u09b2\u09c7\u0996\u0995 \u09ac\u09be\u099b\u09be\u0987 \u0995\u09b0\u09c1\u09a8'}</option>
+                                            {authors.map(author => (
+                                                <option key={author.id} value={author.id}>
+                                                    {author.name}{author.username ? ` (@${author.username})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="select-arrow" size={16} />
+                                    </div>
+                                    {!authors.length && (
+                                        <p className="helper-text">{'\u0995\u09cb\u09a8\u09cb \u09b2\u09c7\u0996\u0995 \u09a8\u09c7\u0987\u0964 \u09aa\u09cd\u09b0\u09a5\u09ae\u09c7 \u09a8\u09a4\u09c1\u09a8 \u09b2\u09c7\u0996\u0995 \u09a4\u09c8\u09b0\u09bf \u0995\u09b0\u09c1\u09a8\u0964'}</p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="author-switch-link"
+                                        onClick={() => handleAuthorModeChange('new')}
+                                    >
+                                        {'\u09a8\u09a4\u09c1\u09a8 \u09b2\u09c7\u0996\u0995 \u09a4\u09c8\u09b0\u09bf \u0995\u09b0\u09c1\u09a8'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="author-create-card">
+                                    <div className="form-grid-2 mb-6">
+                                        <div className="form-group">
+                                            <label className="form-label-flat">{'\u09b2\u09c7\u0996\u0995\u09c7\u09b0 \u09a8\u09be\u09ae'}</label>
+                                            <input
+                                                type="text"
+                                                value={newAuthorName}
+                                                onChange={e => setNewAuthorName(e.target.value)}
+                                                className="form-input-flat"
+                                                placeholder="Full name"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label-flat">Username</label>
+                                            <input
+                                                type="text"
+                                                value={newAuthorUsername}
+                                                onChange={e => setNewAuthorUsername(e.target.value)}
+                                                className="form-input-flat"
+                                                placeholder="auto-generated"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-grid-2">
+                                        <div className="form-group">
+                                            <label className="form-label-flat">{'\u09b2\u09c7\u0996\u0995\u09c7\u09b0 \u099b\u09ac\u09bf'}</label>
+                                            <ImageUploader
+                                                value={newAuthorAvatar}
+                                                onChange={setNewAuthorAvatar}
+                                                placeholder={newAuthorName || 'Author'}
+                                                isRound={true}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label-flat">{'\u09ac\u09be\u09af\u09bc\u09cb'}</label>
+                                            <textarea
+                                                value={newAuthorBio}
+                                                onChange={e => setNewAuthorBio(e.target.value)}
+                                                rows={4}
+                                                className="form-textarea-flat resize-none"
+                                                placeholder="Short author bio"
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="author-switch-link"
+                                        onClick={() => handleAuthorModeChange('existing')}
+                                    >
+                                        {'\u09ac\u09bf\u09a6\u09cd\u09af\u09ae\u09be\u09a8 \u09b2\u09c7\u0996\u0995 \u09ac\u09be\u099b\u09be\u0987 \u0995\u09b0\u09c1\u09a8'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Row 2: Categories & Tags */}
@@ -203,6 +638,25 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                             </div>
                         </div>
 
+                        {isAdmin && (
+                            <div className="mb-8">
+                                <label className="form-label-flat">Status</label>
+                                <div className="relative custom-select-wrapper">
+                                    <select
+                                        value={status || defaultStatus}
+                                        onChange={e => setStatus(e.target.value as Story['status'])}
+                                        className="form-select-flat"
+                                    >
+                                        <option value="published">{'\u09aa\u09be\u09ac\u09b2\u09bf\u0995'}</option>
+                                        <option value="draft">{'\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f'}</option>
+                                        <option value="pending">{'\u09aa\u09c7\u09a8\u09cd\u09a1\u09bf\u0982'}</option>
+                                        <option value="rejected">{'\u09b0\u09bf\u099c\u09c7\u0995\u09cd\u099f\u09c7\u09a1'}</option>
+                                    </select>
+                                    <ChevronDown className="select-arrow" size={16} />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Row 3: Description */}
                         <div className="mb-8">
                             <div className="flex justify-between items-center mb-2">
@@ -214,7 +668,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 maxLength={500}
                                 rows={4}
                                 className="form-textarea-flat resize-none"
-                                placeholder="Write a short description about this series..."
+                                placeholder="Write a short description about this story..."
                             />
                         </div>
 
@@ -227,14 +681,69 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 placeholder="Click to upload an image"
                                 containerClass="thumbnail-uploader-container w-full aspect-video"
                             />
+                            <div className="ai-divider">
+                                <span>or</span>
+                            </div>
+                            <div className="ai-generate-stack">
+                                <button
+                                    type="button"
+                                    className="ai-generate-btn"
+                                    onClick={() => void handleGenerateCover()}
+                                    disabled={isGeneratingCover}
+                                >
+                                    <Sparkles size={16} />
+                                    {isGeneratingCover ? 'Generating...' : 'Generate Thumbnail'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Parts Section */}
+                        <div className="parts-manager">
+                            <div className="flex items-center mb-4">
+                                <h3 className="text-lg font-semibold text-white">{'\u09aa\u09b0\u09cd\u09ac\u09b8\u09ae\u09c2\u09b9'}</h3>
+                            </div>
+
+                            {parts.map((part, index) => (
+                                <div key={part.id} className="part-editor">
+                                    <div className="part-header">
+                                        <input
+                                            type="text"
+                                            value={part.title}
+                                            onChange={e => updatePart(part.id, 'title', e.target.value)}
+                                            className="part-title-input"
+                                            placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="remove-part-btn"
+                                            onClick={() => removePart(part.id)}
+                                            disabled={parts.length === 1}
+                                        >
+                                            {'\u09ae\u09c1\u099b\u09c1\u09a8'}
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        value={part.content}
+                                        onChange={e => updatePart(part.id, 'content', e.target.value)}
+                                        rows={6}
+                                        className="form-textarea-flat resize-none"
+                                        placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')} \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8....`}
+                                    />
+                                </div>
+                            ))}
+                            <div className="flex justify-end mt-3">
+                                <button type="button" className="btn-secondary" onClick={addPart}>
+                                    {'\u09a8\u09a4\u09c1\u09a8 \u09aa\u09b0\u09cd\u09ac \u09af\u09cb\u0997 \u0995\u09b0\u09c1\u09a8'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="form-actions text-center justify-center pt-4">
-                            <button type="button" onClick={() => navigate('/author/dashboard/series')} className="btn-cancel">
+                            <button type="button" onClick={() => navigate('/admin/dashboard/golpo')} className="btn-cancel">
                                 Cancel
                             </button>
                             <button type="submit" className="btn-submit">
-                                {viewMode === 'create' ? 'Create Series' : 'Update Series'}
+                                {viewMode === 'create' ? 'Create Story' : 'Update Story'}
                             </button>
                         </div>
                     </form>
@@ -252,35 +761,40 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         <Search size={16} className="search-icon" />
                         <input
                             type="text"
-                            placeholder="সিরিজ খুঁজুন..."
+                            placeholder="গল্প খুঁজুন..."
                             className="search-input"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <select className="status-dropdown" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                        <option>All Status</option>
-                        <option>Published</option>
-                        <option>Draft</option>
+                    <select
+                        className="status-dropdown"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value as 'all' | 'public' | 'pending' | 'rejected' | 'private')}
+                    >
+                        <option value="all">{'\u09b8\u09ac \u09b8\u09cd\u099f\u09cd\u09af\u09be\u099f\u09be\u09b8'}</option>
+                        <option value="public">{'\u09aa\u09be\u09ac\u09b2\u09bf\u0995'}</option>
+                        <option value="pending">{'\u09aa\u09c7\u09a8\u09cd\u09a1\u09bf\u0982'}</option>
+                        <option value="rejected">{'\u09b0\u09bf\u099c\u09c7\u0995\u09cd\u099f\u09c7\u09a1'}</option>
+                        <option value="private">{'\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f'}</option>
                     </select>
                 </div>
 
                 <button className="create-btn" onClick={handleCreateNew}>
                     <Plus size={18} />
-                    নতুন সিরিজ যোগ করুন
+                    নতুন গল্প যোগ করুন
                 </button>
             </div>
 
             {/* Data Table */}
             <div className="data-table-container">
                 <div className="data-table-header">
-                    <div className="col-header col-title">টাইটেল <ArrowUpDown size={12} /></div>
-                    <div className="col-header col-status">স্ট্যাটাস <ArrowUpDown size={12} /></div>
-                    <div className="col-header col-progress">Progress</div>
-                    <div className="col-header col-parts">পর্ব</div>
-                    <div className="col-header col-created">তৈরি হয়েছে <ArrowUpDown size={12} /></div>
-                    <div className="col-header col-updated">আপডেট হয়েছে <ArrowUpDown size={12} /></div>
-                    <div className="col-header col-actions">অ্যাকশনসমূহ</div>
+                    <div className="col-header col-title">{'\u099f\u09be\u0987\u099f\u09c7\u09b2'} <ArrowUpDown size={12} /></div>
+                    <div className="col-header col-author">{'\u09b2\u09c7\u0996\u0995'}</div>
+                    <div className="col-header col-status">{'\u09b8\u09cd\u099f\u09cd\u09af\u09be\u099f\u09be\u09b8'} <ArrowUpDown size={12} /></div>
+                    <div className="col-header col-parts">{'\u09aa\u09b0\u09cd\u09ac'}</div>
+                    <div className="col-header col-created">{'\u09a4\u09be\u09b0\u09bf\u0996'} <ArrowUpDown size={12} /></div>
+                    <div className="col-header col-actions">{'\u0985\u09cd\u09af\u09be\u0995\u09b6\u09a8\u09b8\u09ae\u09c2\u09b9'}</div>
                 </div>
 
                 {filteredStories.length > 0 ? (
@@ -288,18 +802,30 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         {filteredStories.map(story => (
                             <div key={story.id} className="data-row">
                                 <div className="col-title cell-text">{story.title}</div>
+                                <div className="col-author cell-text text-gray-400">{story.author || '-'}</div>
                                 <div className="col-status">
-                                    <span className={`status-badge status-${story.status || 'draft'}`}>
-                                        {story.status || 'Draft'}
+                                    <span className={`status-badge status-${getStatusClass(story.status)}`}>
+                                        {getStatusLabel(story.status)}
                                     </span>
                                 </div>
-                                <div className="col-progress cell-text text-gray-500">None</div>
                                 <div className="col-parts cell-text">{story.parts?.length || 0}</div>
                                 <div className="col-created cell-text text-gray-400">{new Date(story.date).toLocaleDateString()}</div>
-                                <div className="col-updated cell-text text-gray-400">-</div>
                                 <div className="col-actions flex gap-2 justify-end">
-                                    <button className="action-btn" title="View"><Eye size={16} /></button>
+                                    <button
+                                        className="action-btn"
+                                        title="View"
+                                        onClick={() => window.open(`/stories/${story.id}`, '_blank')}
+                                    >
+                                        <Eye size={16} />
+                                    </button>
                                     <button className="action-btn" onClick={() => handleEdit(story)} title="Edit"><Edit size={16} /></button>
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => handleToggleVisibility(story)}
+                                        title={getVisibilityTitle(story)}
+                                    >
+                                        {isPublicStatus(story.status) ? <Lock size={16} /> : <Globe size={16} />}
+                                    </button>
                                     <button className="action-btn text-red-500 hover:bg-red-900/20" onClick={() => handleDelete(story.id)} title="Delete"><Trash size={16} /></button>
                                 </div>
                             </div>
@@ -307,8 +833,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                     </div>
                 ) : (
                     <div className="empty-state-table">
-                        <p>No results found.</p>
-                        <span className="empty-sub-text">series.no_series_available</span>
+                        <p>{'\u0995\u09cb\u09a8\u09cb \u09ab\u09b2\u09be\u09ab\u09b2 \u09a8\u09c7\u0987'}</p>
+                        <span className="empty-sub-text">{'\u0995\u09cb\u09a8\u09cb \u0997\u09b2\u09cd\u09aa \u09a8\u09c7\u0987'}</span>
                     </div>
                 )}
             </div>

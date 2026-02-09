@@ -1,14 +1,30 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Eye, UserCheck } from 'lucide-react';
-import { getAllAuthors } from '../utils/authorManager';
-import { getStories } from '../utils/storyManager';
+import { getAllAuthors, type Author } from '../utils/authorManager';
+import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import SmartImage from './SmartImage';
 import './StoryCard.css'; // Import StoryCard CSS to inherit exact styl
 
 const AuthorsGrid = () => {
-    const authors = getAllAuthors();
-    const allStories = getStories();
+    const [authors, setAuthors] = useState<Author[]>([]);
+    const [allStories, setAllStories] = useState<Story[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            const [authorData, storyData] = await Promise.all([getAllAuthors(), getStories()]);
+            if (isMounted) {
+                setAuthors(authorData);
+                setAllStories(storyData);
+            }
+        };
+        loadData();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     // 1. Calculate stats and sort by Total Views (descending)
     const authorsWithStats = authors.map(author => {

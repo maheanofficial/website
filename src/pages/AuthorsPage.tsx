@@ -1,12 +1,27 @@
+import { useEffect, useState } from 'react';
 import SEO from '../components/SEO';
 import AuthorsGrid from '../components/AuthorsGrid';
-import { getAllAuthors } from '../utils/authorManager';
+import { getAllAuthors, type Author } from '../utils/authorManager';
 import { SITE_URL } from '../utils/siteMeta';
 import './AuthorsPage.css';
 
 const AuthorsPage = () => {
-    const authors = getAllAuthors();
+    const [authors, setAuthors] = useState<Author[]>([]);
     const canonicalUrl = `${SITE_URL}/authors`;
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadAuthors = async () => {
+            const data = await getAllAuthors();
+            if (isMounted) {
+                setAuthors(data);
+            }
+        };
+        loadAuthors();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const authorsSchema = {
         "@context": "https://schema.org",

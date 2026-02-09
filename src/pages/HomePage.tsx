@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import Hero from '../components/Hero';
@@ -8,11 +8,26 @@ import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
 import StoryCard from '../components/StoryCard';
 import StoryCarousel from '../components/StoryCarousel';
-import { getStories } from '../utils/storyManager';
+import { getStories, type Story } from '../utils/storyManager';
 import './HomePage.css';
 
 const HomePage = () => {
     const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'ongoing'>('all');
+    const [stories, setStories] = useState<Story[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadStories = async () => {
+            const data = await getStories();
+            if (isMounted) {
+                setStories(data);
+            }
+        };
+        loadStories();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     const schemaData = {
         "@context": "https://schema.org",
         "@type": "Person",
@@ -53,7 +68,7 @@ const HomePage = () => {
                     <h2 className="section-title text-4xl font-bold mb-4 gradient-text">জনপ্রিয় গল্পসমূহ</h2>
                     <p className="section-subtitle text-gray-400">যে গল্পগুলো পাঠকদের হৃদয়ে জায়গা করে নিয়েছে</p>
                 </div>
-                <StoryCarousel stories={getStories().filter(s => s.views > 50).slice(0, 5)} />
+                <StoryCarousel stories={stories.filter(s => s.views > 50).slice(0, 5)} />
             </div>
 
             {/* Stories Section with Tabs */}
@@ -91,7 +106,7 @@ const HomePage = () => {
 
                 {/* Filtered Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {getStories()
+                    {stories
                         .filter(story => {
                             if (activeTab === 'all') return true;
                             // Check status or default to demo logic if status missing

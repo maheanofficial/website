@@ -1,4 +1,4 @@
-// import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface StoryPart {
     id?: string;
@@ -25,14 +25,106 @@ export interface Story {
     comments?: number;
     is_featured?: boolean;
     readTime?: string;
-    status?: 'published' | 'pending' | 'rejected' | 'completed' | 'ongoing';
+    status?: 'published' | 'pending' | 'rejected' | 'completed' | 'ongoing' | 'draft';
     submittedBy?: string; // userId of the writer
 }
 
 const STORAGE_KEY = 'mahean_stories';
+const STORY_TABLE = 'stories';
+
+type StoryRow = {
+    id: string;
+    title: string;
+    excerpt?: string | null;
+    content?: string | null;
+    author_id?: string | null;
+    author?: string | null;
+    category_id?: string | null;
+    category?: string | null;
+    views?: number | null;
+    image?: string | null;
+    cover_image?: string | null;
+    slug?: string | null;
+    tags?: unknown;
+    parts?: unknown;
+    comments?: number | null;
+    is_featured?: boolean | null;
+    read_time?: string | null;
+    status?: string | null;
+    submitted_by?: string | null;
+    date?: string | null;
+    created_at?: string | null;
+};
+
+const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+const mapRowToStory = (row: StoryRow): Story => ({
+    id: row.id,
+    title: row.title,
+    excerpt: row.excerpt ?? '',
+    content: row.content ?? '',
+    authorId: row.author_id ?? '',
+    categoryId: row.category_id ?? '',
+    views: row.views ?? 0,
+    image: row.image ?? row.cover_image ?? undefined,
+    date: row.date ?? row.created_at ?? new Date().toISOString(),
+    slug: row.slug ?? undefined,
+    author: row.author ?? undefined,
+    category: row.category ?? row.category_id ?? undefined,
+    cover_image: row.cover_image ?? undefined,
+    tags: toArray<string>(row.tags),
+    parts: toArray<StoryPart>(row.parts),
+    comments: row.comments ?? 0,
+    is_featured: row.is_featured ?? false,
+    readTime: row.read_time ?? undefined,
+    status: row.status ?? 'published',
+    submittedBy: row.submitted_by ?? undefined
+});
+
+const mapStoryToRow = (story: Story) => ({
+    id: story.id,
+    title: story.title,
+    excerpt: story.excerpt ?? '',
+    content: story.content ?? '',
+    author_id: story.authorId ?? '',
+    author: story.author ?? null,
+    category_id: story.categoryId ?? story.category ?? '',
+    category: story.category ?? story.categoryId ?? null,
+    views: story.views ?? 0,
+    image: story.image ?? null,
+    cover_image: story.cover_image ?? null,
+    slug: story.slug ?? null,
+    tags: story.tags ?? [],
+    parts: story.parts ?? [],
+    comments: story.comments ?? 0,
+    is_featured: story.is_featured ?? false,
+    read_time: story.readTime ?? null,
+    status: story.status ?? 'published',
+    submitted_by: story.submittedBy ?? null,
+    date: story.date ?? new Date().toISOString(),
+    updated_at: new Date().toISOString()
+});
+
+const normalizeStory = (story: Story): Story => ({
+    ...story,
+    views: story.views ?? 0,
+    comments: story.comments ?? 0,
+    status: story.status ?? 'published',
+    date: story.date ?? new Date().toISOString(),
+    categoryId: story.categoryId ?? story.category ?? '',
+    category: story.category ?? story.categoryId,
+    authorId: story.authorId ?? story.submittedBy ?? '',
+    author: story.author ?? story.submittedBy
+});
+
+const storeStories = (stories: Story[]) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+};
 
 // Internal helper to get raw list
 const getRawStories = (): Story[] => {
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
         // Seed with initial data if empty
@@ -190,64 +282,121 @@ const getRawStories = (): Story[] => {
                 status: 'published'
             }
         ];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialStories));
+        storeStories(initialStories);
         return initialStories;
     }
     return JSON.parse(stored);
 };
 
 // Public facing - only published
-export const getStories = (): Story[] => {
-    const stories = getRawStories();
-    // Show public statuses (published, completed, ongoing); default to published for legacy data
-    return stories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+export const getStories = async (): Promise<Story[]> => {
+    const localStories = getRawStories();
+    try {
+        const { data, error } = await supabase
+            .from(STORY_TABLE)
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        const stories = (data || []).map(mapRowToStory);
+        storeStories(stories);
+        // Show public statuses (published, completed, ongoing); default to published for legacy data
+        return stories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+    } catch (error) {
+        console.warn('Supabase stories fetch failed', error);
+        return localStories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+    }
 };
 
 // Admin facing - all stories
-export const getAllStories = (): Story[] => {
-    return getRawStories();
+export const getAllStories = async (): Promise<Story[]> => {
+    const localStories = getRawStories();
+    try {
+        const { data, error } = await supabase
+            .from(STORY_TABLE)
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        const stories = (data || []).map(mapRowToStory);
+        storeStories(stories);
+        return stories;
+    } catch (error) {
+        console.warn('Supabase stories fetch failed', error);
+        return localStories;
+    }
 };
 
-export const getStoryById = (id: string): Story | null => {
-    // Admins might need to preview pending stories, so check raw list
-    // Ideally we'd separate this, but for now allow ID lookup to find any story
-    const stories = getRawStories();
-    return stories.find(s => s.id === id) || null;
+export const getStoryById = async (id: string): Promise<Story | null> => {
+    const localStories = getRawStories();
+    try {
+        const { data, error } = await supabase
+            .from(STORY_TABLE)
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+            return mapRowToStory(data);
+        }
+    } catch (error) {
+        console.warn('Supabase story lookup failed', error);
+    }
+
+    return localStories.find(s => s.id === id) || null;
 };
 
 export const saveStory = async (story: Story) => {
     const stories = getRawStories();
     const existingIndex = stories.findIndex(s => s.id === story.id);
-
-    // Default status if not provided
-    if (!story.status) {
-        // If it's an update, keep existing status, otherwise default to published (legacy) 
-        // OR pending (if we enforce it). 
-        // For now, let the UI decide, but fallback to 'published' if missing on legacy.
-        story.status = existingIndex >= 0 ? (stories[existingIndex].status || 'published') : 'published';
-    }
+    const normalized = normalizeStory({
+        ...story,
+        status: story.status
+            || (existingIndex >= 0 ? (stories[existingIndex].status || 'published') : 'published')
+    });
 
     if (existingIndex >= 0) {
-        stories[existingIndex] = story;
+        stories[existingIndex] = normalized;
     } else {
-        stories.unshift(story);
+        stories.unshift(normalized);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+    storeStories(stories);
 
-    // TODO: Sync to Supabase
+    try {
+        const { error } = await supabase
+            .from(STORY_TABLE)
+            .upsert(mapStoryToRow(normalized), { onConflict: 'id' });
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase story upsert failed', error);
+    }
 
     const { logActivity } = await import('./activityLogManager');
     const action = existingIndex >= 0 ? 'update' : 'create';
-    await logActivity(action, 'story', `${action === 'create' ? 'Created' : 'Updated'} story: ${story.title} (${story.status})`);
+    await logActivity(action, 'story', `${action === 'create' ? 'Created' : 'Updated'} story: ${normalized.title} (${normalized.status})`);
 };
 
-export const updateStoryStatus = async (id: string, status: 'published' | 'pending' | 'rejected') => {
+export const updateStoryStatus = async (id: string, status: 'published' | 'pending' | 'rejected' | 'draft') => {
     const stories = getRawStories();
     const story = stories.find(s => s.id === id);
     if (story) {
         story.status = status;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+        storeStories(stories);
+
+        try {
+            const { error } = await supabase
+                .from(STORY_TABLE)
+                .update({ status, updated_at: new Date().toISOString() })
+                .eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            console.warn('Supabase story status update failed', error);
+        }
 
         const { logActivity } = await import('./activityLogManager');
         await logActivity('update', 'story', `Changed status of "${story.title}" to ${status}`);
@@ -263,9 +412,17 @@ export const deleteStory = async (id: string) => {
     await moveToTrash('story', id, story, story.title);
 
     const filtered = stories.filter(s => s.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    storeStories(filtered);
 
-    // TODO: Sync to Supabase
+    try {
+        const { error } = await supabase
+            .from(STORY_TABLE)
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase story delete failed', error);
+    }
 
     const { logActivity } = await import('./activityLogManager');
     await logActivity('delete', 'story', `Deleted story: ${story.title}`);
@@ -279,13 +436,21 @@ export const restoreStory = async (story: Story) => {
     await logActivity('restore', 'story', `Restored story: ${story.title}`);
 };
 
-export const incrementViews = (id: string) => {
+export const incrementViews = async (id: string) => {
     const stories = getRawStories();
     const story = stories.find(s => s.id === id);
     if (story) {
         story.views = (story.views || 0) + 1;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stories));
+        storeStories(stories);
 
-        // TODO: Sync to Supabase
+        try {
+            const { error } = await supabase
+                .from(STORY_TABLE)
+                .update({ views: story.views, updated_at: new Date().toISOString() })
+                .eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            console.warn('Supabase story views update failed', error);
+        }
     }
 };

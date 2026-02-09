@@ -6,7 +6,11 @@ const AdminActivityLog = () => {
     const [logs, setLogs] = useState<ActivityLogItem[]>([]);
 
     useEffect(() => {
-        setLogs(getActivityLogs());
+        const loadLogs = async () => {
+            const data = await getActivityLogs();
+            setLogs(data);
+        };
+        void loadLogs();
     }, []);
 
     const getActionColor = (action: string) => {

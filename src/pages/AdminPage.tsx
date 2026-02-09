@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Home, Settings, User as UserIcon, X, Folder, FileText } from 'lucide-react';
+import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus } from 'lucide-react';
 import './AdminPage.css';
 import AdminStories from '../components/admin/AdminStories';
 import AdminAuthors from '../components/admin/AdminAuthors';
-import AdminEpisodes from '../components/admin/AdminEpisodes';
 import AdminSettings from '../components/admin/AdminSettings';
 import AdminProfile from '../components/admin/AdminProfile';
 import DashboardAnalytics from '../components/admin/DashboardAnalytics';
+import AdminApprovals from '../components/admin/AdminApprovals';
+import AdminUsers from '../components/admin/AdminUsers';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
 
 
@@ -67,41 +68,40 @@ const AdminPage = () => {
     // Helper to determine active tab for styling
     const getActiveTab = () => {
         const path = location.pathname;
-        if (path === '/author/dashboard' || path === '/author/dashboard/') return 'dashboard';
-        if (path.includes('/series')) return 'stories';
-        if (path.includes('/episodes')) return 'episodes';
+        if (path === '/admin/dashboard' || path === '/admin/dashboard/') return 'dashboard';
+        if (path.includes('/golpo')) return 'golpo';
         if (path.includes('/authors')) return 'authors';
+        if (path.includes('/approvals')) return 'approvals';
+        if (path.includes('/users')) return 'users';
         if (path.includes('/settings')) return 'settings';
         if (path.includes('/profile')) return 'profile';
         return '';
     };
 
     const activeTab = getActiveTab();
-
-    // Dev-time debug: log current auth state for troubleshooting
-    if (import.meta.env.DEV) {
-        console.log('AdminPage debug - isAuthChecking:', isAuthChecking, 'currentUser:', currentUser);
-    }
+    const isAdmin = currentUser?.role === 'admin';
 
     const renderBreadcrumbs = () => {
         const path = location.pathname;
         const crumbs: { label: string, path: string, icon?: React.ReactNode }[] = [
-            { label: 'ড্যাশবোর্ড', path: '/author/dashboard', icon: <LayoutDashboard size={14} /> }
+            { label: 'ড্যাশবোর্ড', path: '/admin/dashboard', icon: <LayoutDashboard size={14} /> }
         ];
 
-        if (path.includes('/series')) {
-            crumbs.push({ label: 'সিরিজ', path: '/author/dashboard/series', icon: undefined });
+        if (path.includes('/golpo')) {
+            crumbs.push({ label: '\u0997\u09b2\u09cd\u09aa', path: '/admin/dashboard/golpo', icon: undefined });
             if (path.includes('/create')) {
-                crumbs.push({ label: 'তৈরি', path: '', icon: undefined });
+                crumbs.push({ label: '\u09a4\u09c8\u09b0\u09bf', path: '', icon: undefined });
             } else if (path.includes('/edit')) {
-                crumbs.push({ label: 'এডিট', path: '', icon: undefined });
+                crumbs.push({ label: '\u098f\u09a1\u09bf\u099f', path: '', icon: undefined });
             }
-        } else if (path.includes('/episodes')) {
-            crumbs.push({ label: 'পর্ব', path: '/author/dashboard/episodes', icon: undefined });
         } else if (path.includes('/authors')) {
-            crumbs.push({ label: 'লেখক', path: '/author/dashboard/authors', icon: undefined });
+            crumbs.push({ label: 'লেখক', path: '/admin/dashboard/authors', icon: undefined });
+        } else if (path.includes('/approvals')) {
+            crumbs.push({ label: 'Approvals', path: '/admin/dashboard/approvals', icon: undefined });
+        } else if (path.includes('/users')) {
+            crumbs.push({ label: 'Users', path: '/admin/dashboard/users', icon: undefined });
         } else if (path.includes('/settings')) {
-            crumbs.push({ label: 'সেটিংস', path: '/author/dashboard/settings/profile', icon: undefined });
+            crumbs.push({ label: 'সেটিংস', path: '/admin/dashboard/settings/profile', icon: undefined });
             if (path.includes('/password')) {
                 crumbs.push({ label: 'পাসওয়ার্ড', path: '', icon: undefined });
             } else if (path.includes('/appearance')) {
@@ -110,7 +110,7 @@ const AdminPage = () => {
                 crumbs.push({ label: 'প্রোফাইল', path: '', icon: undefined });
             }
         } else if (path.includes('/profile')) {
-            crumbs.push({ label: 'প্রোফাইল', path: '/author/dashboard/profile', icon: undefined });
+            crumbs.push({ label: 'প্রোফাইল', path: '/admin/dashboard/profile', icon: undefined });
         }
 
         return (
@@ -169,39 +169,61 @@ const AdminPage = () => {
                             <span>হোম</span>
                         </Link>
                         <Link
-                            to="/author/dashboard"
+                            to="/admin/dashboard"
                             className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`}
                         >
                             <LayoutDashboard size={18} />
                             <span>ড্যাশবোর্ড</span>
                         </Link>
                         <Link
-                            to="/author/dashboard/series"
-                            className={`sidebar-item ${activeTab === 'stories' ? 'active' : ''}`}
+                            to="/admin/dashboard/golpo"
+                            className={`sidebar-item ${activeTab === 'golpo' ? 'active' : ''}`}
                         >
-                            <Folder size={18} />
-                            <span>সিরিজ</span>
+                            <BookOpen size={18} />
+                            <span>গল্প</span>
                         </Link>
                         <Link
-                            to="/author/dashboard/episodes"
-                            className={`sidebar-item ${activeTab === 'episodes' ? 'active' : ''}`}
+                            to="/admin/dashboard/authors"
+                            className={`sidebar-item ${activeTab === 'authors' ? 'active' : ''}`}
                         >
-                            <FileText size={18} />
-                            <span>পর্ব</span>
+                            <Users size={18} />
+                            <span>{'\u09b2\u09c7\u0996\u0995'}</span>
                         </Link>
                     </nav>
                 </div>
 
+                {isAdmin && (
+                    <div className="sidebar-section">
+                        <div className="sidebar-label">Admin</div>
+                        <nav className="sidebar-nav">
+                            <Link
+                                to="/admin/dashboard/approvals"
+                                className={`sidebar-item ${activeTab === 'approvals' ? 'active' : ''}`}
+                            >
+                                <CheckCircle size={18} />
+                                <span>Approvals</span>
+                            </Link>
+                            <Link
+                                to="/admin/dashboard/users"
+                                className={`sidebar-item ${activeTab === 'users' ? 'active' : ''}`}
+                            >
+                                <UserPlus size={18} />
+                                <span>Users</span>
+                            </Link>
+                        </nav>
+                    </div>
+                )}
+
                 <div className="sidebar-footer-menu">
                     <Link
-                        to="/author/dashboard/settings/profile"
+                        to="/admin/dashboard/settings/profile"
                         className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
                     >
                         <Settings size={18} />
                         <span>সেটিংস</span>
                     </Link>
                     <Link
-                        to="/author/dashboard/profile"
+                        to="/admin/dashboard/profile"
                         className={`sidebar-item ${activeTab === 'profile' ? 'active' : ''}`}
                     >
                         <UserIcon size={18} />
@@ -219,6 +241,7 @@ const AdminPage = () => {
                     </div>
                     <div className="user-info-mini">
                         <div className="u-name">{displayName}</div>
+                        <div className="u-role">{isAdmin ? 'Admin' : 'Moderator'}</div>
                         <button onClick={handleLogout} className="u-logout">Log out</button>
                     </div>
                 </div>
@@ -226,12 +249,6 @@ const AdminPage = () => {
 
             {/* Main Content Area */}
             <main className="admin-main">
-                {import.meta.env.DEV && (
-                    <div className="debug-overlay">
-                        <div>isAuthChecking: {String(isAuthChecking)}</div>
-                        <div>user: {currentUser ? (currentUser.email || currentUser.id || 'signed-in') : 'null'}</div>
-                    </div>
-                )}
                 <header className="admin-topbar">
                     {renderBreadcrumbs()}
                 </header>
@@ -239,11 +256,18 @@ const AdminPage = () => {
                 <div className="admin-content-scroll">
                     <Routes>
                         <Route path="/" element={<DashboardAnalytics />} />
-                        <Route path="/series" element={<AdminStories />} />
-                        <Route path="/series/create" element={<AdminStories initialViewMode="create" />} />
-                        <Route path="/series/edit/:id" element={<AdminStories initialViewMode="edit" />} />
-                        <Route path="/episodes" element={<AdminEpisodes />} />
-                        <Route path="/authors" element={<AdminAuthors />} />
+                        <Route path="/golpo" element={<AdminStories user={currentUser} />} />
+                        <Route path="/golpo/create" element={<AdminStories user={currentUser} initialViewMode="create" />} />
+                        <Route path="/golpo/edit/:id" element={<AdminStories user={currentUser} initialViewMode="edit" />} />
+                                                <Route path="/authors" element={<AdminAuthors />} />
+                        <Route
+                            path="/approvals"
+                            element={isAdmin ? <AdminApprovals /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="/users"
+                            element={isAdmin ? <AdminUsers /> : <Navigate to="/admin/dashboard" replace />}
+                        />
                         <Route path="/profile" element={<AdminProfile />} />
                         <Route path="/settings/*" element={<AdminSettings />} />
                         {/* Fallback */}

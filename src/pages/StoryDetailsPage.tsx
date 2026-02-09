@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen } from 'lucide-react';
 import { getStories, incrementViews, type Story } from '../utils/storyManager';
-import { getAuthorByName } from '../utils/authorManager';
+import { getAuthorByName, type Author } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
@@ -19,6 +19,8 @@ const StoryDetailsPage = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const [story, setStory] = useState<Story | null>(null);
+    const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentPartNumber, setCurrentPartNumber] = useState(1);
     const [showPartsList, setShowPartsList] = useState(false);
     const [readingProgress, setReadingProgress] = useState(0);
@@ -32,27 +34,65 @@ const StoryDetailsPage = () => {
     };
 
     useEffect(() => {
-        const stories = getStories();
-        // Try to find by ID or Slug
-        const foundStory = stories.find(s => s.id.toString() === id || s.slug === id);
-        if (foundStory) {
+        let isMounted = true;
+        const loadStory = async () => {
+            if (isMounted) setIsLoading(true);
+            const stories = await getStories();
+            // Try to find by ID or Slug
+            const foundStory = stories.find(s => s.id.toString() === id || s.slug === id);
+            if (!foundStory) {
+                if (isMounted) {
+                    setStory(null);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
             const normalized = normalizeStory(foundStory);
             // Session guard to prevent double counting on refresh/StrictMode
             const viewKey = `viewed_story_${normalized.id}`;
             const hasViewedInSession = sessionStorage.getItem(viewKey);
 
             if (!hasViewedInSession) {
-                incrementViews(normalized.id);
+                await incrementViews(normalized.id);
                 sessionStorage.setItem(viewKey, 'true');
                 // Re-fetch to get the updated count in UI
-                const updatedStories = getStories();
+                const updatedStories = await getStories();
                 const refreshedStory = updatedStories.find(s => s.id === normalized.id);
-                setStory(normalizeStory(refreshedStory || normalized));
-            } else {
+                if (isMounted) {
+                    setStory(normalizeStory(refreshedStory || normalized));
+                    setIsLoading(false);
+                }
+            } else if (isMounted) {
                 setStory(normalized);
+                setIsLoading(false);
             }
-        }
+        };
+
+        loadStory();
+        return () => {
+            isMounted = false;
+        };
     }, [id]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadAuthor = async () => {
+            if (!story?.author) {
+                if (isMounted) setAuthorDetails(null);
+                return;
+            }
+            const author = await getAuthorByName(story.author);
+            if (isMounted) {
+                setAuthorDetails(author);
+            }
+        };
+
+        loadAuthor();
+        return () => {
+            isMounted = false;
+        };
+    }, [story?.author]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -87,6 +127,15 @@ const StoryDetailsPage = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [currentPartNumber]);
 
+    if (isLoading) {
+        return (
+            <div className="container py-20 text-center">
+                <h2 className="text-2xl text-white mb-4">à¦—à¦²à§à¦ªà¦Ÿà¦¿ à¦²à§‹à¦¡ à¦¹à¦šà§à¦›à§‡...</h2>
+                <p className="text-gray-400">à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦•à¦¿à¦›à§ à¦•à§à¦·à¦£ à¦…à¦ªà§‡à¦•à§à¦·à¦¾ à¦•à¦°à§à¦¨à¥¤</p>
+            </div>
+        );
+    }
+
     if (!story) {
         return (
             <div className="container py-20 text-center">
@@ -120,7 +169,6 @@ const StoryDetailsPage = () => {
     const nextPartNumber = currentPartNumber < totalParts ? currentPartNumber + 1 : null;
     const prevPartNumber = currentPartNumber > 1 ? currentPartNumber - 1 : null;
     // Author Details
-    const authorDetails = getAuthorByName(story.author || '');
     const storyPath = `/stories/${story.slug || story.id}`;
     const canonicalUrl = `${SITE_URL}${storyPath}`;
     const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;

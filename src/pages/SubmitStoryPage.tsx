@@ -97,7 +97,7 @@ const SubmitStoryPage = () => {
         setIsLoading(true);
         try {
             await signInWithEmailOnly(email, password);
-            navigate('/dashboard');
+            navigate('/admin/dashboard');
         } catch (error: any) {
             console.error('Login error:', error);
             alert(`লগইন ব্যর্থ হয়েছে: ${error.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);

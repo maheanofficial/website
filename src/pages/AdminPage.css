@@ -4,7 +4,7 @@
     min-height: 100vh;
     background: var(--admin-bg);
     color: var(--admin-text);
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif;
 }
 
 /* Sidebar */
@@ -137,6 +137,13 @@
     text-overflow: ellipsis;
 }
 
+.u-role {
+    font-size: 11px;
+    color: var(--admin-muted);
+    text-transform: capitalize;
+    margin-top: 2px;
+}
+
 .u-logout {
     font-size: 11px;
     color: var(--admin-muted);
@@ -160,20 +167,6 @@
     flex: 1;
     width: calc(100% - 260px);
     background: var(--admin-bg);
-}
-
-/* Dev debug overlay shown in top-right to display auth state */
-.debug-overlay {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    z-index: 1100;
-    background: rgba(0,0,0,0.6);
-    color: #e6edf3;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    border: 1px solid rgba(255,255,255,0.04);
 }
 
 .admin-topbar {

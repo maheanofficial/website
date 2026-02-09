@@ -6,8 +6,8 @@ import StoryCarousel from '../components/StoryCarousel';
 import AuthorsGrid from '../components/AuthorsGrid';
 import Pagination from '../components/Pagination';
 import SmartImage from '../components/SmartImage';
-import { getStories } from '../utils/storyManager';
-import { getAuthorByName } from '../utils/authorManager';
+import { getStories, type Story } from '../utils/storyManager';
+import { getAllAuthors, type Author } from '../utils/authorManager';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
 import { SITE_URL } from '../utils/siteMeta';
@@ -16,9 +16,10 @@ import './StoriesPage.css';
 const STORIES_PER_PAGE = 12;
 
 export default function StoriesPage() {
-    const stories = getStories();
     const location = useLocation();
     const canonicalUrl = `${SITE_URL}${location.pathname}${location.search}`;
+    const [stories, setStories] = useState<Story[]>([]);
+    const [authors, setAuthors] = useState<Author[]>([]);
 
     // Search and Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +38,21 @@ export default function StoriesPage() {
     const [sortBy, setSortBy] = useState(sortFromUrl);
     const [activeTab, setActiveTab] = useState(tabFromUrl || 'all');
     const [tagFilter, setTagFilter] = useState<string | null>(tagFromUrl);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadData = async () => {
+            const [storyData, authorData] = await Promise.all([getStories(), getAllAuthors()]);
+            if (isMounted) {
+                setStories(storyData);
+                setAuthors(authorData);
+            }
+        };
+        loadData();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -101,7 +117,9 @@ export default function StoriesPage() {
     );
 
     // Author Details
-    const authorDetails = authorFilter ? getAuthorByName(authorFilter) : null;
+    const authorDetails = authorFilter
+        ? authors.find(author => author.name === authorFilter || author.username === authorFilter) || null
+        : null;
     const authorStats = authorFilter ? {
         totalStories: stories.filter(s => s.author === authorFilter).length,
         totalViews: stories.filter(s => s.author === authorFilter).reduce((sum, s) => sum + (s.views || 0), 0),

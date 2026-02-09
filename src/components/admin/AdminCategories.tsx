@@ -13,10 +13,14 @@ const AdminCategories = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
-        setCategories(getCategories());
+        const loadCategories = async () => {
+            const data = await getCategories();
+            setCategories(data);
+        };
+        void loadCategories();
     }, []);
 
-    const handleAdd = (e: React.FormEvent) => {
+    const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newCatName) return;
 
@@ -28,8 +32,8 @@ const AdminCategories = () => {
             image: newCatImage
         };
 
-        saveCategory(cat);
-        setCategories(getCategories());
+        await saveCategory(cat);
+        setCategories(await getCategories());
 
         // Reset
         setEditingId(null);
@@ -56,10 +60,10 @@ const AdminCategories = () => {
         setNewCatImage('');
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this category?')) {
-            deleteCategory(id);
-            setCategories(getCategories());
+            await deleteCategory(id);
+            setCategories(await getCategories());
         }
     };
 

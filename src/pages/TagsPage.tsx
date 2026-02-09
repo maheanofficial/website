@@ -1,12 +1,27 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { getStories } from '../utils/storyManager';
+import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { SITE_URL } from '../utils/siteMeta';
 import './TagsPage.css';
 
 const TagsPage = () => {
-    const stories = getStories();
+    const [stories, setStories] = useState<Story[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadStories = async () => {
+            const data = await getStories();
+            if (isMounted) {
+                setStories(data);
+            }
+        };
+        loadStories();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     const tagMap = new Map<string, { name: string; count: number; views: number }>();
 
     stories.forEach((story) => {

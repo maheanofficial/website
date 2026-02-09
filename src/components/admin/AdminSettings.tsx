@@ -9,7 +9,7 @@ import { defaultProfile, loadStoredProfile, normalizeProfileData, saveStoredProf
 import { updateUserProfile } from '../../utils/userManager';
 import './AdminSettings.css';
 
-const SETTINGS_BASE = '/author/dashboard/settings';
+const SETTINGS_BASE = '/admin/dashboard/settings';
 
 const ProfilePanel = () => {
     const [profile, setProfile] = useState<ProfileSettings>(defaultProfile);

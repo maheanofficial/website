@@ -1,4 +1,4 @@
-// import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface DailyStat {
     date: string;
@@ -13,6 +13,7 @@ export interface DailyStat {
 }
 
 const STORAGE_KEY = 'mahean_analytics_data';
+const ANALYTICS_TABLE = 'analytics_daily';
 
 const getDeviceType = () => {
     const ua = navigator.userAgent;
@@ -91,7 +92,7 @@ export const getAnalyticsData = (): DailyStat[] => {
     return JSON.parse(stored);
 };
 
-export const trackVisit = () => {
+export const trackVisit = async () => {
     if (sessionStorage.getItem('visited_this_session')) return;
 
     const allData = getAnalyticsData();
@@ -117,6 +118,26 @@ export const trackVisit = () => {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
     sessionStorage.setItem('visited_this_session', 'true');
+
+    try {
+        const payload = {
+            date: todayStr,
+            visitors: todayStat.visitors,
+            mobile: todayStat.device.mobile,
+            iphone: todayStat.device.iphone,
+            pc: todayStat.device.pc,
+            other: todayStat.device.other,
+            countries: todayStat.country,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase
+            .from(ANALYTICS_TABLE)
+            .upsert(payload, { onConflict: 'date' });
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase analytics update failed', error);
+    }
 };
 
 export const getStatsForPeriod = (days: number) => {

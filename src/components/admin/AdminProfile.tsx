@@ -115,7 +115,7 @@ const AdminProfile = () => {
                         <div className="admin-profile-meta">{displayValue(profile.email)}</div>
                     </div>
                 </div>
-                <Link to="/author/dashboard/settings/profile" className="admin-profile-edit">
+                <Link to="/admin/dashboard/settings/profile" className="admin-profile-edit">
                     প্রোফাইল এডিট
                 </Link>
             </div>

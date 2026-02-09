@@ -17,10 +17,14 @@ const AdminAuthors = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
-        setAuthors(getAllAuthors());
+        const loadAuthors = async () => {
+            const data = await getAllAuthors();
+            setAuthors(data);
+        };
+        void loadAuthors();
     }, []);
 
-    const handleAdd = (e: React.FormEvent) => {
+    const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !username) return;
 
@@ -33,8 +37,8 @@ const AdminAuthors = () => {
             links
         };
 
-        saveAuthor(newAuthor);
-        setAuthors(getAllAuthors());
+        await saveAuthor(newAuthor);
+        setAuthors(await getAllAuthors());
 
         // Reset
         setEditingId(null);
@@ -78,14 +82,14 @@ const AdminAuthors = () => {
         setLinks(newLinks);
     };
 
-    const handleDelete = (username: string | undefined) => {
+    const handleDelete = async (username: string | undefined) => {
         if (!username) return;
         if (window.confirm('Are you sure you want to delete this author?')) {
             // Find author by username and delete by id
             const author = authors.find(a => a.username === username);
             if (author) {
-                deleteAuthor(author.id);
-                setAuthors(getAllAuthors());
+                await deleteAuthor(author.id);
+                setAuthors(await getAllAuthors());
             }
         }
     };

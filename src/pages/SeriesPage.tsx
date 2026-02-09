@@ -1,19 +1,33 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 import StoryCard from '../components/StoryCard';
-import { getStories } from '../utils/storyManager';
+import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import './SeriesPage.css';
 
 const SeriesPage = () => {
-    const stories = getStories();
+    const [stories, setStories] = useState<Story[]>([]);
     const seriesStories = stories.filter((story) => (story.parts?.length || 0) > 1);
     const displayStories = seriesStories.length > 0 ? seriesStories : stories;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('latest');
     const [statusFilter, setStatusFilter] = useState('all');
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadStories = async () => {
+            const data = await getStories();
+            if (isMounted) {
+                setStories(data);
+            }
+        };
+        loadStories();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const filteredStories = useMemo(() => {
         return displayStories.filter((story) => {

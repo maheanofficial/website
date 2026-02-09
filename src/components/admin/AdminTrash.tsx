@@ -1,44 +1,45 @@
 import { useState, useEffect } from 'react';
 import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { getTrashItems, restoreFromTrash, permanentDelete, emptyTrash, type TrashItem } from '../../utils/trashManager';
-import { restoreStory } from '../../utils/storyManager';
-import { restoreAuthor } from '../../utils/authorManager';
-import { restoreCategory } from '../../utils/categoryManager';
+import { restoreStory, type Story } from '../../utils/storyManager';
+import { restoreAuthor, type Author } from '../../utils/authorManager';
+import { restoreCategory, type Category } from '../../utils/categoryManager';
 
 const AdminTrash = () => {
     const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
 
+    async function loadTrash() {
+        const items = await getTrashItems();
+        setTrashItems(items);
+    }
+
     useEffect(() => {
-        loadTrash();
+        void loadTrash();
     }, []);
 
-    const loadTrash = () => {
-        setTrashItems(getTrashItems());
-    };
-
-    const handleRestore = (id: string) => {
+    const handleRestore = async (id: string) => {
         if (window.confirm('Restore this item?')) {
-            const item = restoreFromTrash(id);
+            const item = await restoreFromTrash(id);
             if (item) {
-                if (item.type === 'story') restoreStory(item.data);
-                else if (item.type === 'author') restoreAuthor(item.data);
-                else if (item.type === 'category') restoreCategory(item.data);
-                loadTrash();
+                if (item.type === 'story') await restoreStory(item.data as Story);
+                else if (item.type === 'author') await restoreAuthor(item.data as Author);
+                else if (item.type === 'category') await restoreCategory(item.data as Category);
+                await loadTrash();
             }
         }
     };
 
-    const handlePermanentDelete = (id: string) => {
+    const handlePermanentDelete = async (id: string) => {
         if (window.confirm('Permanently delete this item? This cannot be undone.')) {
-            permanentDelete(id);
-            loadTrash();
+            await permanentDelete(id);
+            await loadTrash();
         }
     };
 
-    const handleEmptyTrash = () => {
+    const handleEmptyTrash = async () => {
         if (window.confirm('Are you SURE you want to empty the trash? All items will be lost forever.')) {
-            emptyTrash();
-            loadTrash();
+            await emptyTrash();
+            await loadTrash();
         }
     };
 
