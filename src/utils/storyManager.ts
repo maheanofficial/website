@@ -58,6 +58,13 @@ type StoryRow = {
 
 const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
+const mergeStories = (primary: Story[], secondary: Story[]) => {
+    const map = new Map<string, Story>();
+    secondary.forEach(story => map.set(story.id, normalizeStory(story)));
+    primary.forEach(story => map.set(story.id, normalizeStory(story)));
+    return Array.from(map.values());
+};
+
 const toStoryStatus = (value?: string | null): Story['status'] => {
     switch (value) {
         case 'published':
@@ -130,6 +137,9 @@ const normalizeStory = (story: Story): Story => ({
     authorId: story.authorId ?? story.submittedBy ?? '',
     author: story.author ?? story.submittedBy
 });
+
+const sortStoriesByDate = (stories: Story[]) =>
+    [...stories].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 const storeStories = (stories: Story[]) => {
     if (typeof window === 'undefined') return;
@@ -299,7 +309,13 @@ const getRawStories = (): Story[] => {
         storeStories(initialStories);
         return initialStories;
     }
-    return JSON.parse(stored);
+    try {
+        return JSON.parse(stored);
+    } catch (error) {
+        console.warn('Failed to parse local stories cache; resetting.', error);
+        localStorage.removeItem(STORAGE_KEY);
+        return getRawStories();
+    }
 };
 
 // Public facing - only published
@@ -314,12 +330,13 @@ export const getStories = async (): Promise<Story[]> => {
         if (error) throw error;
 
         const stories = (data || []).map(mapRowToStory);
-        storeStories(stories);
+        const mergedStories = sortStoriesByDate(mergeStories(stories, localStories));
+        storeStories(mergedStories);
         // Show public statuses (published, completed, ongoing); default to published for legacy data
-        return stories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+        return mergedStories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
     } catch (error) {
         console.warn('Supabase stories fetch failed', error);
-        return localStories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+        return sortStoriesByDate(localStories).filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
     }
 };
 
@@ -335,11 +352,12 @@ export const getAllStories = async (): Promise<Story[]> => {
         if (error) throw error;
 
         const stories = (data || []).map(mapRowToStory);
-        storeStories(stories);
-        return stories;
+        const mergedStories = sortStoriesByDate(mergeStories(stories, localStories));
+        storeStories(mergedStories);
+        return mergedStories;
     } catch (error) {
         console.warn('Supabase stories fetch failed', error);
-        return localStories;
+        return sortStoriesByDate(localStories);
     }
 };
 
