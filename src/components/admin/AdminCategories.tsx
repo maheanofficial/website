@@ -143,7 +143,6 @@ const AdminCategories = () => {
                             <ImageUploader
                                 value={newCatImage}
                                 onChange={setNewCatImage}
-                                placeholder={newCatName}
                             />
                         </div>
                         <button type="submit" className={`btn w-full ${editingId ? 'btn-secondary font-bold text-lg' : 'btn-primary'}`}>

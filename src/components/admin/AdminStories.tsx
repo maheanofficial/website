@@ -65,7 +65,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const hasAuthors = authors.length > 0;
         setAuthorMode(hasAuthors ? 'existing' : 'new');
         setSelectedAuthorId(hasAuthors ? authors[0]?.id || '' : '');
-        setNewAuthorName(user?.displayName || '');
+        setNewAuthorName('');
         setNewAuthorUsername('');
         setNewAuthorBio('');
         setNewAuthorAvatar('');
@@ -587,7 +587,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                             <ImageUploader
                                                 value={newAuthorAvatar}
                                                 onChange={setNewAuthorAvatar}
-                                                placeholder={newAuthorName || 'Author'}
                                                 isRound={true}
                                             />
                                         </div>
@@ -681,6 +680,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 value={coverImage}
                                 onChange={setCoverImage}
                                 placeholder="Click to upload an image"
+                                helperText="Recommended ratio: 16:9"
+                                variant="classic"
                                 containerClass="thumbnail-uploader-container w-full aspect-video"
                             />
                             <div className="ai-divider">

@@ -233,7 +233,6 @@ const AdminAuthors = () => {
                             <ImageUploader
                                 value={avatar}
                                 onChange={setAvatar}
-                                placeholder={name || 'Author Name'}
                                 isRound={true}
                             />
                         </div>
@@ -268,7 +267,7 @@ const AdminAuthors = () => {
                         </div>
                         <button type="submit" className={`btn w-full ${editingId ? 'btn-secondary font-bold text-lg' : 'btn-primary'}`}>
                             {editingId ? <Edit2 size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
-                            {editingId ? 'SAVE CHANGES' : 'ADD AUTHOR'}
+                            {editingId ? 'SAVE CHANGES' : 'CREATE AUTHOR'}
                         </button>
                     </form>
                 </div>

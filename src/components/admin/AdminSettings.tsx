@@ -100,7 +100,6 @@ const ProfilePanel = () => {
                     <ImageUploader
                         value={profile.avatar}
                         onChange={(value) => handleChange('avatar', value)}
-                        placeholder={profile.name || 'Profile'}
                         isRound={true}
                         containerClass="settings-avatar-uploader"
                     />

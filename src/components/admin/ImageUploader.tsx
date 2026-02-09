@@ -7,11 +7,21 @@ interface ImageUploaderProps {
     value?: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    helperText?: string;
     isRound?: boolean;
     containerClass?: string;
+    variant?: 'classic' | 'circle';
 }
 
-const ImageUploader = ({ value, onChange, placeholder = "Image", isRound = false, containerClass = "" }: ImageUploaderProps) => {
+const ImageUploader = ({
+    value,
+    onChange,
+    placeholder = 'Click to upload an image',
+    helperText,
+    isRound = false,
+    containerClass = '',
+    variant = 'circle'
+}: ImageUploaderProps) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,12 +77,30 @@ const ImageUploader = ({ value, onChange, placeholder = "Image", isRound = false
                         </button>
                     </>
                 ) : (
-                    <div className="image-uploader__placeholder">
-                        <Upload size={48} className="image-uploader__placeholder-icon" />
-                        <div className="image-uploader__placeholder-text">
-                            <p className="image-uploader__placeholder-title">{placeholder}</p>
-                            <p className="image-uploader__placeholder-subtitle">Recommended ratio: 16:9</p>
-                        </div>
+                    <div className={`image-uploader__placeholder ${variant === 'classic' ? 'image-uploader__placeholder--classic' : 'image-uploader__placeholder--circle'}`}>
+                        {variant === 'classic' ? (
+                            <>
+                                <Upload size={48} className="image-uploader__placeholder-icon" />
+                                <div className="image-uploader__placeholder-text">
+                                    <p className="image-uploader__placeholder-title">{placeholder}</p>
+                                    {helperText ? (
+                                        <p className="image-uploader__placeholder-subtitle">{helperText}</p>
+                                    ) : null}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="image-uploader__placeholder-circle">
+                                    <Upload size={22} className="image-uploader__placeholder-circle-icon" />
+                                </div>
+                                <div className="image-uploader__placeholder-text">
+                                    <p className="image-uploader__placeholder-title">{placeholder}</p>
+                                    {helperText ? (
+                                        <p className="image-uploader__placeholder-subtitle">{helperText}</p>
+                                    ) : null}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
