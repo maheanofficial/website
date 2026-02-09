@@ -36,7 +36,7 @@ const AdminProfile = () => {
             const user = await getCurrentUser();
             if (!user || !isMounted) {
                 if (isMounted) {
-                    setError('সেশন পাওয়া যায়নি। আবার লগইন করুন।');
+                    setError('সেশন পাওয়া যাচ্ছে না। আবার লগইন করুন।');
                     setIsLoading(false);
                 }
                 return;
