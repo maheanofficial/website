@@ -21,7 +21,7 @@ type TrashRow = {
     name: string;
 };
 
-const formatDeletedAt = (value?: string) => {
+const formatDeletedAt = (value?: string | null) => {
     const date = value ? new Date(value) : new Date();
     return date.toLocaleDateString('bn-BD', {
         day: 'numeric',

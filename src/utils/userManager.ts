@@ -36,7 +36,7 @@ const isAdminEmail = (email?: string) => {
     return ADMIN_EMAILS.includes(email.toLowerCase());
 };
 
-const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole) => {
+const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole): UserRole => {
     if (existingRole === 'admin' || incomingRole === 'admin') {
         return 'admin';
     }

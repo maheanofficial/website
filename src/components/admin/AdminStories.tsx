@@ -319,11 +319,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         });
     };
 
-    const updatePart = (id: string, field: 'title' | 'content', value: string) => {
+    const updatePart = (id: string | undefined, field: 'title' | 'content', value: string) => {
+        if (!id) return;
         setParts(prev => prev.map(part => (part.id === id ? { ...part, [field]: value } : part)));
     };
 
-    const removePart = (id: string) => {
+    const removePart = (id: string | undefined) => {
+        if (!id) return;
         setParts(prev => (prev.length > 1 ? prev.filter(part => part.id !== id) : prev));
     };
 

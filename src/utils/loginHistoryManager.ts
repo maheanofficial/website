@@ -21,7 +21,7 @@ type LoginHistoryRow = {
     status: LoginLog['status'];
 };
 
-const formatLoginTimestamp = (value?: string) => {
+const formatLoginTimestamp = (value?: string | null) => {
     const date = value ? new Date(value) : new Date();
     return date.toLocaleString('bn-BD', {
         year: 'numeric',

@@ -58,6 +58,20 @@ type StoryRow = {
 
 const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
+const toStoryStatus = (value?: string | null): Story['status'] => {
+    switch (value) {
+        case 'published':
+        case 'pending':
+        case 'rejected':
+        case 'completed':
+        case 'ongoing':
+        case 'draft':
+            return value;
+        default:
+            return 'published';
+    }
+};
+
 const mapRowToStory = (row: StoryRow): Story => ({
     id: row.id,
     title: row.title,
@@ -77,7 +91,7 @@ const mapRowToStory = (row: StoryRow): Story => ({
     comments: row.comments ?? 0,
     is_featured: row.is_featured ?? false,
     readTime: row.read_time ?? undefined,
-    status: row.status ?? 'published',
+    status: toStoryStatus(row.status),
     submittedBy: row.submitted_by ?? undefined
 });
 

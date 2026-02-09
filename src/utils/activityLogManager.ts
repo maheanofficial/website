@@ -21,7 +21,7 @@ type ActivityLogRow = {
     timestamp?: string | null;
 };
 
-const formatLogTimestamp = (value?: string) => {
+const formatLogTimestamp = (value?: string | null) => {
     const date = value ? new Date(value) : new Date();
     return date.toLocaleString('bn-BD', {
         weekday: 'long',
