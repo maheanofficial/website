@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Plus, Users, Edit2, X, Sparkles } from 'lucide-react';
 
 import { getAllAuthors, saveAuthor, deleteAuthor, type Author } from '../../utils/authorManager';
@@ -7,7 +7,6 @@ import SmartImage from '../SmartImage';
 
 const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
-    const formRef = useRef<HTMLDivElement>(null);
 
     // Form state
     const [name, setName] = useState('');
@@ -69,13 +68,6 @@ const AdminAuthors = () => {
         setLinks([]);
     };
 
-    const handleCreateAuthor = () => {
-        if (editingId) {
-            handleCancelEdit();
-        }
-        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-
     const addLink = () => {
         setLinks([...links, { name: '', url: '' }]);
     };
@@ -101,10 +93,6 @@ const AdminAuthors = () => {
         <div className="admin-section">
             <div className="admin-section-header">
                 <h2 className="admin-section-title"><Users size={20} /> Authors</h2>
-                <button type="button" className="create-btn" onClick={handleCreateAuthor}>
-                    <Plus size={18} />
-                    Create Author
-                </button>
             </div>
 
             <div className="admin-grid-layout">
@@ -135,7 +123,7 @@ const AdminAuthors = () => {
                 </div>
 
                 {/* Add Form */}
-                <div ref={formRef} className={`admin-card ${editingId ? 'editing' : ''}`}>
+                <div className={`admin-card ${editingId ? 'editing' : ''}`}>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="card-title">{editingId ? 'Edit Author' : 'Add New Author'}</h3>
                         {editingId && (
@@ -265,7 +253,7 @@ const AdminAuthors = () => {
                                 </button>
                             </div>
                         </div>
-                        <button type="submit" className={`btn w-full ${editingId ? 'btn-secondary font-bold text-lg' : 'btn-primary'}`}>
+                        <button type="submit" className="create-btn create-btn--block">
                             {editingId ? <Edit2 size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
                             {editingId ? 'SAVE CHANGES' : 'CREATE AUTHOR'}
                         </button>

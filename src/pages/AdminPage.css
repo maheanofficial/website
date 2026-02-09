@@ -293,6 +293,11 @@
     transition: background 0.2s;
 }
 
+.create-btn--block {
+    width: 100%;
+    justify-content: center;
+}
+
 .create-btn:hover {
     background: var(--admin-text);
 }
