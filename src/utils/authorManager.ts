@@ -22,6 +22,24 @@ type AuthorRow = {
 };
 
 const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+const authorKey = (author: Author) => author.id || author.username || author.name;
+
+const mergeAuthors = (primary: Author[], secondary: Author[]) => {
+    const map = new Map<string, Author>();
+    primary.forEach(author => {
+        map.set(authorKey(author), author);
+    });
+    secondary.forEach(author => {
+        const key = authorKey(author);
+        if (!map.has(key)) {
+            map.set(key, author);
+        }
+    });
+    return Array.from(map.values());
+};
+
+const sortAuthors = (authors: Author[]) =>
+    [...authors].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'bn'));
 
 const mapRowToAuthor = (row: AuthorRow): Author => ({
     id: row.id,
@@ -152,8 +170,9 @@ export const getAllAuthors = async (): Promise<Author[]> => {
         if (error) throw error;
 
         const authors = (data || []).map(mapRowToAuthor);
-        storeAuthors(authors);
-        return authors;
+        const merged = sortAuthors(mergeAuthors(authors, localAuthors));
+        storeAuthors(merged);
+        return merged;
     } catch (error) {
         console.warn('Supabase authors fetch failed', error);
         return localAuthors;
@@ -180,7 +199,8 @@ export const saveAuthor = async (author: Author) => {
         authors.push(author);
     }
 
-    storeAuthors(authors);
+    const nextAuthors = sortAuthors(authors);
+    storeAuthors(nextAuthors);
 
     try {
         const { error } = await supabase
@@ -193,6 +213,7 @@ export const saveAuthor = async (author: Author) => {
 
     const { logActivity } = await import('./activityLogManager');
     await logActivity('create', 'author', `Saved author: ${author.name}`);
+    return nextAuthors;
 };
 
 export const updateAuthor = async (author: Author) => {

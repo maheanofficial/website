@@ -37,8 +37,8 @@ const AdminAuthors = () => {
             links
         };
 
-        await saveAuthor(newAuthor);
-        setAuthors(await getAllAuthors());
+        const nextAuthors = await saveAuthor(newAuthor);
+        setAuthors(nextAuthors);
 
         // Reset
         setEditingId(null);
@@ -82,15 +82,10 @@ const AdminAuthors = () => {
         setLinks(newLinks);
     };
 
-    const handleDelete = async (username: string | undefined) => {
-        if (!username) return;
+    const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this author?')) {
-            // Find author by username and delete by id
-            const author = authors.find(a => a.username === username);
-            if (author) {
-                await deleteAuthor(author.id);
-                setAuthors(await getAllAuthors());
-            }
+            await deleteAuthor(id);
+            setAuthors(await getAllAuthors());
         }
     };
 
@@ -104,7 +99,7 @@ const AdminAuthors = () => {
                     <h3 className="card-title">Authors List</h3>
                     <div className="author-list">
                         {authors.map(author => (
-                            <div key={author.username} className="list-item">
+                            <div key={author.id} className="list-item">
                                 <div className="list-item-avatar">
                                     <SmartImage src={author.avatar} alt={author.name} className="w-full h-full object-cover" isRound={true} showFullText={true} />
                                 </div>
@@ -116,7 +111,7 @@ const AdminAuthors = () => {
                                     <button onClick={() => handleEdit(author)} className="icon-btn edit text-indigo-400 hover:text-indigo-300">
                                         <Edit2 size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(author.username)} className="icon-btn delete">
+                                    <button onClick={() => handleDelete(author.id)} className="icon-btn delete">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
