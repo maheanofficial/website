@@ -83,12 +83,34 @@ const syncSupabaseSession = (user: SupabaseUser | null) => {
 
 const getOAuthRedirectUrl = () => {
     if (typeof window === 'undefined') return '';
-    return import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/admin/dashboard`;
+    const configured = import.meta.env.VITE_SUPABASE_REDIRECT_URL as string | undefined;
+    if (configured) {
+        try {
+            const url = new URL(configured);
+            if (url.origin === window.location.origin) {
+                return configured;
+            }
+        } catch (error) {
+            console.warn('Invalid VITE_SUPABASE_REDIRECT_URL', error);
+        }
+    }
+    return `${window.location.origin}/admin/dashboard`;
 };
 
 const getPasswordResetRedirectUrl = () => {
     if (typeof window === 'undefined') return '';
-    return import.meta.env.VITE_SUPABASE_RESET_REDIRECT_URL || `${window.location.origin}/update-password`;
+    const configured = import.meta.env.VITE_SUPABASE_RESET_REDIRECT_URL as string | undefined;
+    if (configured) {
+        try {
+            const url = new URL(configured);
+            if (url.origin === window.location.origin) {
+                return configured;
+            }
+        } catch (error) {
+            console.warn('Invalid VITE_SUPABASE_RESET_REDIRECT_URL', error);
+        }
+    }
+    return `${window.location.origin}/update-password`;
 };
 
 /**
