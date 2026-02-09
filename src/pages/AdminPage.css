@@ -265,6 +265,38 @@
     color: var(--admin-text);
 }
 
+.admin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.admin-section-header .admin-section-title {
+    margin-bottom: 0;
+}
+
+.create-btn {
+    background: var(--admin-text);
+    color: var(--admin-bg);
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.create-btn:hover {
+    background: var(--admin-text);
+}
+
 /* Card Improvements */
 .admin-card {
     background: var(--admin-surface);
@@ -655,6 +687,15 @@
     .admin-topbar {
         padding: 0 60px 0 20px;
         /* Space for toggle */
+    }
+
+    .admin-section-header {
+        align-items: flex-start;
+    }
+
+    .admin-section-header .create-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 

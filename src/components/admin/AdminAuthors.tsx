@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trash2, Plus, Users, Edit2, X, Sparkles } from 'lucide-react';
 
 import { getAllAuthors, saveAuthor, deleteAuthor, type Author } from '../../utils/authorManager';
@@ -7,6 +7,7 @@ import SmartImage from '../SmartImage';
 
 const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
+    const formRef = useRef<HTMLDivElement>(null);
 
     // Form state
     const [name, setName] = useState('');
@@ -68,6 +69,13 @@ const AdminAuthors = () => {
         setLinks([]);
     };
 
+    const handleCreateAuthor = () => {
+        if (editingId) {
+            handleCancelEdit();
+        }
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     const addLink = () => {
         setLinks([...links, { name: '', url: '' }]);
     };
@@ -91,7 +99,13 @@ const AdminAuthors = () => {
 
     return (
         <div className="admin-section">
-            <h2 className="admin-section-title"><Users size={20} /> Authors</h2>
+            <div className="admin-section-header">
+                <h2 className="admin-section-title"><Users size={20} /> Authors</h2>
+                <button type="button" className="create-btn" onClick={handleCreateAuthor}>
+                    <Plus size={18} />
+                    Create Author
+                </button>
+            </div>
 
             <div className="admin-grid-layout">
                 {/* List */}
@@ -121,7 +135,7 @@ const AdminAuthors = () => {
                 </div>
 
                 {/* Add Form */}
-                <div className={`admin-card ${editingId ? 'editing' : ''}`}>
+                <div ref={formRef} className={`admin-card ${editingId ? 'editing' : ''}`}>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="card-title">{editingId ? 'Edit Author' : 'Add New Author'}</h3>
                         {editingId && (
