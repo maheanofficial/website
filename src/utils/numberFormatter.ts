@@ -1,11 +1,16 @@
 /**
- * Convert English numbers to Bangla numerals
+ * Convert numbers to Bangla numerals when enabled.
  * @param num - Number to convert
- * @returns Bangla numeral string
+ * @returns Formatted numeral string
  */
 export const toBanglaNumber = (num: number | string): string => {
+    const useBanglaDigits = false;
     const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     const numString = num.toString();
+
+    if (!useBanglaDigits) {
+        return numString;
+    }
 
     return numString.split('').map(char => {
         const digit = parseInt(char);
