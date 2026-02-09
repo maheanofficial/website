@@ -18,6 +18,72 @@
     transform: translateY(-2px);
 }
 
+/* Author Card Image (Authors Grid) */
+.story-card-image {
+    position: relative;
+    height: 190px;
+    background: #050505;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    overflow: hidden;
+    border-bottom: 1px solid #1f2937;
+}
+
+.story-card-image img,
+.story-card-image > div {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.story-card:hover .story-card-image img,
+.story-card:hover .story-card-image > div {
+    transform: scale(1.05);
+}
+
+.story-card-category {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+}
+
+.category-badge {
+    background: rgba(255, 92, 0, 0.9);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.story-card-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #111827;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    flex-shrink: 0;
+}
+
+.author-avatar img,
+.author-avatar > div {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
 /* Floating Status Badge */
 .status-badge-wrapper {
     position: absolute;

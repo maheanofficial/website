@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Users, Edit2, X, Sparkles } from 'lucide-react';
 
 import { getAllAuthors, saveAuthor, deleteAuthor, type Author } from '../../utils/authorManager';
@@ -7,6 +8,7 @@ import SmartImage from '../SmartImage';
 
 const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
+    const navigate = useNavigate();
 
     // Form state
     const [name, setName] = useState('');
@@ -27,6 +29,7 @@ const AdminAuthors = () => {
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !username) return;
+        const isEditing = Boolean(editingId);
 
         const newAuthor: Author = {
             id: editingId || Date.now().toString(),
@@ -47,6 +50,10 @@ const AdminAuthors = () => {
         setBio('');
         setAvatar('');
         setLinks([]);
+
+        if (!isEditing) {
+            navigate('/authors');
+        }
     };
 
     const handleEdit = (author: Author) => {
