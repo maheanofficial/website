@@ -41,11 +41,6 @@ const emitAuthChange = (event: string, user: LocalUser | null) => {
 
 const pickMetadataString = (value: unknown) => (typeof value === 'string' ? value : undefined);
 
-const resolveMetadataRole = (metadata: Record<string, unknown>) => {
-    const role = pickMetadataString(metadata.role);
-    return role === 'admin' || role === 'moderator' ? role : undefined;
-};
-
 const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const metadata = user.user_metadata ?? {};
     const email = user.email?.toLowerCase();
@@ -61,7 +56,7 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const storedUser = getUserById(user.id)
         || (email ? getUserByIdentifier(email) : null)
         || (usernameRaw ? getUserByIdentifier(usernameRaw) : null);
-    const role = resolveMetadataRole(metadata) || storedUser?.role || 'moderator';
+    const role = storedUser?.role || 'moderator';
 
     return {
         id: user.id,

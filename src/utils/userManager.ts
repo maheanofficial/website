@@ -16,8 +16,6 @@ export interface User {
 const STORAGE_KEY = 'mahean_users';
 const CURRENT_USER_KEY = 'mahean_current_user';
 const PASSWORD_RESET_KEY = 'mahean_password_reset_user';
-const ADMIN_EMAILS = ['mahean4bd@gmail.com'];
-
 // Mock Admin User
 const ADMIN_USER: User = {
     id: 'admin-123',
@@ -31,11 +29,6 @@ const ADMIN_USER: User = {
 
 const normalizeRole = (role?: string): UserRole => (role === 'admin' ? 'admin' : 'moderator');
 
-const isAdminEmail = (email?: string) => {
-    if (!email) return false;
-    return ADMIN_EMAILS.includes(email.toLowerCase());
-};
-
 const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole): UserRole => {
     if (existingRole === 'admin' || incomingRole === 'admin') {
         return 'admin';
@@ -45,7 +38,7 @@ const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole): UserRole =
 
 const normalizeUser = (user: User): User => {
     const normalizedEmail = user.email?.toLowerCase();
-    const role = isAdminEmail(normalizedEmail) ? 'admin' : normalizeRole(user.role);
+    const role = normalizeRole(user.role);
     return {
         ...user,
         email: normalizedEmail || user.email,
