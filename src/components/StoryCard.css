@@ -161,7 +161,7 @@
     font-weight: 700;
     line-height: 1.2;
     margin-bottom: 8px;
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: var(--font-primary);
 }
 
 .poster-author {
@@ -183,7 +183,7 @@
     font-size: 18px;
     font-weight: 600;
     margin: 0;
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: var(--font-primary);
 }
 
 .story-card-title-link {
@@ -275,7 +275,7 @@
     color: #e5e7eb;
     font-size: 13px;
     font-weight: 600;
-    font-family: 'Hind Siliguri', sans-serif;
+    font-family: var(--font-primary);
 }
 
 .stats-left {

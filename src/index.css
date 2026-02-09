@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap');
 
 /* Design Tokens & Variables */
 :root {
@@ -68,8 +68,8 @@
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Typography */
-  --font-primary: 'Hind Siliguri', sans-serif;
-  --font-display: 'Hind Siliguri', sans-serif;
+  --font-primary: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', 'Vrinda', sans-serif;
+  --font-display: 'Noto Sans Bengali', 'Hind Siliguri', 'Nirmala UI', 'Vrinda', sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
