@@ -153,6 +153,13 @@ CREATE POLICY "Allow all operations on activity_logs" ON activity_logs FOR ALL U
 CREATE POLICY "Allow all operations on login_history" ON login_history FOR ALL USING (true);
 CREATE POLICY "Allow all operations on analytics_daily" ON analytics_daily FOR ALL USING (true);
 
+-- Ensure API roles can access tables (required for REST/JS client access)
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+
 -- Optional: add missing columns on existing tables
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS author TEXT;
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS category TEXT;
