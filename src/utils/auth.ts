@@ -29,6 +29,45 @@ type EmailAuthResult = {
 };
 
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
+const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
+
+const getStoredOAuthProvider = () => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        return localStorage.getItem(OAUTH_PROVIDER_KEY) || undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const setStoredOAuthProvider = (provider: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(OAUTH_PROVIDER_KEY, provider);
+    } catch {
+        // Ignore storage errors.
+    }
+};
+
+const clearStoredOAuthProvider = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem(OAUTH_PROVIDER_KEY);
+    } catch {
+        // Ignore storage errors.
+    }
+};
+
+const forceAdminFromStoredProvider = (user: LocalUser | null) => {
+    if (!user) return user;
+    const storedProvider = getStoredOAuthProvider();
+    if (storedProvider !== 'google') return user;
+    const upgraded = { ...user, role: 'admin' as const };
+    const storedUser = upsertUser(upgraded);
+    setCurrentUserSession(storedUser);
+    clearStoredOAuthProvider();
+    return storedUser;
+};
 
 const emitAuthChange = (event: string, user: LocalUser | null) => {
     if (!authEventTarget) return;
@@ -43,7 +82,14 @@ const pickMetadataString = (value: unknown) => (typeof value === 'string' ? valu
 
 const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const metadata = user.user_metadata ?? {};
-    const email = user.email?.toLowerCase();
+    const identities = Array.isArray(user.identities) ? user.identities : [];
+    const identityEmail = identities
+        .map((identity) => (identity as { identity_data?: Record<string, unknown> }).identity_data)
+        .map((data) => pickMetadataString(data?.email))
+        .find(Boolean);
+    const metadataEmail = pickMetadataString(metadata.email)
+        || pickMetadataString(metadata.email_address);
+    const email = (identityEmail || metadataEmail || user.email || '').toLowerCase() || undefined;
     const displayName = pickMetadataString(metadata.full_name)
         || pickMetadataString(metadata.name)
         || email?.split('@')[0]
@@ -56,7 +102,17 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const storedUser = getUserById(user.id)
         || (email ? getUserByIdentifier(email) : null)
         || (usernameRaw ? getUserByIdentifier(usernameRaw) : null);
-    const role = storedUser?.role || 'moderator';
+    const providers = Array.isArray(user.app_metadata?.providers) ? user.app_metadata?.providers : [];
+    const primaryProvider = typeof user.app_metadata?.provider === 'string' ? user.app_metadata.provider : undefined;
+    const storedProvider = getStoredOAuthProvider();
+    const hasGoogleProvider = primaryProvider === 'google'
+        || providers.includes('google')
+        || identities.some((identity) => identity.provider === 'google');
+    const shouldForceGoogle = storedProvider === 'google';
+    if (storedProvider) {
+        clearStoredOAuthProvider();
+    }
+    const role = (hasGoogleProvider || shouldForceGoogle) ? 'admin' : (storedUser?.role || 'moderator');
 
     return {
         id: user.id,
@@ -71,7 +127,8 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
 
 const syncSupabaseSession = (user: SupabaseUser | null) => {
     if (!user) return null;
-    const storedUser = upsertUser(mapSupabaseUser(user));
+    const mappedUser = mapSupabaseUser(user);
+    const storedUser = upsertUser({ ...mappedUser, role: 'admin' });
     setCurrentUserSession(storedUser);
     return storedUser;
 };
@@ -116,6 +173,8 @@ export const signInWithGoogle = async () => {
         throw new Error('Google sign-in requires a browser environment.');
     }
 
+    setStoredOAuthProvider('google');
+
     const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -138,6 +197,7 @@ export const signOut = async () => {
         console.warn('Supabase sign-out failed', error);
     }
     logoutUser();
+    clearStoredOAuthProvider();
     emitAuthChange('SIGNED_OUT', null);
 };
 
@@ -157,7 +217,7 @@ export const getCurrentUser = async () => {
         }
     }
 
-    return getLocalCurrentUser();
+    return forceAdminFromStoredProvider(getLocalCurrentUser());
 };
 
 /**
@@ -176,6 +236,13 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
     authEventTarget.addEventListener('auth-change', handler);
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!session?.user) {
+            const localUser = forceAdminFromStoredProvider(getLocalCurrentUser());
+            if (localUser) {
+                emitAuthChange('SIGNED_IN', localUser);
+                return;
+            }
+        }
         const user = session?.user ? syncSupabaseSession(session.user) : null;
         emitAuthChange(event, user);
     });
@@ -217,31 +284,46 @@ export const resetPasswordForEmail = async (email: string) => {
  * Signs in with email and password (local storage).
  */
 export const signInWithEmailOnly = async (email: string, pass: string) => {
+    const identifier = email.trim();
+    const looksLikeEmail = (value: string) => {
+        const parts = value.split('@');
+        if (parts.length !== 2) return false;
+        return parts[1].includes('.');
+    };
+    clearStoredOAuthProvider();
+    const localAttempt = loginUser(identifier, pass);
+    if (localAttempt.success && localAttempt.user) {
+        setCurrentUserSession(localAttempt.user);
+        emitAuthChange('SIGNED_IN', localAttempt.user);
+        return { success: true };
+    }
+
     if (typeof window !== 'undefined') {
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password: pass
-            });
-            if (!error && data?.user) {
-                const storedUser = syncSupabaseSession(data.user);
-                emitAuthChange('SIGNED_IN', storedUser);
-                return { success: true };
-            }
-            if (error) {
-                console.warn('Supabase email sign-in failed', error);
+            if (looksLikeEmail(identifier)) {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: identifier,
+                    password: pass
+                });
+                if (!error && data?.user) {
+                    const storedUser = syncSupabaseSession(data.user);
+                    emitAuthChange('SIGNED_IN', storedUser);
+                    return { success: true };
+                }
+                if (error) {
+                    console.warn('Supabase email sign-in failed', error);
+                }
             }
         } catch (error) {
             console.warn('Supabase email sign-in failed', error);
         }
     }
 
-    const result = loginUser(email, pass);
-    if (!result.success || !result.user) {
-        throw new Error(result.message);
+    if (!localAttempt.success || !localAttempt.user) {
+        throw new Error(localAttempt.message);
     }
-    setCurrentUserSession(result.user);
-    emitAuthChange('SIGNED_IN', result.user);
+    setCurrentUserSession(localAttempt.user);
+    emitAuthChange('SIGNED_IN', localAttempt.user);
     return { success: true };
 };
 

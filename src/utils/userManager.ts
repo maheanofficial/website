@@ -51,8 +51,16 @@ const getUsers = (): User[] => {
     const parsed = stored ? JSON.parse(stored) : [];
     let users = Array.isArray(parsed) ? parsed.map((user) => normalizeUser(user as User)) : [];
     let didMutate = false;
+    const adminIndex = users.findIndex(
+        (user) => user.id === ADMIN_USER.id
+            || user.username === ADMIN_USER.username
+            || user.email === ADMIN_USER.email
+    );
 
-    if (!users.some(u => u.id === ADMIN_USER.id || u.username === ADMIN_USER.username)) {
+    if (adminIndex >= 0) {
+        users[adminIndex] = normalizeUser({ ...users[adminIndex], ...ADMIN_USER, role: 'admin' });
+        didMutate = true;
+    } else {
         users = [...users, ADMIN_USER];
         didMutate = true;
     }

@@ -205,11 +205,11 @@ const SubmitStoryPage = () => {
 
                     <form onSubmit={handleLogin} className="login-form">
                         <div className="form-group">
-                            <label>ইমেইল ঠিকানা</label>
+                            <label>ইমেইল / ইউজারনেম</label>
                             <div className="input-wrapper">
                                 <input
-                                    type="email"
-                                    placeholder="email@example.com"
+                                    type="text"
+                                    placeholder="admin@local বা email@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
