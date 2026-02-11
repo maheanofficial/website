@@ -16,7 +16,7 @@ export interface User {
 const STORAGE_KEY = 'mahean_users';
 const CURRENT_USER_KEY = 'mahean_current_user';
 const PASSWORD_RESET_KEY = 'mahean_password_reset_user';
-const BLOCKED_IDENTIFIERS = new Set(['maheanpc@gmail.com']);
+const BLOCKED_IDENTIFIERS = new Set<string>();
 // Mock Admin User
 const ADMIN_USER: User = {
     id: 'admin-123',
