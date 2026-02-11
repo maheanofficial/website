@@ -273,6 +273,13 @@ export const updateUserRole = (userId: string, role: UserRole) => {
     return { success: true, message: 'Role updated successfully.', user: updated };
 };
 
+const isCurrentSessionAdmin = () => getCurrentUser()?.role === 'admin';
+
+const isSystemAdminUser = (user: User) =>
+    user.id === ADMIN_USER.id
+    || user.username === ADMIN_USER.username
+    || user.email === ADMIN_USER.email;
+
 export const createUser = (payload: {
     username?: string;
     email?: string;
@@ -280,6 +287,10 @@ export const createUser = (payload: {
     displayName?: string;
     role?: UserRole;
 }): { success: boolean; message: string; user?: User } => {
+    if (!isCurrentSessionAdmin()) {
+        return { success: false, message: 'Only admin can create users.' };
+    }
+
     const users = getUsers();
     const normalizedEmail = payload.email ? normalizeIdentifier(payload.email) : '';
     const normalizedUsername = normalizeIdentifier(payload.username || normalizedEmail);
@@ -309,6 +320,33 @@ export const createUser = (payload: {
     saveUsers(users);
 
     return { success: true, message: 'User created successfully.', user: newUser };
+};
+
+export const deleteUser = (userId: string): { success: boolean; message: string } => {
+    if (!isCurrentSessionAdmin()) {
+        return { success: false, message: 'Only admin can delete users.' };
+    }
+
+    const users = getUsers();
+    const userIndex = users.findIndex(user => user.id === userId);
+    if (userIndex < 0) {
+        return { success: false, message: 'User not found.' };
+    }
+
+    const targetUser = users[userIndex];
+    if (isSystemAdminUser(targetUser)) {
+        return { success: false, message: 'System admin cannot be deleted.' };
+    }
+
+    const currentUser = getCurrentUser();
+    if (currentUser?.id === targetUser.id) {
+        return { success: false, message: 'You cannot delete your own account.' };
+    }
+
+    users.splice(userIndex, 1);
+    saveUsers(users);
+
+    return { success: true, message: 'User deleted successfully.' };
 };
 
 export const requestPasswordReset = (identifier: string) => {

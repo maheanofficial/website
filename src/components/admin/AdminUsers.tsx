@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, Users } from 'lucide-react';
-import { createUser, getAllUsers, type User, type UserRole } from '../../utils/userManager';
+import { Trash2, UserPlus, Users } from 'lucide-react';
+import { createUser, deleteUser, getAllUsers, type User, type UserRole } from '../../utils/userManager';
 import './AdminUsers.css';
 
-const AdminUsers = () => {
+interface AdminUsersProps {
+    currentUser?: User | null;
+}
+
+const AdminUsers = ({ currentUser }: AdminUsersProps) => {
     const [users, setUsers] = useState<User[]>([]);
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -11,14 +15,19 @@ const AdminUsers = () => {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<UserRole>('moderator');
     const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const isAdmin = currentUser?.role === 'admin';
 
     const loadUsers = () => {
         setUsers(getAllUsers());
     };
 
     useEffect(() => {
-        loadUsers();
-    }, []);
+        if (isAdmin) {
+            loadUsers();
+        } else {
+            setUsers([]);
+        }
+    }, [isAdmin]);
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -46,6 +55,35 @@ const AdminUsers = () => {
         loadUsers();
     };
 
+    const handleDelete = (user: User) => {
+        setStatus(null);
+        const confirmed = window.confirm(`Delete account "${user.displayName || user.username}"?`);
+        if (!confirmed) return;
+
+        const result = deleteUser(user.id);
+        if (!result.success) {
+            setStatus({ type: 'error', message: result.message });
+            return;
+        }
+
+        setStatus({ type: 'success', message: result.message });
+        loadUsers();
+    };
+
+    if (!isAdmin) {
+        return (
+            <div className="admin-section">
+                <h2 className="admin-section-title">
+                    <Users size={20} />
+                    Users
+                </h2>
+                <div className="admin-card">
+                    <p>Only admin can manage users.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="admin-section">
             <h2 className="admin-section-title">
@@ -63,7 +101,21 @@ const AdminUsers = () => {
                                     <span className="item-name">{user.displayName || user.username}</span>
                                     <span className="item-meta">{user.email || user.username}</span>
                                 </div>
-                                <span className="item-meta">{user.role}</span>
+                                <div className="admin-user-actions">
+                                    <span className="admin-user-role">{user.role}</span>
+                                    <button
+                                        type="button"
+                                        className="admin-user-delete-btn"
+                                        onClick={() => handleDelete(user)}
+                                        disabled={user.id === currentUser?.id || user.id === 'admin-123'}
+                                        title={user.id === 'admin-123'
+                                            ? 'System admin cannot be deleted'
+                                            : (user.id === currentUser?.id ? 'You cannot delete your own account' : 'Delete user')}
+                                    >
+                                        <Trash2 size={14} />
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         {!users.length && <p>No users found.</p>}

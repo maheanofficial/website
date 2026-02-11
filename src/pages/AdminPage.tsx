@@ -266,7 +266,7 @@ const AdminPage = () => {
                         />
                         <Route
                             path="/users"
-                            element={isAdmin ? <AdminUsers /> : <Navigate to="/admin/dashboard" replace />}
+                            element={isAdmin ? <AdminUsers currentUser={currentUser} /> : <Navigate to="/admin/dashboard" replace />}
                         />
                         <Route path="/profile" element={<AdminProfile />} />
                         <Route path="/settings/*" element={<AdminSettings />} />
