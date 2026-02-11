@@ -54,6 +54,7 @@ type StoryRow = {
     submitted_by?: string | null;
     date?: string | null;
     created_at?: string | null;
+    updated_at?: string | null;
 };
 
 export type StoryMutationResult = {
@@ -90,52 +91,211 @@ const normalizeStoryStatus = (value?: string | null): Story['status'] | undefine
 
 const toStoryStatus = (value?: string | null): Story['status'] => normalizeStoryStatus(value) || 'published';
 
-const mapRowToStory = (row: StoryRow): Story => ({
-    id: row.id,
-    title: row.title,
-    excerpt: row.excerpt ?? '',
-    content: row.content ?? '',
-    authorId: row.author_id ?? '',
-    categoryId: row.category_id ?? '',
-    views: row.views ?? 0,
-    image: row.image ?? row.cover_image ?? undefined,
-    date: row.date ?? row.created_at ?? new Date().toISOString(),
-    slug: row.slug ?? undefined,
-    author: row.author ?? undefined,
-    category: row.category ?? row.category_id ?? undefined,
-    cover_image: row.cover_image ?? undefined,
-    tags: toArray<string>(row.tags),
-    parts: toArray<StoryPart>(row.parts),
-    comments: row.comments ?? 0,
-    is_featured: row.is_featured ?? false,
-    readTime: row.read_time ?? undefined,
-    status: toStoryStatus(row.status),
-    submittedBy: row.submitted_by ?? undefined
-});
+type LegacyStoryMeta = {
+    status?: Story['status'];
+    submittedBy?: string;
+    author?: string;
+    category?: string;
+    coverImage?: string;
+    slug?: string;
+    tags?: string[];
+    comments?: number;
+    isFeatured?: boolean;
+    readTime?: string;
+};
 
-const mapStoryToRow = (story: Story) => ({
-    id: story.id,
-    title: story.title,
-    excerpt: story.excerpt ?? '',
-    content: story.content ?? '',
-    author_id: story.authorId ?? '',
-    author: story.author ?? null,
-    category_id: story.categoryId ?? story.category ?? '',
-    category: story.category ?? story.categoryId ?? null,
-    views: story.views ?? 0,
-    image: story.image ?? null,
-    cover_image: story.cover_image ?? null,
-    slug: story.slug ?? null,
-    tags: story.tags ?? [],
-    parts: story.parts ?? [],
-    comments: story.comments ?? 0,
-    is_featured: story.is_featured ?? false,
-    read_time: story.readTime ?? null,
-    status: toStoryStatus(story.status),
-    submitted_by: story.submittedBy ?? null,
-    date: story.date ?? new Date().toISOString(),
-    updated_at: new Date().toISOString()
-});
+type SupabaseErrorLike = {
+    code?: string;
+    message?: string;
+};
+
+const LEGACY_META_START = '__MAHEAN_META__:';
+const LEGACY_META_END = ':__MAHEAN_META_END__';
+const MISSING_COLUMN_REGEX = /Could not find the '([^']+)' column/i;
+const unsupportedStoryColumns = new Set<string>();
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const toStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+
+const buildLegacyStoryMeta = (story: Story): LegacyStoryMeta => {
+    const normalizedStatus = toStoryStatus(story.status);
+    return {
+        status: normalizedStatus,
+        submittedBy: story.submittedBy || undefined,
+        author: story.author || undefined,
+        category: story.category || story.categoryId || undefined,
+        coverImage: story.cover_image || story.image || undefined,
+        slug: story.slug || undefined,
+        tags: story.tags?.length ? story.tags : undefined,
+        comments: typeof story.comments === 'number' ? story.comments : undefined,
+        isFeatured: typeof story.is_featured === 'boolean' ? story.is_featured : undefined,
+        readTime: story.readTime || undefined
+    };
+};
+
+const hasLegacyStoryMeta = (meta: LegacyStoryMeta) =>
+    Object.values(meta).some(value => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== undefined && value !== null && value !== '';
+    });
+
+const encodeExcerptWithMeta = (excerpt: string, meta: LegacyStoryMeta) => {
+    if (!hasLegacyStoryMeta(meta)) {
+        return excerpt;
+    }
+    return `${LEGACY_META_START}${JSON.stringify(meta)}${LEGACY_META_END}${excerpt}`;
+};
+
+const parseExcerptWithMeta = (excerpt?: string | null): { excerpt: string; meta: LegacyStoryMeta | null } => {
+    const value = excerpt ?? '';
+    if (!value.startsWith(LEGACY_META_START)) {
+        return { excerpt: value, meta: null };
+    }
+
+    const markerEndIndex = value.indexOf(LEGACY_META_END);
+    if (markerEndIndex < 0) {
+        return { excerpt: value, meta: null };
+    }
+
+    const rawMeta = value.slice(LEGACY_META_START.length, markerEndIndex);
+    try {
+        const parsed = JSON.parse(rawMeta) as unknown;
+        if (!isRecord(parsed)) {
+            return { excerpt: value, meta: null };
+        }
+        const meta: LegacyStoryMeta = {
+            status: normalizeStoryStatus(typeof parsed.status === 'string' ? parsed.status : undefined),
+            submittedBy: typeof parsed.submittedBy === 'string' ? parsed.submittedBy : undefined,
+            author: typeof parsed.author === 'string' ? parsed.author : undefined,
+            category: typeof parsed.category === 'string' ? parsed.category : undefined,
+            coverImage: typeof parsed.coverImage === 'string' ? parsed.coverImage : undefined,
+            slug: typeof parsed.slug === 'string' ? parsed.slug : undefined,
+            tags: toStringArray(parsed.tags),
+            comments: typeof parsed.comments === 'number' ? parsed.comments : undefined,
+            isFeatured: typeof parsed.isFeatured === 'boolean' ? parsed.isFeatured : undefined,
+            readTime: typeof parsed.readTime === 'string' ? parsed.readTime : undefined
+        };
+        return {
+            excerpt: value.slice(markerEndIndex + LEGACY_META_END.length),
+            meta
+        };
+    } catch (error) {
+        console.warn('Failed to parse legacy story metadata from excerpt', error);
+        return { excerpt: value, meta: null };
+    }
+};
+
+const extractMissingStoryColumn = (error: unknown): string | null => {
+    const candidate = error as SupabaseErrorLike | null;
+    if (!candidate || typeof candidate !== 'object') return null;
+    if (candidate.code !== 'PGRST204' || typeof candidate.message !== 'string') return null;
+    const match = candidate.message.match(MISSING_COLUMN_REGEX);
+    return match?.[1] ?? null;
+};
+
+const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
+    const candidate = error as SupabaseErrorLike | null;
+    if (!candidate || typeof candidate !== 'object' || typeof candidate.message !== 'string') {
+        return fallback;
+    }
+    const message = candidate.message.trim();
+    if (!message) return fallback;
+    return `${fallback} (${message})`;
+};
+
+const upsertStoryRowWithColumnFallback = async (row: Record<string, unknown>) => {
+    const payload: Record<string, unknown> = { ...row };
+    unsupportedStoryColumns.forEach((columnName) => {
+        delete payload[columnName];
+    });
+
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+        const { error } = await supabase
+            .from(STORY_TABLE)
+            .upsert(payload, { onConflict: 'id' });
+
+        if (!error) {
+            return { error: null };
+        }
+
+        lastError = error;
+        const missingColumn = extractMissingStoryColumn(error);
+        if (!missingColumn || !(missingColumn in payload)) {
+            break;
+        }
+
+        unsupportedStoryColumns.add(missingColumn);
+        delete payload[missingColumn];
+    }
+
+    return { error: lastError };
+};
+
+const mapRowToStory = (row: StoryRow): Story => {
+    const parsedExcerpt = parseExcerptWithMeta(row.excerpt);
+    const content = row.content ?? '';
+    const rowTags = toArray<string>(row.tags);
+    const rowParts = toArray<StoryPart>(row.parts);
+    const fallbackParts = content
+        ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
+        : [];
+    const legacyMeta = parsedExcerpt.meta;
+
+    return {
+        id: row.id,
+        title: row.title,
+        excerpt: parsedExcerpt.excerpt,
+        content,
+        authorId: row.author_id ?? '',
+        categoryId: row.category_id ?? '',
+        views: row.views ?? 0,
+        image: row.image ?? row.cover_image ?? legacyMeta?.coverImage ?? undefined,
+        date: row.date ?? row.created_at ?? new Date().toISOString(),
+        slug: row.slug ?? legacyMeta?.slug ?? undefined,
+        author: row.author ?? legacyMeta?.author ?? undefined,
+        category: row.category ?? row.category_id ?? legacyMeta?.category ?? undefined,
+        cover_image: row.cover_image ?? legacyMeta?.coverImage ?? undefined,
+        tags: rowTags.length ? rowTags : (legacyMeta?.tags ?? []),
+        parts: rowParts.length ? rowParts : fallbackParts,
+        comments: row.comments ?? legacyMeta?.comments ?? 0,
+        is_featured: row.is_featured ?? legacyMeta?.isFeatured ?? false,
+        readTime: row.read_time ?? legacyMeta?.readTime ?? undefined,
+        status: toStoryStatus(row.status ?? legacyMeta?.status),
+        submittedBy: row.submitted_by ?? legacyMeta?.submittedBy ?? undefined
+    };
+};
+
+const mapStoryToRow = (story: Story): Record<string, unknown> => {
+    const meta = buildLegacyStoryMeta(story);
+
+    return {
+        id: story.id,
+        title: story.title,
+        excerpt: encodeExcerptWithMeta(story.excerpt ?? '', meta),
+        content: story.content ?? '',
+        author_id: story.authorId ?? '',
+        author: story.author ?? null,
+        category_id: story.categoryId ?? story.category ?? '',
+        category: story.category ?? story.categoryId ?? null,
+        views: story.views ?? 0,
+        image: story.image ?? null,
+        cover_image: story.cover_image ?? null,
+        slug: story.slug ?? null,
+        tags: story.tags ?? [],
+        parts: story.parts ?? [],
+        comments: story.comments ?? 0,
+        is_featured: story.is_featured ?? false,
+        read_time: story.readTime ?? null,
+        status: toStoryStatus(story.status),
+        submitted_by: story.submittedBy ?? null,
+        date: story.date ?? new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+};
 
 const normalizeStory = (story: Story): Story => ({
     ...story,
@@ -412,10 +572,8 @@ export const saveStory = async (story: Story): Promise<StoryMutationResult> => {
     storeStories(stories);
 
     try {
-        const { error } = await supabase
-            .from(STORY_TABLE)
-            .upsert(mapStoryToRow(normalized), { onConflict: 'id' });
-        if (error) throw error;
+        const result = await upsertStoryRowWithColumnFallback(mapStoryToRow(normalized));
+        if (result.error) throw result.error;
     } catch (error) {
         console.warn('Supabase story upsert failed', error);
         storeStories(previousStories);
@@ -423,7 +581,7 @@ export const saveStory = async (story: Story): Promise<StoryMutationResult> => {
             success: false,
             synced: false,
             story: normalized,
-            message: 'Story save failed on server. Please log in with email/Google and try again.'
+            message: getSupabaseErrorMessage(error, 'Story save failed on server.')
         };
     }
 
@@ -457,11 +615,8 @@ export const updateStoryStatus = async (
     storeStories(stories);
 
     try {
-        const { error } = await supabase
-            .from(STORY_TABLE)
-            .update({ status: nextStatus, updated_at: new Date().toISOString() })
-            .eq('id', id);
-        if (error) throw error;
+        const result = await upsertStoryRowWithColumnFallback(mapStoryToRow(stories[storyIndex]));
+        if (result.error) throw result.error;
     } catch (error) {
         console.warn('Supabase story status update failed', error);
         stories[storyIndex] = previousStory;
@@ -470,7 +625,7 @@ export const updateStoryStatus = async (
             success: false,
             synced: false,
             story: previousStory,
-            message: 'Story status update failed on server.'
+            message: getSupabaseErrorMessage(error, 'Story status update failed on server.')
         };
     }
 
