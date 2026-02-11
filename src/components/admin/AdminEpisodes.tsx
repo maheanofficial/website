@@ -59,7 +59,11 @@ const AdminEpisodes = ({ user }: AdminEpisodesProps) => {
 
     const handleToggleVisibility = async (story: Story) => {
         const nextStatus = getNextStatus(story);
-        await updateStoryStatus(story.id, nextStatus);
+        const result = await updateStoryStatus(story.id, nextStatus);
+        if (!result.success || !result.synced) {
+            alert(result.message || 'Failed to update story status on server.');
+            return;
+        }
         setStories(prev => prev.map(item => (item.id === story.id ? { ...item, status: nextStatus } : item)));
     };
 

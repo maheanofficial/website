@@ -19,6 +19,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const navigate = useNavigate();
     const isAdmin = user?.role === 'admin';
     const defaultStatus: Story['status'] = isAdmin ? 'published' : 'pending';
+    const serverSyncErrorMessage = 'Server sync failed. This post was not submitted for approval. Please login with email/Google and try again.';
 
     // Search & Filter
     const [searchQuery, setSearchQuery] = useState('');
@@ -358,9 +359,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         const existingStory = editingId ? stories.find(story => story.id === editingId) : null;
-        const nextStatus = isAdmin
+        const nextStatus: Story['status'] = isAdmin
             ? (status || existingStory?.status || 'published')
-            : (status || existingStory?.status || defaultStatus);
+            : 'pending';
         let authorName = existingStory?.author || user?.displayName || 'Admin';
         let authorId = existingStory?.authorId || user?.id || 'admin';
 
@@ -409,7 +410,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             content: parts.map(p => p.content).join('\n'), // Legacy
             excerpt: description || parts[0]?.content.slice(0, 100) || ''
         };
-        await saveStory(newStory);
+        const saveResult = await saveStory(newStory);
+        if (!saveResult.success || !saveResult.synced) {
+            alert(saveResult.message || serverSyncErrorMessage);
+            return;
+        }
         await loadData();
         navigate('/admin/dashboard/golpo');
     };
@@ -426,7 +431,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const nextStatus = isAdmin
             ? (isPublic ? 'draft' : 'published')
             : (isPublic ? 'draft' : 'pending');
-        await saveStory({ ...story, status: nextStatus });
+        const saveResult = await saveStory({ ...story, status: nextStatus });
+        if (!saveResult.success || !saveResult.synced) {
+            alert(saveResult.message || serverSyncErrorMessage);
+            return;
+        }
         await loadData();
     };
 

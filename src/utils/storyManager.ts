@@ -56,6 +56,13 @@ type StoryRow = {
     created_at?: string | null;
 };
 
+export type StoryMutationResult = {
+    success: boolean;
+    synced: boolean;
+    story?: Story;
+    message?: string;
+};
+
 const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
 const mergeStories = (primary: Story[], secondary: Story[]) => {
@@ -65,19 +72,23 @@ const mergeStories = (primary: Story[], secondary: Story[]) => {
     return Array.from(map.values());
 };
 
-const toStoryStatus = (value?: string | null): Story['status'] => {
-    switch (value) {
+const normalizeStoryStatus = (value?: string | null): Story['status'] | undefined => {
+    if (!value) return undefined;
+    const normalized = value.trim().toLowerCase();
+    switch (normalized) {
         case 'published':
         case 'pending':
         case 'rejected':
         case 'completed':
         case 'ongoing':
         case 'draft':
-            return value;
+            return normalized;
         default:
-            return 'published';
+            return undefined;
     }
 };
+
+const toStoryStatus = (value?: string | null): Story['status'] => normalizeStoryStatus(value) || 'published';
 
 const mapRowToStory = (row: StoryRow): Story => ({
     id: row.id,
@@ -120,7 +131,7 @@ const mapStoryToRow = (story: Story) => ({
     comments: story.comments ?? 0,
     is_featured: story.is_featured ?? false,
     read_time: story.readTime ?? null,
-    status: story.status ?? 'published',
+    status: toStoryStatus(story.status),
     submitted_by: story.submittedBy ?? null,
     date: story.date ?? new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -130,7 +141,7 @@ const normalizeStory = (story: Story): Story => ({
     ...story,
     views: story.views ?? 0,
     comments: story.comments ?? 0,
-    status: story.status ?? 'published',
+    status: toStoryStatus(story.status),
     date: story.date ?? new Date().toISOString(),
     categoryId: story.categoryId ?? story.category ?? '',
     category: story.category ?? story.categoryId,
@@ -382,8 +393,9 @@ export const getStoryById = async (id: string): Promise<Story | null> => {
     return localStories.find(s => s.id === id) || null;
 };
 
-export const saveStory = async (story: Story) => {
+export const saveStory = async (story: Story): Promise<StoryMutationResult> => {
     const stories = getRawStories();
+    const previousStories = [...stories];
     const existingIndex = stories.findIndex(s => s.id === story.id);
     const normalized = normalizeStory({
         ...story,
@@ -406,33 +418,69 @@ export const saveStory = async (story: Story) => {
         if (error) throw error;
     } catch (error) {
         console.warn('Supabase story upsert failed', error);
+        storeStories(previousStories);
+        return {
+            success: false,
+            synced: false,
+            story: normalized,
+            message: 'Story save failed on server. Please log in with email/Google and try again.'
+        };
     }
 
     const { logActivity } = await import('./activityLogManager');
     const action = existingIndex >= 0 ? 'update' : 'create';
     await logActivity(action, 'story', `${action === 'create' ? 'Created' : 'Updated'} story: ${normalized.title} (${normalized.status})`);
+    return {
+        success: true,
+        synced: true,
+        story: normalized
+    };
 };
 
-export const updateStoryStatus = async (id: string, status: 'published' | 'pending' | 'rejected' | 'draft') => {
+export const updateStoryStatus = async (
+    id: string,
+    status: 'published' | 'pending' | 'rejected' | 'draft'
+): Promise<StoryMutationResult> => {
     const stories = getRawStories();
-    const story = stories.find(s => s.id === id);
-    if (story) {
-        story.status = status;
-        storeStories(stories);
-
-        try {
-            const { error } = await supabase
-                .from(STORY_TABLE)
-                .update({ status, updated_at: new Date().toISOString() })
-                .eq('id', id);
-            if (error) throw error;
-        } catch (error) {
-            console.warn('Supabase story status update failed', error);
-        }
-
-        const { logActivity } = await import('./activityLogManager');
-        await logActivity('update', 'story', `Changed status of "${story.title}" to ${status}`);
+    const storyIndex = stories.findIndex(s => s.id === id);
+    if (storyIndex < 0) {
+        return {
+            success: false,
+            synced: false,
+            message: 'Story not found.'
+        };
     }
+
+    const nextStatus = toStoryStatus(status);
+    const previousStory = { ...stories[storyIndex] };
+    stories[storyIndex] = normalizeStory({ ...stories[storyIndex], status: nextStatus });
+    storeStories(stories);
+
+    try {
+        const { error } = await supabase
+            .from(STORY_TABLE)
+            .update({ status: nextStatus, updated_at: new Date().toISOString() })
+            .eq('id', id);
+        if (error) throw error;
+    } catch (error) {
+        console.warn('Supabase story status update failed', error);
+        stories[storyIndex] = previousStory;
+        storeStories(stories);
+        return {
+            success: false,
+            synced: false,
+            story: previousStory,
+            message: 'Story status update failed on server.'
+        };
+    }
+
+    const { logActivity } = await import('./activityLogManager');
+    await logActivity('update', 'story', `Changed status of "${stories[storyIndex].title}" to ${nextStatus}`);
+    return {
+        success: true,
+        synced: true,
+        story: stories[storyIndex]
+    };
 };
 
 export const deleteStory = async (id: string) => {

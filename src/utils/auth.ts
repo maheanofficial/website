@@ -291,11 +291,6 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
     };
     clearStoredOAuthProvider();
     const localAttempt = loginUser(identifier, pass);
-    if (localAttempt.success && localAttempt.user) {
-        setCurrentUserSession(localAttempt.user);
-        emitAuthChange('SIGNED_IN', localAttempt.user);
-        return { success: true };
-    }
 
     if (typeof window !== 'undefined') {
         try {
@@ -318,12 +313,13 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
         }
     }
 
-    if (!localAttempt.success || !localAttempt.user) {
-        throw new Error(localAttempt.message);
+    if (localAttempt.success && localAttempt.user) {
+        setCurrentUserSession(localAttempt.user);
+        emitAuthChange('SIGNED_IN', localAttempt.user);
+        return { success: true };
     }
-    setCurrentUserSession(localAttempt.user);
-    emitAuthChange('SIGNED_IN', localAttempt.user);
-    return { success: true };
+
+    throw new Error(localAttempt.message);
 };
 
 /**

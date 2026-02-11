@@ -3,28 +3,51 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { getAllStories, updateStoryStatus, type Story } from '../../utils/storyManager';
 import './AdminApprovals.css';
 
+const toNormalizedStatus = (value?: string | null) => value?.trim().toLowerCase();
+
 const AdminApprovals = () => {
     const [pendingStories, setPendingStories] = useState<Story[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const loadPending = async () => {
-        setIsLoading(true);
+    const loadPending = async (showLoader = true) => {
+        if (showLoader) {
+            setIsLoading(true);
+        }
+
         const stories = await getAllStories();
-        setPendingStories(stories.filter(story => story.status === 'pending'));
-        setIsLoading(false);
+        setPendingStories(stories.filter((story) => toNormalizedStatus(story.status) === 'pending'));
+
+        if (showLoader) {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
-        void loadPending();
+        void loadPending(true);
+        const intervalId = window.setInterval(() => {
+            void loadPending(false);
+        }, 10000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
     }, []);
 
     const handleApprove = async (storyId: string) => {
-        await updateStoryStatus(storyId, 'published');
+        const result = await updateStoryStatus(storyId, 'published');
+        if (!result.success || !result.synced) {
+            alert(result.message || 'Failed to approve post on server.');
+            return;
+        }
         setPendingStories(prev => prev.filter(story => story.id !== storyId));
     };
 
     const handleReject = async (storyId: string) => {
-        await updateStoryStatus(storyId, 'rejected');
+        const result = await updateStoryStatus(storyId, 'rejected');
+        if (!result.success || !result.synced) {
+            alert(result.message || 'Failed to reject post on server.');
+            return;
+        }
         setPendingStories(prev => prev.filter(story => story.id !== storyId));
     };
 
@@ -80,4 +103,3 @@ const AdminApprovals = () => {
 };
 
 export default AdminApprovals;
-
