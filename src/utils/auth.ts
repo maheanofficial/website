@@ -30,6 +30,7 @@ type EmailAuthResult = {
 
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
 const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
+const DEFAULT_SELF_SERVICE_ROLE: LocalUser['role'] = 'moderator';
 
 const getStoredOAuthProvider = () => {
     if (typeof window === 'undefined') return undefined;
@@ -58,15 +59,19 @@ const clearStoredOAuthProvider = () => {
     }
 };
 
-const forceAdminFromStoredProvider = (user: LocalUser | null) => {
+const enforceStoredProviderRole = (user: LocalUser | null) => {
     if (!user) return user;
     const storedProvider = getStoredOAuthProvider();
-    if (storedProvider !== 'google') return user;
-    const upgraded = { ...user, role: 'admin' as const };
-    const storedUser = upsertUser(upgraded);
-    setCurrentUserSession(storedUser);
+    if (!storedProvider) return user;
     clearStoredOAuthProvider();
-    return storedUser;
+    return user;
+};
+
+const resolveSelfServiceRole = (storedUser: LocalUser | null): LocalUser['role'] => {
+    if (storedUser?.role === 'admin') {
+        return 'admin';
+    }
+    return DEFAULT_SELF_SERVICE_ROLE;
 };
 
 const emitAuthChange = (event: string, user: LocalUser | null) => {
@@ -102,17 +107,11 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const storedUser = getUserById(user.id)
         || (email ? getUserByIdentifier(email) : null)
         || (usernameRaw ? getUserByIdentifier(usernameRaw) : null);
-    const providers = Array.isArray(user.app_metadata?.providers) ? user.app_metadata?.providers : [];
-    const primaryProvider = typeof user.app_metadata?.provider === 'string' ? user.app_metadata.provider : undefined;
     const storedProvider = getStoredOAuthProvider();
-    const hasGoogleProvider = primaryProvider === 'google'
-        || providers.includes('google')
-        || identities.some((identity) => identity.provider === 'google');
-    const shouldForceGoogle = storedProvider === 'google';
     if (storedProvider) {
         clearStoredOAuthProvider();
     }
-    const role = (hasGoogleProvider || shouldForceGoogle) ? 'admin' : (storedUser?.role || 'moderator');
+    const role = resolveSelfServiceRole(storedUser);
 
     return {
         id: user.id,
@@ -128,7 +127,7 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
 const syncSupabaseSession = (user: SupabaseUser | null) => {
     if (!user) return null;
     const mappedUser = mapSupabaseUser(user);
-    const storedUser = upsertUser({ ...mappedUser, role: 'admin' });
+    const storedUser = upsertUser(mappedUser);
     setCurrentUserSession(storedUser);
     return storedUser;
 };
@@ -217,7 +216,7 @@ export const getCurrentUser = async () => {
         }
     }
 
-    return forceAdminFromStoredProvider(getLocalCurrentUser());
+    return enforceStoredProviderRole(getLocalCurrentUser());
 };
 
 /**
@@ -237,7 +236,7 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
         if (!session?.user) {
-            const localUser = forceAdminFromStoredProvider(getLocalCurrentUser());
+            const localUser = enforceStoredProviderRole(getLocalCurrentUser());
             if (localUser) {
                 emitAuthChange('SIGNED_IN', localUser);
                 return;
@@ -333,10 +332,16 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
 export const signUpWithEmail = async (email: string, password: string, fullName?: string): Promise<EmailAuthResult> => {
     if (typeof window !== 'undefined') {
         try {
+            const signupMetadata: Record<string, string> = {
+                role: DEFAULT_SELF_SERVICE_ROLE
+            };
+            if (fullName) {
+                signupMetadata.full_name = fullName;
+            }
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
-                options: fullName ? { data: { full_name: fullName } } : undefined
+                options: { data: signupMetadata }
             });
 
             if (!error && data?.user) {
