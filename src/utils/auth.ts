@@ -31,6 +31,14 @@ type EmailAuthResult = {
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
 const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
 const DEFAULT_SELF_SERVICE_ROLE: LocalUser['role'] = 'moderator';
+const DEFAULT_ADMIN_ALLOWLIST = ['maheanpc@gmail.com'];
+const ADMIN_EMAIL_ALLOWLIST = (
+    (import.meta.env.VITE_ADMIN_EMAIL_ALLOWLIST as string | undefined)
+    || DEFAULT_ADMIN_ALLOWLIST.join(',')
+)
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 
 const getStoredOAuthProvider = () => {
     if (typeof window === 'undefined') return undefined;
@@ -85,6 +93,24 @@ const emitAuthChange = (event: string, user: LocalUser | null) => {
 
 const pickMetadataString = (value: unknown) => (typeof value === 'string' ? value : undefined);
 
+const toRole = (value?: string): LocalUser['role'] => (value === 'admin' ? 'admin' : 'moderator');
+
+const resolveSupabaseRole = (user: SupabaseUser, storedUser: LocalUser | null, email?: string): LocalUser['role'] => {
+    const appMetadata = user.app_metadata;
+    if (appMetadata && typeof appMetadata === 'object' && !Array.isArray(appMetadata)) {
+        const role = pickMetadataString((appMetadata as Record<string, unknown>).admin_panel_role);
+        if (role === 'admin' || role === 'moderator') {
+            return toRole(role);
+        }
+    }
+
+    if (email && ADMIN_EMAIL_ALLOWLIST.includes(email.toLowerCase())) {
+        return 'admin';
+    }
+
+    return resolveSelfServiceRole(storedUser);
+};
+
 const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     const metadata = user.user_metadata ?? {};
     const identities = Array.isArray(user.identities) ? user.identities : [];
@@ -111,7 +137,7 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
     if (storedProvider) {
         clearStoredOAuthProvider();
     }
-    const role = resolveSelfServiceRole(storedUser);
+    const role = resolveSupabaseRole(user, storedUser, email);
 
     return {
         id: user.id,
