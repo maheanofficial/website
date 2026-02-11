@@ -127,9 +127,14 @@ const mapSupabaseUser = (user: SupabaseUser): LocalUser => {
 const syncSupabaseSession = (user: SupabaseUser | null) => {
     if (!user) return null;
     const mappedUser = mapSupabaseUser(user);
-    const storedUser = upsertUser(mappedUser);
-    setCurrentUserSession(storedUser);
-    return storedUser;
+    try {
+        const storedUser = upsertUser(mappedUser);
+        setCurrentUserSession(storedUser);
+        return storedUser;
+    } catch (error) {
+        console.warn('Blocked or invalid account during Supabase session sync', error);
+        return null;
+    }
 };
 
 const getOAuthRedirectUrl = () => {
@@ -301,6 +306,9 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
                 });
                 if (!error && data?.user) {
                     const storedUser = syncSupabaseSession(data.user);
+                    if (!storedUser) {
+                        throw new Error('This account has been removed.');
+                    }
                     emitAuthChange('SIGNED_IN', storedUser);
                     return { success: true };
                 }
@@ -343,12 +351,16 @@ export const signUpWithEmail = async (email: string, password: string, fullName?
             if (!error && data?.user) {
                 if (data.session?.user) {
                     const storedUser = syncSupabaseSession(data.session.user);
+                    if (!storedUser) {
+                        throw new Error('This account has been removed.');
+                    }
                     emitAuthChange('SIGNED_IN', storedUser);
                     return { user: storedUser };
                 }
 
-                upsertUser(mapSupabaseUser(data.user));
-                return { user: mapSupabaseUser(data.user), needsEmailConfirmation: true };
+                const mappedUser = mapSupabaseUser(data.user);
+                const storedUser = upsertUser(mappedUser);
+                return { user: storedUser, needsEmailConfirmation: true };
             }
 
             if (error) {

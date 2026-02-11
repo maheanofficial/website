@@ -16,6 +16,7 @@ export interface User {
 const STORAGE_KEY = 'mahean_users';
 const CURRENT_USER_KEY = 'mahean_current_user';
 const PASSWORD_RESET_KEY = 'mahean_password_reset_user';
+const BLOCKED_IDENTIFIERS = new Set(['maheanpc@gmail.com']);
 // Mock Admin User
 const ADMIN_USER: User = {
     id: 'admin-123',
@@ -28,6 +29,10 @@ const ADMIN_USER: User = {
 };
 
 const normalizeRole = (role?: string): UserRole => (role === 'admin' ? 'admin' : 'moderator');
+const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
+const isBlockedIdentifier = (value?: string) => Boolean(value && BLOCKED_IDENTIFIERS.has(normalizeIdentifier(value)));
+const isBlockedUser = (user?: Partial<User>) =>
+    isBlockedIdentifier(user?.email) || isBlockedIdentifier(user?.username);
 
 const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole): UserRole => {
     if (existingRole === 'admin' || incomingRole === 'admin') {
@@ -51,6 +56,11 @@ const getUsers = (): User[] => {
     const parsed = stored ? JSON.parse(stored) : [];
     let users = Array.isArray(parsed) ? parsed.map((user) => normalizeUser(user as User)) : [];
     let didMutate = false;
+    const filteredUsers = users.filter((user) => !isBlockedUser(user));
+    if (filteredUsers.length !== users.length) {
+        users = filteredUsers;
+        didMutate = true;
+    }
     const adminIndex = users.findIndex(
         (user) => user.id === ADMIN_USER.id
             || user.username === ADMIN_USER.username
@@ -82,6 +92,9 @@ const saveUsers = (users: User[]) => {
 };
 
 export const upsertUser = (user: User): User => {
+    if (isBlockedUser(user)) {
+        throw new Error('This account has been removed.');
+    }
     const users = getUsers();
     const normalizedUser = normalizeUser(user);
     const matchIndex = users.findIndex((existing) =>
@@ -104,8 +117,6 @@ export const upsertUser = (user: User): User => {
     return nextUser;
 };
 
-const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
-
 const findUserByIdentifier = (users: User[], identifier: string) => {
     const normalized = normalizeIdentifier(identifier);
     return users.find(user => {
@@ -119,6 +130,9 @@ export const registerUser = (email: string, password: string, displayName?: stri
     const users = getUsers();
 
     const normalizedEmail = normalizeIdentifier(email);
+    if (isBlockedIdentifier(normalizedEmail)) {
+        return { success: false, message: 'This account has been removed.' };
+    }
 
     if (findUserByIdentifier(users, normalizedEmail)) {
         return { success: false, message: 'এই নাম ব্যবহারকারীর অস্তিত্ব আছে (Username already exists)' };
@@ -141,6 +155,9 @@ export const registerUser = (email: string, password: string, displayName?: stri
 };
 
 export const loginUser = (identifier: string, password: string): { success: boolean; message: string; user?: User } => {
+    if (isBlockedIdentifier(identifier)) {
+        return { success: false, message: 'This account has been removed.' };
+    }
     const users = getUsers();
     const user = findUserByIdentifier(users, identifier);
 
@@ -155,7 +172,12 @@ export const getCurrentUser = (): User | null => {
     const stored = localStorage.getItem(CURRENT_USER_KEY);
     if (!stored) return null;
     try {
-        return normalizeUser(JSON.parse(stored) as User);
+        const parsed = normalizeUser(JSON.parse(stored) as User);
+        if (isBlockedUser(parsed)) {
+            localStorage.removeItem(CURRENT_USER_KEY);
+            return null;
+        }
+        return parsed;
     } catch (error) {
         console.warn('Failed to parse stored user session', error);
         return null;
@@ -226,6 +248,9 @@ export const getUserById = (userId: string): User | null => {
 };
 
 export const getUserByIdentifier = (identifier: string): User | null => {
+    if (isBlockedIdentifier(identifier)) {
+        return null;
+    }
     const users = getUsers();
     return findUserByIdentifier(users, identifier) || null;
 };
@@ -258,6 +283,9 @@ export const createUser = (payload: {
     const users = getUsers();
     const normalizedEmail = payload.email ? normalizeIdentifier(payload.email) : '';
     const normalizedUsername = normalizeIdentifier(payload.username || normalizedEmail);
+    if (isBlockedIdentifier(normalizedEmail) || isBlockedIdentifier(normalizedUsername)) {
+        return { success: false, message: 'This account has been removed.' };
+    }
 
     if (!normalizedUsername) {
         return { success: false, message: 'Username is required.' };
@@ -284,6 +312,9 @@ export const createUser = (payload: {
 };
 
 export const requestPasswordReset = (identifier: string) => {
+    if (isBlockedIdentifier(identifier)) {
+        return { success: false, message: 'This account has been removed.' };
+    }
     const users = getUsers();
     const user = findUserByIdentifier(users, identifier);
     if (!user) {
