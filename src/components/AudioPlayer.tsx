@@ -20,7 +20,7 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
     const [isMuted, setIsMuted] = useState(false);
 
     // TTS State
-    const [isTTS, setIsTTS] = useState(false);
+    const isTTS = (!src || src.includes('demo-story.mp3')) && !!text;
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     // Voice Selection State
@@ -48,7 +48,7 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
     const getVoiceDisplayName = (voice: SpeechSynthesisVoice) => {
         const cleaned = voice.name
             .replace(/Google|Microsoft|Bangla|Bengali|Bangladesh|India/gi, '')
-            .replace(/[\(\)-]/g, '')
+            .replace(/[()-]/g, '')
             .trim();
         return cleaned || voice.name;
     };
@@ -69,13 +69,6 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                 return { rate: 0.85, pitch: 0.95 };
         }
     };
-
-    // Initial Setup
-    useEffect(() => {
-        // Force TTS if src is missing or is the placeholder, AND text contains content
-        const shouldUseTTS = (!src || src.includes('demo-story.mp3')) && !!text;
-        setIsTTS(shouldUseTTS);
-    }, [src, text]);
 
     // Load Voices
     useEffect(() => {

@@ -10,6 +10,8 @@ import { updateUserProfile } from '../../utils/userManager';
 import './AdminSettings.css';
 
 const SETTINGS_BASE = '/admin/dashboard/settings';
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
 
 const ProfilePanel = () => {
     const [profile, setProfile] = useState<ProfileSettings>(defaultProfile);
@@ -83,10 +85,10 @@ const ProfilePanel = () => {
             });
 
             setStatus('প্রোফাইল সেভ করা হয়েছে।');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to save profile', err);
             setStatusType('error');
-            setStatus(err?.message || 'প্রোফাইল সেভ করা যায়নি।');
+            setStatus(getErrorMessage(err, 'প্রোফাইল সেভ করা যায়নি।'));
         } finally {
             setIsSaving(false);
             setTimeout(() => setStatus(''), 2500);
@@ -358,9 +360,9 @@ const PasswordPanel = () => {
             setNewPassword('');
             setConfirmPassword('');
             setTimeout(() => setStatus(''), 3000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setStatusType('error');
-            setStatus(err?.message || 'পাসওয়ার্ড আপডেট করা যায়নি, আবার চেষ্টা করুন');
+            setStatus(getErrorMessage(err, 'পাসওয়ার্ড আপডেট করা যায়নি, আবার চেষ্টা করুন'));
         } finally {
             setIsSaving(false);
         }
@@ -450,15 +452,14 @@ const PasswordPanel = () => {
 };
 
 const AppearancePanel = () => {
-    const [appearance, setAppearance] = useState<ThemeMode>('system');
-    const [status, setStatus] = useState('');
-
-    useEffect(() => {
+    const [appearance, setAppearance] = useState<ThemeMode>(() => {
         const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
         if (stored === 'light' || stored === 'dark' || stored === 'system') {
-            setAppearance(stored);
+            return stored;
         }
-    }, []);
+        return 'system';
+    });
+    const [status, setStatus] = useState('');
 
     const handleSave = (event: React.FormEvent) => {
         event.preventDefault();

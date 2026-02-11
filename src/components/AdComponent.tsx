@@ -7,6 +7,10 @@ interface AdComponentProps {
     style?: React.CSSProperties;
 }
 
+type AdsWindow = Window & {
+    adsbygoogle?: unknown[];
+};
+
 /**
  * AdComponent - Google AdSense integration placeholder
  * Replace the filler div with your real AdSense production code when ready.
@@ -14,8 +18,8 @@ interface AdComponentProps {
 const AdComponent = ({ slot, className = '', style }: AdComponentProps) => {
     useEffect(() => {
         try {
-            // @ts-ignore
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            const adsWindow = window as AdsWindow;
+            (adsWindow.adsbygoogle = adsWindow.adsbygoogle || []).push({});
         } catch (e) {
             console.error('AdSense error:', e);
         }

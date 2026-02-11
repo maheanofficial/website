@@ -89,7 +89,7 @@ const SignupPage = () => {
     const handleGoogleSignup = async () => {
         try {
             await signInWithGoogle();
-        } catch (error) {
+        } catch {
             alert('গুগল দিয়ে সাইন আপ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
         }
     };
@@ -109,9 +109,10 @@ const SignupPage = () => {
             alert('???????????? ??? ??????! ??????????? ???? ????? ?????...');
             // Redirect to the author dashboard which serves the admin area
             window.location.href = '/admin/dashboard';
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Signup error:', err);
-            alert(`সাইন আপ ব্যর্থ হয়েছে: ${err?.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);
+            const message = err instanceof Error ? err.message : 'অনুগ্রহ করে আবার চেষ্টা করুন।';
+            alert(`সাইন আপ ব্যর্থ হয়েছে: ${message}`);
         }
     };
 

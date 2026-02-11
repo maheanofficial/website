@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X, Globe, Lock } from 'lucide-react';
 import './AdminStories.css';
@@ -56,7 +56,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setAuthors(authorData);
     }
 
-    function resetForm() {
+    const resetForm = useCallback(() => {
         setTitle('');
         setSlug('');
         setCategory('');
@@ -72,7 +72,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewAuthorAvatar('');
         setCoverImage('');
         setParts([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
-    }
+    }, [authors, defaultStatus]);
 
     // Update viewMode if initialViewMode changes (e.g. navigation)
     useEffect(() => {
@@ -82,7 +82,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 resetForm();
             }
         }
-    }, [initialViewMode]);
+    }, [initialViewMode, resetForm]);
 
     useEffect(() => {
         void loadData();
@@ -245,7 +245,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
 
         const totalTitleHeight = titleLines.length * titleLineHeight;
-        let startY = height * 0.5 - totalTitleHeight / 2;
+        const startY = height * 0.5 - totalTitleHeight / 2;
 
         titleLines.forEach((line, index) => {
             ctx.fillText(line, width / 2, startY + index * titleLineHeight);

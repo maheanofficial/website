@@ -55,28 +55,34 @@ export default function StoriesPage() {
     }, []);
 
     useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const author = params.get('author');
-        const sort = params.get('sort');
-        const tab = params.get('tab');
-        const tag = params.get('tag');
+        const syncFiltersId = window.setTimeout(() => {
+            const params = new URLSearchParams(location.search);
+            const author = params.get('author');
+            const sort = params.get('sort');
+            const tab = params.get('tab');
+            const tag = params.get('tag');
 
-        setAuthorFilter(author);
-        setActiveTab(tab || 'all');
-        setTagFilter(tag);
+            setAuthorFilter(author);
+            setActiveTab(tab || 'all');
+            setTagFilter(tag);
 
-        if (sort) {
-            setSortBy(sort);
-        }
+            if (sort) {
+                setSortBy(sort);
+            }
 
-        if (author || tag) {
-            setSelectedCategory('all');
-        } else {
-            const cat = params.get('category') || 'all';
-            setSelectedCategory(cat);
-        }
-        setCurrentPage(1);
-        window.scrollTo(0, 0);
+            if (author || tag) {
+                setSelectedCategory('all');
+            } else {
+                const cat = params.get('category') || 'all';
+                setSelectedCategory(cat);
+            }
+            setCurrentPage(1);
+            window.scrollTo(0, 0);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(syncFiltersId);
+        };
     }, [location.search]);
 
     // Derived Data
@@ -86,7 +92,7 @@ export default function StoriesPage() {
     // Filter and sort logic
     const normalizedTag = tagFilter?.trim().toLowerCase();
 
-    let filteredStories = stories.filter(story => {
+    const filteredStories = stories.filter(story => {
         const matchesSearch =
             story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             story.author?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -100,7 +106,7 @@ export default function StoriesPage() {
     });
 
     // Sort
-    filteredStories.sort((a, b) => {
+    const sortedStories = [...filteredStories].sort((a, b) => {
         // If sorting specifically by popular OR if we are in the 'featured' category (default to popular)
         if (sortBy === 'popular' || (selectedCategory === 'featured' && sortBy === 'latest')) { // Override latest default for featured
             return (b.views || 0) - (a.views || 0);
@@ -110,8 +116,8 @@ export default function StoriesPage() {
     });
 
     // Pagination
-    const totalPages = Math.ceil(filteredStories.length / STORIES_PER_PAGE);
-    const paginatedStories = filteredStories.slice(
+    const totalPages = Math.ceil(sortedStories.length / STORIES_PER_PAGE);
+    const paginatedStories = sortedStories.slice(
         (currentPage - 1) * STORIES_PER_PAGE,
         currentPage * STORIES_PER_PAGE
     );
@@ -145,7 +151,7 @@ export default function StoriesPage() {
         "url": canonicalUrl,
         "mainEntity": {
             "@type": "ItemList",
-            "itemListElement": filteredStories.slice(0, 10).map((story, index) => ({
+            "itemListElement": sortedStories.slice(0, 10).map((story, index) => ({
                 "@type": "ListItem",
                 "position": index + 1,
                 "url": `${SITE_URL}/stories/${story.slug || story.id}`,
@@ -314,7 +320,7 @@ export default function StoriesPage() {
                     </div>
 
                     <div className="stories-grid-top mb-12">
-                        {filteredStories.map((story, index) => (
+                        {sortedStories.map((story, index) => (
                             <StoryCard key={story.id} story={story} index={index} />
                         ))}
                     </div>
@@ -495,7 +501,7 @@ export default function StoriesPage() {
                             {(searchQuery || selectedCategory !== 'all' || authorFilter) && (
                                 <div className="results-summary mb-8 flex justify-between items-center">
                                     <p className="text-gray-400">
-                                        {filteredStories.length} টি গল্প পাওয়া গেছে
+                                        {sortedStories.length} টি গল্প পাওয়া গেছে
                                         {selectedCategory !== 'all' && ` "${selectedCategory}" ক্যাটাগরিতে`}
                                         {authorFilter && ` "${authorFilter}" লেখকের`}
                                         {tagFilter && ` "${tagFilter}" ট্যাগে`}
@@ -536,7 +542,7 @@ export default function StoriesPage() {
                                     currentPage={currentPage}
                                     totalPages={totalPages}
                                     onPageChange={setCurrentPage}
-                                    totalItems={filteredStories.length}
+                                    totalItems={sortedStories.length}
                                     itemsPerPage={STORIES_PER_PAGE}
                                     itemName="গল্প"
                                 />

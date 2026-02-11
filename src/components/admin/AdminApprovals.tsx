@@ -23,12 +23,15 @@ const AdminApprovals = () => {
     };
 
     useEffect(() => {
-        void loadPending(true);
+        const initialLoadId = window.setTimeout(() => {
+            void loadPending(true);
+        }, 0);
         const intervalId = window.setInterval(() => {
             void loadPending(false);
         }, 10000);
 
         return () => {
+            window.clearTimeout(initialLoadId);
             window.clearInterval(intervalId);
         };
     }, []);

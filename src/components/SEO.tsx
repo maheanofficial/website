@@ -19,7 +19,7 @@ interface SEOProps {
     ogUrl?: string;
     ogType?: string;
     author?: string;
-    jsonLd?: Record<string, any>;
+    jsonLd?: Record<string, unknown>;
     canonicalUrl?: string;
     noIndex?: boolean;
     noFollow?: boolean;

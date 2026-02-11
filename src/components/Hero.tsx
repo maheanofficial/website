@@ -6,14 +6,15 @@ const Hero = () => {
   const heroRef = useRef<HTMLDivElement>(null);
 
   const roles = ['ভয়েস আর্টিস্ট', 'অডিওবুক ক্রিয়েটর', 'ইউটিউবার', 'অডিও স্টোরিটেলার'];
+  const rolesCount = roles.length;
   const [currentRole, setCurrentRole] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentRole((prev) => (prev + 1) % roles.length);
+      setCurrentRole((prev) => (prev + 1) % rolesCount);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [rolesCount]);
 
   return (
     <section className="hero-section" ref={heroRef}>

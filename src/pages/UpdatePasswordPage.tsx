@@ -45,8 +45,9 @@ const UpdatePasswordPage = () => {
                 navigate('/login');
             }, 2000);
 
-        } catch (err: any) {
-            setError(err.message || 'পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।');
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।';
+            setError(message);
         } finally {
             setIsLoading(false);
         }

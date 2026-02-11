@@ -137,7 +137,7 @@ const SubmitStoryPage = () => {
     const handleGoogleLogin = async () => {
         try {
             await signInWithGoogle();
-        } catch (error) {
+        } catch {
             alert('গুগল দিয়ে লগ ইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
         }
     };
@@ -148,9 +148,10 @@ const SubmitStoryPage = () => {
         try {
             await signInWithEmailOnly(email, password);
             navigate('/admin/dashboard');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
-            alert(`লগইন ব্যর্থ হয়েছে: ${error.message || 'অনুগ্রহ করে আবার চেষ্টা করুন।'}`);
+            const message = error instanceof Error ? error.message : 'অনুগ্রহ করে আবার চেষ্টা করুন।';
+            alert(`লগইন ব্যর্থ হয়েছে: ${message}`);
         } finally {
             setIsLoading(false);
         }

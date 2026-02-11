@@ -176,7 +176,7 @@ const StoryDetailsPage = () => {
 
     // Format content with simplistic formatter matching demo
     const renderFormattedText = (text: string) => {
-        let formattedText = text
+        const formattedText = text
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/~(.*?)~/g, '<span style="opacity: 0.7;">$1</span>')

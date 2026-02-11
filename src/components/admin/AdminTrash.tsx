@@ -14,7 +14,12 @@ const AdminTrash = () => {
     }
 
     useEffect(() => {
-        void loadTrash();
+        const loadId = window.setTimeout(() => {
+            void loadTrash();
+        }, 0);
+        return () => {
+            window.clearTimeout(loadId);
+        };
     }, []);
 
     const handleRestore = async (id: string) => {

@@ -26,7 +26,12 @@ const AdminEpisodes = ({ user }: AdminEpisodesProps) => {
     };
 
     useEffect(() => {
-        void loadStories();
+        const loadId = window.setTimeout(() => {
+            void loadStories();
+        }, 0);
+        return () => {
+            window.clearTimeout(loadId);
+        };
     }, []);
 
     const handleCreate = () => {

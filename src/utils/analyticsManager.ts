@@ -34,7 +34,7 @@ const seedData = (): DailyStat[] => {
         const dayOfWeek = d.getDay();
 
         const growthFactor = 1 + ((365 - i) / 365) * 0.8;
-        let baseVisitors = 80 + Math.random() * 40;
+        const baseVisitors = 80 + Math.random() * 40;
 
         const weekdayMultiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 1.4 :
             dayOfWeek === 2 || dayOfWeek === 3 ? 0.85 : 1.0;

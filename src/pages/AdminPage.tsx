@@ -10,14 +10,16 @@ import DashboardAnalytics from '../components/admin/DashboardAnalytics';
 import AdminApprovals from '../components/admin/AdminApprovals';
 import AdminUsers from '../components/admin/AdminUsers';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
+import type { User } from '../utils/userManager';
 
 
 const AdminPage = () => {
-    const [currentUser, setCurrentUser] = useState<any>(null);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [mobileMenuState, setMobileMenuState] = useState({ open: false, path: '' });
     const [isAuthChecking, setIsAuthChecking] = useState(true);
     const location = useLocation();
     const navigate = useNavigate();
+    const isMobileMenuOpen = mobileMenuState.open && mobileMenuState.path === location.pathname;
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -39,13 +41,21 @@ const AdminPage = () => {
         };
     }, []);
 
-    // Close mobile menu on path changes
-    useEffect(() => {
-        setIsMobileMenuOpen(false);
-    }, [location.pathname]);
+    const closeMobileMenu = () => {
+        setMobileMenuState({ open: false, path: location.pathname });
+    };
+
+    const toggleMobileMenu = () => {
+        setMobileMenuState((prev) =>
+            prev.open && prev.path === location.pathname
+                ? { open: false, path: location.pathname }
+                : { open: true, path: location.pathname }
+        );
+    };
 
     const handleLogout = async () => {
         try {
+            closeMobileMenu();
             await signOut();
             navigate('/login');
         } catch (error) {
@@ -134,15 +144,11 @@ const AdminPage = () => {
         );
     };
 
-    const userMetadata = (currentUser as any)?.user_metadata || {};
     const displayName = currentUser?.displayName
-        || userMetadata.full_name
-        || userMetadata.name
         || currentUser?.email?.split('@')[0]
         || 'User';
     const avatarUrl = currentUser?.photoURL
-        || userMetadata.avatar_url
-        || userMetadata.picture;
+        || '';
     const userInitial = displayName?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
     return (
@@ -150,7 +156,7 @@ const AdminPage = () => {
             {/* Mobile Header Toggle */}
             <button
                 className="admin-mobile-toggle"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                onClick={toggleMobileMenu}
             >
                 {isMobileMenuOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
             </button>
