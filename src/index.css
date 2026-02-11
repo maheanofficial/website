@@ -971,3 +971,385 @@ a:hover {
   color: var(--accent-primary);
   background: rgba(245, 158, 11, 0.1);
 }
+
+/* Mobile polish across public + admin pages */
+@media (max-width: 768px) {
+  html,
+  body,
+  #root,
+  main {
+    overflow-x: hidden;
+  }
+
+  .header {
+    padding: 8px 0;
+  }
+
+  .nav {
+    gap: 8px;
+  }
+
+  .site-logo {
+    height: 56px;
+  }
+
+  .nav-links {
+    top: 92px;
+    max-height: calc(100dvh - 92px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px;
+  }
+
+  .footer {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+  }
+
+  .footer-logo {
+    height: 110px;
+  }
+
+  .footer-content {
+    gap: var(--spacing-md);
+  }
+
+  .stories-main-hero {
+    padding: 42px 0;
+  }
+
+  .hero-title-large {
+    font-size: clamp(1.8rem, 9vw, 2.4rem);
+  }
+
+  .hero-description-text {
+    font-size: 0.98rem;
+    margin-bottom: 24px;
+  }
+
+  .hero-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-bar-wrapper {
+    padding: 14px;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .search-box {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .filter-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .select-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .results-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .author-profile-box {
+    padding: 18px;
+  }
+
+  .author-profile-name {
+    font-size: 1.6rem;
+  }
+
+  .author-profile-bio {
+    font-size: 0.95rem;
+  }
+
+  .story-banner {
+    height: 190px;
+  }
+
+  .story-info-box,
+  .parts-navigation-box,
+  .story-content-container {
+    padding: 14px;
+  }
+
+  .parts-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .parts-toggle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .story-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .story-footer-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .story-footer-nav .nav-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .story-footer-nav .spacer {
+    display: none;
+  }
+
+  .story-footer-nav .completion-msg {
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+  }
+
+  .portal-content-wrapper {
+    padding: 72px 14px 28px;
+    gap: 20px;
+  }
+
+  .portal-logo {
+    height: 130px !important;
+    transform: none !important;
+    margin-bottom: 8px;
+  }
+
+  .portal-hero-center h1 {
+    font-size: 1.6rem;
+  }
+
+  .portal-hero-center p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .login-card-glass {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .login-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .login-header p {
+    font-size: 0.85rem;
+  }
+
+  .admin-mobile-toggle {
+    top: 14px;
+    right: 14px;
+    padding: 9px;
+  }
+
+  .admin-sidebar {
+    width: min(320px, 86vw);
+    padding: 16px;
+  }
+
+  .admin-topbar {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 56px 10px 16px;
+  }
+
+  .breadcrumbs {
+    gap: 8px;
+    font-size: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .crumb-unit {
+    gap: 8px;
+  }
+
+  .admin-content-scroll {
+    padding: 14px;
+    height: auto;
+    min-height: calc(100vh - 56px);
+  }
+
+  .admin-card {
+    padding: 16px;
+  }
+
+  .admin-section-title {
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+
+  .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .approval-actions,
+  .admin-user-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .stories-actions-bar,
+  .episodes-actions-bar,
+  .dashboard-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-filter-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-wrapper {
+    width: 100% !important;
+  }
+
+  .status-dropdown,
+  .create-btn,
+  .create-episode-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .data-table-header {
+    display: none;
+  }
+
+  .data-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px !important;
+    align-items: start;
+  }
+
+  .data-row .col-title,
+  .data-row .col-name,
+  .data-row .col-author {
+    grid-column: 1 / -1;
+  }
+
+  .data-row .col-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start !important;
+  }
+
+  .editor-overlay {
+    padding: 20px 12px;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    width: 100%;
+  }
+
+  .stats-grid-hub,
+  .dashboard-sections-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hub-stat-card {
+    min-height: unset;
+    padding: 16px;
+  }
+
+  .hub-stat-card .stat-value {
+    font-size: 26px;
+  }
+
+  .admin-profile-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --header-space: 96px;
+  }
+
+  .site-logo {
+    height: 50px;
+  }
+
+  .stories-sub-nav {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .sub-nav-item {
+    font-size: 0.82rem;
+  }
+
+  .home-story-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding: 4px;
+  }
+
+  .home-story-tab {
+    white-space: nowrap;
+    padding: 6px 14px;
+  }
+
+  .author-profile-avatar {
+    width: 90px;
+    height: 90px;
+  }
+
+  .footer-logo {
+    height: 86px;
+  }
+
+  .carousel-container {
+    height: 180px;
+  }
+
+  .story-card-image {
+    height: 170px;
+  }
+
+  .story-card-content {
+    padding: 12px;
+  }
+}

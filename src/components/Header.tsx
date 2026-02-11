@@ -5,10 +5,11 @@ import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
 import './Header.css';
 
 export default function Header() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
+    const isMenuOpen = menuState.open && menuState.path === location.pathname;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -22,6 +23,26 @@ export default function Header() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useEffect(() => {
+        if (window.innerWidth > 768) return;
+        document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMenuOpen]);
+
+    const closeMenu = () => {
+        setMenuState({ open: false, path: location.pathname });
+    };
+
+    const toggleMenu = () => {
+        setMenuState((prev) =>
+            prev.open && prev.path === location.pathname
+                ? { open: false, path: location.pathname }
+                : { open: true, path: location.pathname }
+        );
+    };
 
     const isActive = (path: string) => (path === '/' ? location.pathname === '/' : location.pathname.startsWith(path));
 
@@ -56,8 +77,9 @@ export default function Header() {
                     {/* Mobile Menu Toggle */}
                     <button
                         className={`menu-toggle ${isMenuOpen ? 'menu-toggle-open' : ''}`}
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        onClick={toggleMenu}
                         aria-label="Toggle menu"
+                        aria-expanded={isMenuOpen}
                     >
                         <span></span>
                         <span></span>
@@ -71,7 +93,7 @@ export default function Header() {
                                     key={item.name}
                                     to={item.path}
                                     className={`nav-link ${isActive(item.path) ? 'nav-link-active' : ''}`}
-                                    onClick={() => setIsMenuOpen(false)}
+                                    onClick={closeMenu}
                                 >
                                     {item.label}
                                 </Link>
@@ -85,7 +107,7 @@ export default function Header() {
                                 aria-label="Search stories"
                                 onClick={() => {
                                     navigate('/stories');
-                                    setIsMenuOpen(false);
+                                    closeMenu();
                                 }}
                             >
                                 <Search size={18} />
@@ -100,10 +122,10 @@ export default function Header() {
                                 <Moon size={18} />
                             </button>
                             <span className="nav-action-divider" aria-hidden="true" />
-                            <Link to="/admin" className="nav-action-link" onClick={() => setIsMenuOpen(false)}>
+                            <Link to="/admin" className="nav-action-link" onClick={closeMenu}>
                                 লগ ইন
                             </Link>
-                            <Link to="/signup" className="nav-btn-pill" onClick={() => setIsMenuOpen(false)}>
+                            <Link to="/signup" className="nav-btn-pill" onClick={closeMenu}>
                                 সাইন আপ
                             </Link>
                         </div>
