@@ -1,16 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
 
+const pickFirstEnv = (...keys) => {
+    for (const key of keys) {
+        const value = process.env[key];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    return '';
+};
+
 const SUPABASE_URL =
-    process.env.SUPABASE_URL
-    || process.env.VITE_SUPABASE_URL
+    pickFirstEnv(
+        'SUPABASE_URL',
+        'VITE_SUPABASE_URL',
+        'NEXT_PUBLIC_SUPABASE_URL'
+    )
     || 'https://gepywlhveafqosoyitcb.supabase.co';
 
 const SUPABASE_ANON_KEY =
-    process.env.SUPABASE_ANON_KEY
-    || process.env.VITE_SUPABASE_ANON_KEY
+    pickFirstEnv(
+        'SUPABASE_ANON_KEY',
+        'VITE_SUPABASE_ANON_KEY',
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    )
     || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA';
 
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = pickFirstEnv(
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'SUPABASE_SECRET_KEY',
+    'SUPABASE_ADMIN_KEY',
+    'SERVICE_ROLE_KEY'
+);
 
 const DEFAULT_ADMIN_ALLOWLIST = ['maheanpc@gmail.com'];
 
