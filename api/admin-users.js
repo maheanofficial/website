@@ -34,16 +34,25 @@ const SUPABASE_SERVICE_ROLE_KEY = pickFirstEnv(
     'SERVICE_ROLE_KEY'
 );
 
-const DEFAULT_ADMIN_ALLOWLIST = ['maheanpc@gmail.com'];
+const PRIMARY_ADMIN_EMAIL = (
+    process.env.PRIMARY_ADMIN_EMAIL
+    || process.env.VITE_PRIMARY_ADMIN_EMAIL
+    || 'mahean4bd@gmail.com'
+).trim().toLowerCase();
 
-const ADMIN_EMAIL_ALLOWLIST = (
-    process.env.ADMIN_EMAIL_ALLOWLIST
-    || process.env.VITE_ADMIN_EMAIL_ALLOWLIST
-    || DEFAULT_ADMIN_ALLOWLIST.join(',')
-)
+const parseEmailAllowlist = (value) => (value || '')
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+
+const configuredAllowlist = parseEmailAllowlist(
+    process.env.ADMIN_EMAIL_ALLOWLIST || process.env.VITE_ADMIN_EMAIL_ALLOWLIST
+);
+
+const ADMIN_EMAIL_ALLOWLIST = Array.from(new Set([
+    PRIMARY_ADMIN_EMAIL,
+    ...configuredAllowlist
+]));
 
 const json = (res, statusCode, payload) => {
     res.statusCode = statusCode;
@@ -78,17 +87,24 @@ const toSafeRole = (value) => (value === 'admin' ? 'admin' : 'moderator');
 
 const pickString = (value) => (typeof value === 'string' ? value : undefined);
 
-const roleFromAppMetadata = (user) => {
-    const appMetadata = user?.app_metadata;
-    if (!appMetadata || typeof appMetadata !== 'object' || Array.isArray(appMetadata)) {
+const roleFromMetadataBucket = (metadata) => {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
         return null;
     }
-    return toSafeRole(pickString(appMetadata.admin_panel_role));
+    const role = pickString(metadata.admin_panel_role) || pickString(metadata.role);
+    if (role === 'admin' || role === 'moderator') {
+        return toSafeRole(role);
+    }
+    return null;
+};
+
+const roleFromUser = (user) => {
+    return roleFromMetadataBucket(user?.app_metadata) || roleFromMetadataBucket(user?.user_metadata);
 };
 
 const isRequesterAdmin = (user) => {
     if (!user) return false;
-    const role = roleFromAppMetadata(user);
+    const role = roleFromUser(user);
     if (role === 'admin') {
         return true;
     }
@@ -124,11 +140,23 @@ const normalizeProviders = (user) => {
         .filter(Boolean);
 };
 
+const resolveManagedRole = (user) => {
+    const metadataRole = roleFromUser(user);
+    if (metadataRole) return metadataRole;
+
+    const email = (pickString(user?.email) || '').toLowerCase();
+    if (email && ADMIN_EMAIL_ALLOWLIST.includes(email)) {
+        return 'admin';
+    }
+
+    return 'moderator';
+};
+
 const toManagedUser = (user) => ({
     id: user.id,
     email: user.email || '',
     displayName: normalizeDisplayName(user),
-    role: roleFromAppMetadata(user) || 'moderator',
+    role: resolveManagedRole(user),
     createdAt: user.created_at || new Date().toISOString(),
     providers: normalizeProviders(user)
 });
@@ -211,7 +239,8 @@ export default async function handler(req, res) {
         const email = pickString(body.email)?.trim().toLowerCase() || '';
         const password = pickString(body.password) || '';
         const displayName = pickString(body.displayName)?.trim() || undefined;
-        const role = toSafeRole(pickString(body.role));
+        const requestedRole = toSafeRole(pickString(body.role));
+        const role = email === PRIMARY_ADMIN_EMAIL ? 'admin' : requestedRole;
 
         if (!emailLooksValid(email)) {
             json(res, 400, { error: 'A valid email is required.' });
@@ -275,6 +304,10 @@ export default async function handler(req, res) {
     const targetEmail = (targetUser.email || '').toLowerCase();
     if (targetEmail === 'admin@local') {
         json(res, 400, { error: 'System admin cannot be deleted.' });
+        return;
+    }
+    if (targetEmail === PRIMARY_ADMIN_EMAIL) {
+        json(res, 400, { error: 'Primary admin account cannot be deleted.' });
         return;
     }
 

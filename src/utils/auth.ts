@@ -31,14 +31,23 @@ type EmailAuthResult = {
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
 const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
 const DEFAULT_SELF_SERVICE_ROLE: LocalUser['role'] = 'moderator';
-const DEFAULT_ADMIN_ALLOWLIST = ['maheanpc@gmail.com'];
-const ADMIN_EMAIL_ALLOWLIST = (
-    (import.meta.env.VITE_ADMIN_EMAIL_ALLOWLIST as string | undefined)
-    || DEFAULT_ADMIN_ALLOWLIST.join(',')
+const PRIMARY_ADMIN_EMAIL = (
+    (import.meta.env.VITE_PRIMARY_ADMIN_EMAIL as string | undefined)
+    || 'mahean4bd@gmail.com'
 )
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+    .trim()
+    .toLowerCase();
+
+const parseEmailAllowlist = (value?: string) =>
+    (value || '')
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
+
+const ADMIN_EMAIL_ALLOWLIST = Array.from(new Set([
+    PRIMARY_ADMIN_EMAIL,
+    ...parseEmailAllowlist(import.meta.env.VITE_ADMIN_EMAIL_ALLOWLIST as string | undefined)
+]));
 
 const getStoredOAuthProvider = () => {
     if (typeof window === 'undefined') return undefined;
@@ -95,13 +104,25 @@ const pickMetadataString = (value: unknown) => (typeof value === 'string' ? valu
 
 const toRole = (value?: string): LocalUser['role'] => (value === 'admin' ? 'admin' : 'moderator');
 
+const roleFromMetadata = (metadata: unknown): LocalUser['role'] | null => {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+        return null;
+    }
+
+    const roleValue = pickMetadataString((metadata as Record<string, unknown>).admin_panel_role)
+        || pickMetadataString((metadata as Record<string, unknown>).role);
+
+    if (roleValue === 'admin' || roleValue === 'moderator') {
+        return toRole(roleValue);
+    }
+
+    return null;
+};
+
 const resolveSupabaseRole = (user: SupabaseUser, storedUser: LocalUser | null, email?: string): LocalUser['role'] => {
-    const appMetadata = user.app_metadata;
-    if (appMetadata && typeof appMetadata === 'object' && !Array.isArray(appMetadata)) {
-        const role = pickMetadataString((appMetadata as Record<string, unknown>).admin_panel_role);
-        if (role === 'admin' || role === 'moderator') {
-            return toRole(role);
-        }
+    const metadataRole = roleFromMetadata(user.app_metadata) || roleFromMetadata(user.user_metadata);
+    if (metadataRole) {
+        return metadataRole;
     }
 
     if (email && ADMIN_EMAIL_ALLOWLIST.includes(email.toLowerCase())) {

@@ -14,6 +14,13 @@ interface AdminUsersProps {
     currentUser?: User | null;
 }
 
+const PRIMARY_ADMIN_EMAIL = (
+    (import.meta.env.VITE_PRIMARY_ADMIN_EMAIL as string | undefined)
+    || 'mahean4bd@gmail.com'
+)
+    .trim()
+    .toLowerCase();
+
 const AdminUsers = ({ currentUser }: AdminUsersProps) => {
     const [users, setUsers] = useState<ManagedUser[]>([]);
     const [email, setEmail] = useState('');
@@ -115,29 +122,42 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
                     <h3 className="card-title">Existing Users ({users.length})</h3>
                     <div className="story-list-scroll">
                         {isLoading && <p>Loading users...</p>}
-                        {users.map(user => (
-                            <div key={user.id} className="list-item">
-                                <div className="list-item-info">
-                                    <span className="item-name">{user.displayName || user.email}</span>
-                                    <span className="item-meta">{user.email}</span>
+                        {users.map(user => {
+                            const normalizedEmail = user.email.toLowerCase();
+                            const isSelfAccount = user.id === currentUser?.id;
+                            const isSystemAdmin = normalizedEmail === 'admin@local';
+                            const isPrimaryAdmin = normalizedEmail === PRIMARY_ADMIN_EMAIL;
+                            const deleteDisabled = isSelfAccount || isSystemAdmin || isPrimaryAdmin;
+                            const deleteTitle = isPrimaryAdmin
+                                ? 'Primary admin cannot be deleted'
+                                : (isSystemAdmin
+                                    ? 'System admin cannot be deleted'
+                                    : (isSelfAccount
+                                        ? 'You cannot delete your own account'
+                                        : 'Delete user'));
+
+                            return (
+                                <div key={user.id} className="list-item">
+                                    <div className="list-item-info">
+                                        <span className="item-name">{user.displayName || user.email}</span>
+                                        <span className="item-meta">{user.email}</span>
+                                    </div>
+                                    <div className="admin-user-actions">
+                                        <span className="admin-user-role">{user.role}</span>
+                                        <button
+                                            type="button"
+                                            className="admin-user-delete-btn"
+                                            onClick={() => handleDelete(user)}
+                                            disabled={deleteDisabled}
+                                            title={deleteTitle}
+                                        >
+                                            <Trash2 size={14} />
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="admin-user-actions">
-                                    <span className="admin-user-role">{user.role}</span>
-                                    <button
-                                        type="button"
-                                        className="admin-user-delete-btn"
-                                        onClick={() => handleDelete(user)}
-                                        disabled={user.id === currentUser?.id || user.email.toLowerCase() === 'admin@local'}
-                                        title={user.email.toLowerCase() === 'admin@local'
-                                            ? 'System admin cannot be deleted'
-                                            : (user.id === currentUser?.id ? 'You cannot delete your own account' : 'Delete user')}
-                                    >
-                                        <Trash2 size={14} />
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {!isLoading && !users.length && <p>No users found.</p>}
                     </div>
                 </div>
