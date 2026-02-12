@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X, Globe, Lock } from 'lucide-react';
 import './AdminStories.css';
 import { getAllStories, saveStory, deleteStory, type Story, type StoryPart } from '../../utils/storyManager';
-import { getCategories } from '../../utils/categoryManager';
+import { getCategories, saveCategory, type Category } from '../../utils/categoryManager';
 import { getAllAuthors, saveAuthor, type Author } from '../../utils/authorManager';
 import ImageUploader from './ImageUploader';
 import type { User } from '../../utils/userManager';
@@ -12,6 +12,15 @@ interface AdminStoriesProps {
     user?: User | null;
     initialViewMode?: 'list' | 'create' | 'edit';
 }
+
+const normalizeText = (value: string) => value.trim();
+
+const hasCaseInsensitiveMatch = (values: string[], target: string) =>
+    values.some((entry) => entry.toLowerCase() === target.toLowerCase());
+
+const dedupeAndSort = (values: string[]) => Array.from(
+    new Set(values.map(normalizeText).filter(Boolean))
+).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
 const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => {
     const [stories, setStories] = useState<Story[]>([]);
@@ -34,6 +43,10 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [description, setDescription] = useState(''); // Maps to excerpt
     const [status, setStatus] = useState<Story['status']>(defaultStatus);
     const [categories, setCategories] = useState<string[]>([]);
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
+    const [selectedTagOption, setSelectedTagOption] = useState('');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newTagName, setNewTagName] = useState('');
     const [authors, setAuthors] = useState<Author[]>([]);
     const [authorMode, setAuthorMode] = useState<'existing' | 'new'>('existing');
     const [selectedAuthorId, setSelectedAuthorId] = useState('');
@@ -45,22 +58,33 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
     const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
-    async function loadData() {
+    const loadData = useCallback(async () => {
         const [allStories, categoriesData, authorData] = await Promise.all([
             getAllStories(),
             getCategories(),
             getAllAuthors()
         ]);
+        const categoryNames = dedupeAndSort([
+            ...categoriesData.map((entry) => entry.name),
+            ...allStories.map((story) => story.category || story.categoryId || '')
+        ]);
+        const tagNames = dedupeAndSort(
+            allStories.flatMap((story) => story.tags || [])
+        );
         setStories(allStories);
-        setCategories(categoriesData.map(c => c.name));
+        setCategories(categoryNames);
+        setAvailableTags(tagNames);
         setAuthors(authorData);
-    }
+    }, []);
 
     const resetForm = useCallback(() => {
         setTitle('');
         setSlug('');
         setCategory('');
         setTags([]);
+        setSelectedTagOption('');
+        setNewCategoryName('');
+        setNewTagName('');
         setDescription('');
         setStatus(defaultStatus);
         const hasAuthors = authors.length > 0;
@@ -86,7 +110,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
     useEffect(() => {
         void loadData();
-    }, []);
+    }, [loadData]);
 
     useEffect(() => {
         if (viewMode !== 'create' || editingId) return;
@@ -312,6 +336,69 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
     };
 
+    const handleCreateCategory = async () => {
+        const trimmed = normalizeText(newCategoryName);
+        if (!trimmed) return;
+
+        const existing = categories.find((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+        if (existing) {
+            setCategory(existing);
+            setNewCategoryName('');
+            return;
+        }
+
+        const nextId = `cat-${Date.now()}`;
+        const payload: Category = {
+            id: nextId,
+            name: trimmed,
+            slug: slugify(trimmed) || nextId
+        };
+
+        await saveCategory(payload);
+        setCategories((prev) => dedupeAndSort([...prev, trimmed]));
+        setCategory(trimmed);
+        setNewCategoryName('');
+    };
+
+    const handleCategoryInputKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        await handleCreateCategory();
+    };
+
+    const addTagToSelection = (rawTag: string) => {
+        const trimmed = normalizeText(rawTag);
+        if (!trimmed) return;
+
+        setTags((prev) => (hasCaseInsensitiveMatch(prev, trimmed) ? prev : [...prev, trimmed]));
+        setAvailableTags((prev) => (hasCaseInsensitiveMatch(prev, trimmed) ? prev : dedupeAndSort([...prev, trimmed])));
+    };
+
+    const handleAddTag = () => {
+        addTagToSelection(newTagName);
+        setNewTagName('');
+    };
+
+    const handleTagInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        handleAddTag();
+    };
+
+    const handleTagSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const selected = event.target.value;
+        if (!selected) {
+            setSelectedTagOption('');
+            return;
+        }
+        addTagToSelection(selected);
+        setSelectedTagOption('');
+    };
+
+    const removeTagFromSelection = (tag: string) => {
+        setTags((prev) => prev.filter((entry) => entry !== tag));
+    };
+
     const addPart = () => {
         setParts(prev => {
             const nextIndex = prev.length + 1;
@@ -336,6 +423,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setSlug(story.slug || '');
         setCategory(story.category || '');
         setTags(story.tags || []);
+        setSelectedTagOption('');
+        setNewTagName('');
+        setNewCategoryName('');
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || '');
         setParts(story.parts || [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
@@ -362,6 +452,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const nextStatus: Story['status'] = isAdmin
             ? (status || existingStory?.status || 'published')
             : 'pending';
+        const normalizedCategory = normalizeText(category);
+        const normalizedTags = dedupeAndSort(tags);
         let authorName = existingStory?.author || user?.displayName || 'Admin';
         let authorId = existingStory?.authorId || user?.id || 'admin';
 
@@ -395,9 +487,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             id: editingId || Date.now().toString(),
             title,
             slug,
-            category,
-            categoryId: category, // Using name as ID for now
-            tags,
+            category: normalizedCategory,
+            categoryId: normalizedCategory, // Using name as ID for now
+            tags: normalizedTags,
             cover_image: coverImage,
             parts,
             status: nextStatus,
@@ -631,20 +723,81 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                         onChange={e => setCategory(e.target.value)}
                                         className="form-select-flat"
                                     >
-                                        <option value="">Select categories</option>
+                                        <option value="">Select category</option>
                                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                     <ChevronDown className="select-arrow" size={16} />
+                                </div>
+                                <div className="inline-create-row">
+                                    <input
+                                        type="text"
+                                        value={newCategoryName}
+                                        onChange={(event) => setNewCategoryName(event.target.value)}
+                                        onKeyDown={(event) => void handleCategoryInputKeyDown(event)}
+                                        className="form-input-flat compact-input"
+                                        placeholder="Type a new category"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="inline-add-btn"
+                                        onClick={() => void handleCreateCategory()}
+                                        disabled={!newCategoryName.trim()}
+                                    >
+                                        <Plus size={14} />
+                                        Add
+                                    </button>
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label-flat">Tags</label>
                                 <div className="relative custom-select-wrapper">
-                                    <select className="form-select-flat">
-                                        <option value="">Select tags</option>
+                                    <select
+                                        className="form-select-flat"
+                                        value={selectedTagOption}
+                                        onChange={handleTagSelect}
+                                    >
+                                        <option value="">Select existing tags</option>
+                                        {availableTags.map((tag) => (
+                                            <option key={tag} value={tag}>{tag}</option>
+                                        ))}
                                     </select>
                                     <ChevronDown className="select-arrow" size={16} />
                                 </div>
+                                <div className="inline-create-row">
+                                    <input
+                                        type="text"
+                                        value={newTagName}
+                                        onChange={(event) => setNewTagName(event.target.value)}
+                                        onKeyDown={handleTagInputKeyDown}
+                                        className="form-input-flat compact-input"
+                                        placeholder="Type a new tag"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="inline-add-btn"
+                                        onClick={handleAddTag}
+                                        disabled={!newTagName.trim()}
+                                    >
+                                        <Plus size={14} />
+                                        Add
+                                    </button>
+                                </div>
+                                {tags.length > 0 && (
+                                    <div className="selected-tags-wrap">
+                                        {tags.map((tag) => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                className="selected-tag-chip"
+                                                onClick={() => removeTagFromSelection(tag)}
+                                                title="Remove tag"
+                                            >
+                                                {tag}
+                                                <X size={12} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

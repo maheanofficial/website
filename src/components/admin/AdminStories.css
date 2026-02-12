@@ -396,6 +396,72 @@
     color: var(--admin-input-placeholder);
 }
 
+.inline-create-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.compact-input {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 14px;
+}
+
+.inline-add-btn {
+    background: var(--admin-text);
+    color: var(--admin-bg);
+    border: 1px solid var(--admin-text);
+    border-radius: 8px;
+    min-width: 94px;
+    height: 42px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.inline-add-btn:hover {
+    opacity: 0.92;
+}
+
+.inline-add-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.selected-tags-wrap {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-tag-chip {
+    border: 1px solid var(--admin-input-border);
+    background: var(--admin-input-bg);
+    color: var(--admin-input-text);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.selected-tag-chip:hover {
+    border-color: var(--admin-text);
+    color: var(--admin-text);
+}
+
 /* Thumbnail Area */
 .thumbnail-uploader-container {
     background: var(--admin-input-bg);
@@ -521,4 +587,15 @@
     width: 100%;
     margin: 40px 0;
     display: block;
+}
+
+@media (max-width: 768px) {
+    .inline-create-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inline-add-btn {
+        width: 100%;
+    }
 }
