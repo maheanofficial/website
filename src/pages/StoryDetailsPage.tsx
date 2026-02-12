@@ -371,7 +371,7 @@ const StoryDetailsPage = () => {
                     <AudioPlayer
                         src="" // Empty src triggers TTS mode if text is provided
                         text={currentPart.content}
-                        title={`${story.title} - Part ${currentPartNumber}`}
+                        title={`${story.title} - পর্ব ${toBanglaNumber(currentPartNumber)}`}
                         cover={story.cover_image || story.image}
                     />
                 </div>

@@ -1,27 +1,21 @@
-/**
- * Convert numbers to Bangla numerals when enabled.
- * @param num - Number to convert
- * @returns Formatted numeral string
+﻿/**
+ * Convert any Arabic numerals (0-9) into Bangla numerals.
  */
 export const toBanglaNumber = (num: number | string): string => {
-    const useBanglaDigits = false;
     const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     const numString = num.toString();
 
-    if (!useBanglaDigits) {
-        return numString;
-    }
-
-    return numString.split('').map(char => {
-        const digit = parseInt(char);
-        return isNaN(digit) ? char : banglaDigits[digit];
-    }).join('');
+    return numString
+        .split('')
+        .map((char) => {
+            const digit = Number.parseInt(char, 10);
+            return Number.isNaN(digit) ? char : banglaDigits[digit];
+        })
+        .join('');
 };
 
 /**
  * Format number with Bangla suffix (K, M, etc.)
- * @param num - Number to format
- * @returns Formatted Bangla number with suffix
  */
 export const formatBanglaCount = (num: number): string => {
     if (num >= 10000000) {
