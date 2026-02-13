@@ -287,9 +287,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         published: '\u09aa\u09be\u09ac\u09b2\u09bf\u0995',
         pending: '\u09aa\u09c7\u09a8\u09cd\u09a1\u09bf\u0982',
         rejected: '\u09b0\u09bf\u099c\u09c7\u0995\u09cd\u099f\u09c7\u09a1',
-        draft: '\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f',
-        completed: '\u09b8\u09ae\u09cd\u09aa\u09a8\u09cd\u09a8',
-        ongoing: '\u099a\u09b2\u09ae\u09be\u09a8'
+        draft: '\u09aa\u09cd\u09b0\u09be\u0987\u09ad\u09c7\u099f'
     };
 
     const getStatusLabel = (value?: Story['status']) => {
@@ -307,7 +305,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
     const isPublicStatus = (value?: Story['status']) => {
         const statusValue = value ?? 'published';
-        return statusValue === 'published' || statusValue === 'completed' || statusValue === 'ongoing';
+        return statusValue === 'published';
     };
 
     const handleGenerateCover = async () => {

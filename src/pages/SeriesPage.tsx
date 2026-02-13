@@ -13,7 +13,6 @@ const SeriesPage = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('latest');
-    const [statusFilter, setStatusFilter] = useState('all');
 
     useEffect(() => {
         let isMounted = true;
@@ -30,14 +29,15 @@ const SeriesPage = () => {
     }, []);
 
     const filteredStories = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return displayStories;
+
         return displayStories.filter((story) => {
-            const matchesSearch =
-                story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                story.author?.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || story.status === statusFilter;
-            return matchesSearch && matchesStatus;
+            const title = story.title.toLowerCase();
+            const author = (story.author || '').toLowerCase();
+            return title.includes(query) || author.includes(query);
         });
-    }, [displayStories, searchQuery, statusFilter]);
+    }, [displayStories, searchQuery]);
 
     const sortedStories = useMemo(() => {
         const list = [...filteredStories];
@@ -53,7 +53,7 @@ const SeriesPage = () => {
         <div className="series-page page-offset">
             <SEO
                 title="সিরিজ - ধারাবাহিক বাংলা গল্প | Mahean Ahmed"
-                description="চলমান ও সমাপ্ত ধারাবাহিক বাংলা গল্পের সম্পূর্ণ সংগ্রহ দেখুন।"
+                description="ধারাবাহিক বাংলা গল্পের সম্পূর্ণ সংগ্রহ দেখুন।"
                 keywords="Bangla Series, Bengali Episodes, Serialized Stories"
                 canonicalUrl="/series"
             />
@@ -80,12 +80,6 @@ const SeriesPage = () => {
                         />
                     </div>
                     <div className="series-filters">
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                            <option value="all">সব স্ট্যাটাস</option>
-                            <option value="ongoing">চলমান</option>
-                            <option value="completed">সমাপ্ত</option>
-                            <option value="published">প্রকাশিত</option>
-                        </select>
                         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                             <option value="latest">সর্বশেষ</option>
                             <option value="popular">জনপ্রিয়</option>

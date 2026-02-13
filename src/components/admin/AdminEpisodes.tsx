@@ -48,7 +48,7 @@ const AdminEpisodes = ({ user }: AdminEpisodesProps) => {
     };
 
     const resolveVisibilityStatus = (status?: Story['status']) => {
-        if (!status || status === 'published' || status === 'completed' || status === 'ongoing') {
+        if (!status || status === 'published') {
             return 'published';
         }
         return status;

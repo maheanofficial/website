@@ -1,16 +1,12 @@
 .story-card {
     background: #000000;
     border: 1px solid #1f2937;
-    /* Dark Grey Border */
     border-radius: 12px;
     position: relative;
     display: flex;
     flex-direction: column;
     overflow: visible;
-    /* Allow status badge to float out */
     transition: transform 0.2s, border-color 0.2s;
-    margin-top: 15px;
-    /* Space for the floating badge */
 }
 
 .story-card:hover {
@@ -85,33 +81,6 @@
 }
 
 /* Floating Status Badge */
-.status-badge-wrapper {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-}
-
-.status-badge {
-    font-size: 10px;
-    font-weight: 700;
-    color: #fff;
-    padding: 2px 10px;
-    border-radius: 12px;
-    background: #22c55e;
-    /* Default Green */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.status-badge.completed {
-    background: #22c55e;
-}
-
-.status-badge.ongoing {
-    background: #FF5C00;
-}
-
 /* Poster Area (Typographic Cover) */
 .story-card-poster {
     background: #050505;

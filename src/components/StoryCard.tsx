@@ -9,7 +9,6 @@ interface StoryCardProps {
 }
 
 export default function StoryCard({ story, index = 0 }: StoryCardProps) {
-    const isCompleted = story.status === 'completed' || (story.parts && story.parts.length > 10);
     // Demo tags matching the screenshot for visual fidelity
     const mockTags = ['ডার্ক রোমান্স', 'রহস্য', 'থ্রিলার', '#প্রতিশোধ'];
     const fallbackTags = story.category ? [story.category] : mockTags;
@@ -23,14 +22,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
             className="story-card fade-in-up"
             style={{ animationDelay: `${index * 0.1}s` }}
         >
-            {/* 1. Floating Status Badge (Centered Top) */}
-            <div className="status-badge-wrapper">
-                <span className={`status-badge ${isCompleted ? 'completed' : 'ongoing'}`}>
-                    {isCompleted ? 'সমাপ্ত' : 'চলমান'}
-                </span>
-            </div>
-
-            {/* 2. Typographic Cover Area (The "Black Box") */}
+            {/* Typographic Cover Area (The "Black Box") */}
             <Link to={`/stories/${story.slug || story.id}`} className="story-card-cover-link">
                 <div className="story-card-poster">
                     {/* GolpoKotha Badge (Top Right of Poster) */}
@@ -46,7 +38,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                 </div>
             </Link>
 
-            {/* 3. Helper Content Area */}
+            {/* Helper Content Area */}
             <div className="story-card-content">
                 {/* Title (Repeated) */}
                 <Link to={`/stories/${story.slug || story.id}`} className="story-card-title-link">

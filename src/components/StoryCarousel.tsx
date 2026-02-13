@@ -54,8 +54,8 @@ export default function StoryCarousel({ stories }: StoryCarouselProps) {
 
                     <div className="carousel-info" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
                         <div className="carousel-category" style={{ marginBottom: '16px' }}>
-                            <span className="carousel-badge" style={{ background: '#22c55e', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
-                                {currentStory.status === 'completed' ? 'সমাপ্ত' : 'চলমান'}
+                            <span className="carousel-badge" style={{ background: '#FF5C00', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                                {currentStory.category || 'নির্বাচিত গল্প'}
                             </span>
                         </div>
 

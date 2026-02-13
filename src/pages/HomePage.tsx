@@ -12,7 +12,6 @@ import { getStories, type Story } from '../utils/storyManager';
 import './HomePage.css';
 
 const HomePage = () => {
-    const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'ongoing'>('all');
     const [stories, setStories] = useState<Story[]>([]);
 
     useEffect(() => {
@@ -71,48 +70,18 @@ const HomePage = () => {
                 <StoryCarousel stories={stories.filter(s => s.views > 50).slice(0, 5)} />
             </div>
 
-            {/* Stories Section with Tabs */}
+            {/* Latest Stories Section */}
             <div className="container py-8">
-                {/* Tab Menu Header */}
                 <div className="home-stories-header">
-                    <div className="home-story-tabs">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('all')}
-                            className={`home-story-tab ${activeTab === 'all' ? 'is-active is-active--all' : ''}`}
-                        >
-                            সব
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('completed')}
-                            className={`home-story-tab ${activeTab === 'completed' ? 'is-active is-active--completed' : ''}`}
-                        >
-                            সমাপ্ত
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('ongoing')}
-                            className={`home-story-tab ${activeTab === 'ongoing' ? 'is-active is-active--ongoing' : ''}`}
-                        >
-                            চলমান
-                        </button>
-                    </div>
+                    <h3 className="home-stories-title">সর্বশেষ গল্প</h3>
 
                     <Link to="/stories" className="home-stories-more">
                         আরও দেখুন <ChevronRight size={16} />
                     </Link>
                 </div>
 
-                {/* Filtered Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {stories
-                        .filter(story => {
-                            if (activeTab === 'all') return true;
-                            // Check status or default to demo logic if status missing
-                            const isCompleted = story.status === 'completed' || (story.parts && story.parts.length > 10);
-                            return activeTab === 'completed' ? isCompleted : !isCompleted;
-                        })
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .slice(0, 8)
                         .map((story, index) => (

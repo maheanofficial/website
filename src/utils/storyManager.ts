@@ -25,7 +25,7 @@ export interface Story {
     comments?: number;
     is_featured?: boolean;
     readTime?: string;
-    status?: 'published' | 'pending' | 'rejected' | 'completed' | 'ongoing' | 'draft';
+    status?: 'published' | 'pending' | 'rejected' | 'draft';
     submittedBy?: string; // userId of the writer
 }
 
@@ -80,10 +80,12 @@ const normalizeStoryStatus = (value?: string | null): Story['status'] | undefine
         case 'published':
         case 'pending':
         case 'rejected':
-        case 'completed':
-        case 'ongoing':
         case 'draft':
             return normalized;
+        case 'completed':
+        case 'ongoing':
+            // Legacy public statuses; treat as published so they don't surface in the UI.
+            return 'published';
         default:
             return undefined;
     }
@@ -354,7 +356,7 @@ const getRawStories = (): Story[] => {
                 image: 'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a',
                 tags: ['রহস্য', 'মনস্তাত্ত্বিক', 'থ্রিলার'],
                 is_featured: true,
-                status: 'completed'
+                status: 'published'
             },
             {
                 id: '3',
@@ -369,7 +371,7 @@ const getRawStories = (): Story[] => {
                 category: 'অ্যাডভেঞ্চার',
                 image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
                 tags: ['অ্যাডভেঞ্চার', 'রোমাঞ্চ', 'ভ্রমণ'],
-                status: 'ongoing'
+                status: 'published'
             },
             {
                 id: '4',
@@ -444,7 +446,7 @@ const getRawStories = (): Story[] => {
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
                 tags: ['কবিতা', 'রোমান্টিক', 'বিদ্রোহ'],
-                status: 'completed'
+                status: 'published'
             },
             {
                 id: '9',
@@ -459,7 +461,7 @@ const getRawStories = (): Story[] => {
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
                 tags: ['?????????', '?????', '???????'],
-                status: 'completed'
+                status: 'published'
             },
             {
                 id: '10',
@@ -503,11 +505,12 @@ export const getStories = async (): Promise<Story[]> => {
         const stories = (data || []).map(mapRowToStory);
         const mergedStories = sortStoriesByDate(mergeStories(stories, localStories));
         storeStories(mergedStories);
-        // Show public statuses (published, completed, ongoing); default to published for legacy data
-        return mergedStories.filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+        // Show only published stories; legacy public statuses are normalized to published.
+        return mergedStories.filter((story) => (story.status ?? 'published') === 'published');
     } catch (error) {
         console.warn('Supabase stories fetch failed', error);
-        return sortStoriesByDate(localStories).filter(s => !s.status || ['published', 'completed', 'ongoing'].includes(s.status));
+        return sortStoriesByDate(localStories.map(normalizeStory))
+            .filter((story) => (story.status ?? 'published') === 'published');
     }
 };
 

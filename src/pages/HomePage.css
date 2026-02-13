@@ -7,45 +7,12 @@
     margin-bottom: 32px;
 }
 
-.home-story-tabs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(31, 41, 55, 0.5);
-    padding: 6px;
-    border-radius: 999px;
-    border: 1px solid #374151;
-}
-
-.home-story-tab {
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
-    padding: 6px 18px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.home-story-tab:hover {
+.home-stories-title {
+    font-size: 22px;
+    font-weight: 800;
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.home-story-tab.is-active {
-    color: #ffffff;
-    box-shadow: var(--shadow-sm);
-}
-
-.home-story-tab.is-active--all,
-.home-story-tab.is-active--ongoing {
-    background: #f59e0b;
-}
-
-.home-story-tab.is-active--completed {
-    background: #22c55e;
+    letter-spacing: 0.2px;
+    margin: 0;
 }
 
 .home-stories-more {
