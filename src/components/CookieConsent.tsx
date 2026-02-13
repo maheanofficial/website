@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import './CookieConsent.css';
 
 const CONSENT_STORAGE_KEY = 'mahean_cookie_notice_ack_v1';
 
-const CookieConsent = () => {
-    const [visible, setVisible] = useState(false);
+const getInitialVisibility = () => {
+    if (typeof window === 'undefined') return false;
+    try {
+        return !localStorage.getItem(CONSENT_STORAGE_KEY);
+    } catch {
+        return true;
+    }
+};
 
-    useEffect(() => {
-        try {
-            const hasAcknowledged = localStorage.getItem(CONSENT_STORAGE_KEY);
-            setVisible(!hasAcknowledged);
-        } catch {
-            setVisible(true);
-        }
-    }, []);
+const CookieConsent = () => {
+    const [visible, setVisible] = useState(getInitialVisibility);
 
     const acknowledge = () => {
         try {
