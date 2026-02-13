@@ -70,20 +70,24 @@ const HomePage = () => {
                 <StoryCarousel stories={stories.filter(s => s.views > 50).slice(0, 5)} />
             </div>
 
-            {/* Latest Stories Section */}
+            {/* Most Viewed Stories Section */}
             <div className="container py-8">
                 <div className="home-stories-header">
-                    <h3 className="home-stories-title">সর্বশেষ গল্প</h3>
+                    <h3 className="home-stories-title">সবচেয়ে বেশি দেখা গল্প</h3>
 
                     <Link to="/stories" className="home-stories-more">
                         আরও দেখুন <ChevronRight size={16} />
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {stories
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .slice(0, 8)
+                        .sort((a, b) => {
+                            const viewsDiff = (b.views || 0) - (a.views || 0);
+                            if (viewsDiff !== 0) return viewsDiff;
+                            return new Date(b.date).getTime() - new Date(a.date).getTime();
+                        })
+                        .slice(0, 12)
                         .map((story, index) => (
                             <StoryCard key={story.id} story={story} index={index} />
                         ))}
