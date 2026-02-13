@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import AdSenseScript from './components/AdSenseScript'
+import CookieConsent from './components/CookieConsent'
 import ErrorBoundary from './components/ErrorBoundary'
 import { trackVisit } from './utils/analyticsManager'
 import { getStoredTheme, initTheme } from './utils/theme'
@@ -18,6 +20,7 @@ import SignupPage from './pages/SignupPage'
 import AdminPage from './pages/AdminPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
+import DisclaimerPage from './pages/DisclaimerPage'
 import AboutPage from './pages/AboutPage'
 import LinksPage from './pages/LinksPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -26,6 +29,7 @@ import SeriesPage from './pages/SeriesPage'
 import AuthorsPage from './pages/AuthorsPage'
 import CategoriesPage from './pages/CategoriesPage'
 import TagsPage from './pages/TagsPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 import ScrollToTop from './components/ScrollToTop'
 import './index.css'
@@ -36,14 +40,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isAdminRoute = location.pathname.startsWith('/admin')
     || location.pathname.startsWith('/dashboard')
     || location.pathname.startsWith('/author/dashboard');
+  const isAuthRoute = location.pathname === '/login'
+    || location.pathname === '/signup'
+    || location.pathname === '/forgot-password'
+    || location.pathname === '/update-password';
 
   return (
     <>
+      {!isAdminRoute && !isAuthRoute && <AdSenseScript />}
       {!isAdminRoute && <Header />}
       <main>
         {children}
       </main>
       {!isAdminRoute && <Footer />}
+      {!isAdminRoute && !isAuthRoute && <CookieConsent />}
     </>
   );
 };
@@ -83,8 +93,10 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/disclaimer" element={<DisclaimerPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/links" element={<LinksPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
       </Router>

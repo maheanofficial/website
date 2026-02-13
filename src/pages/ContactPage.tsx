@@ -16,7 +16,7 @@ const ContactPage = () => {
                     "mainEntity": {
                         "@type": "Person",
                         "name": "Mahean Ahmed",
-                        "email": "contact@mahean.com",
+                        "email": "maheanofficial@gmail.com",
                         "url": "https://mahean.com"
                     }
                 }}

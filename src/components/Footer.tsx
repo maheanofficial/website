@@ -43,6 +43,8 @@ export default function Footer() {
                         <div className="footer-links">
                             <Link to="/privacy" className="footer-link">গোপনীয়তা নীতি</Link>
                             <Link to="/terms" className="footer-link">শর্তাবলী</Link>
+                            <Link to="/disclaimer" className="footer-link">দাবিত্যাগ</Link>
+                            <a href="/ads.txt" className="footer-link">ads.txt</a>
                         </div>
                     </div>
 

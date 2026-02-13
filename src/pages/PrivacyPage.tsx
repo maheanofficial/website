@@ -42,14 +42,18 @@ const PrivacyPage = () => {
                         <li>আইনি বাধ্যবাধকতা পূরণ করতে</li>
                     </ul>
                 </section>
-
                 <section className="legal-section">
                     <h2>৪. Google AdSense</h2>
                     <p>
-                        এই ওয়েবসাইটে Google AdSense ব্যবহার করা হতে পারে। Google AdSense তৃতীয় পক্ষের বিজ্ঞাপনদাতাদের
-                        কুকিজ ব্যবহার করে আপনার আগ্রহ অনুযায়ী বিজ্ঞাপন প্রদর্শন করে। আপনি
-                        <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer"> Google Ads Settings</a>
-                        -এ গিয়ে ব্যক্তিগতকৃত বিজ্ঞাপন বন্ধ করতে পারেন।
+                        এই ওয়েবসাইটে Google AdSense-এর বিজ্ঞাপন দেখানো হতে পারে। Google এবং তার advertising partners আপনার ব্রাউজার/ডিভাইসে cookies ব্যবহার করে আগ্রহভিত্তিক বিজ্ঞাপন দেখাতে পারে।
+                    </p>
+                    <ul>
+                        <li>Google-এর বিজ্ঞাপন সেটিংস: <a href="https://adsettings.google.com/" target="_blank" rel="noopener noreferrer">adsettings.google.com</a></li>
+                        <li>তৃতীয়-পক্ষ বিজ্ঞাপনের opt-out: <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer">aboutads.info/choices</a></li>
+                        <li>আমাদের ads.txt ফাইল: <a href="/ads.txt">/ads.txt</a></li>
+                    </ul>
+                    <p>
+                        আপনি চাইলে ব্রাউজার সেটিংস থেকেও cookies নিয়ন্ত্রণ বা মুছে দিতে পারেন।
                     </p>
                 </section>
 

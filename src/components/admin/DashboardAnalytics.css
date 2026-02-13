@@ -225,6 +225,66 @@
     margin-top: 20px;
 }
 
+.section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.section-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--admin-input-bg);
+}
+
+.section-item-texts {
+    min-width: 0;
+}
+
+.section-item-title {
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.section-item-subtitle {
+    color: var(--admin-muted);
+    font-size: 12px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.section-item-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.metric-value {
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.metric-label {
+    color: var(--admin-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 @media (max-width: 768px) {
     .dashboard-sections-grid {
         grid-template-columns: 1fr;

@@ -71,3 +71,30 @@ export default defineConfig([
   },
 ])
 ```
+
+## Google AdSense Setup
+
+1. Copy `.env.example` to `.env.local`.
+2. Set `VITE_ADSENSE_PUBLISHER_ID` with your real `ca-pub-...` value.
+3. Add ad unit slot values when available (after approval if needed):
+   - `VITE_ADSENSE_SLOT_HOMEPAGE_MIDDLE_AD`
+   - `VITE_ADSENSE_SLOT_STORIES_FOOTER_AD`
+   - `VITE_ADSENSE_SLOT_STORY_TOP_AD`
+   - `VITE_ADSENSE_SLOT_STORY_BOTTOM_AD`
+   - You can keep these empty during pre-approval site verification.
+4. Rebuild and deploy with the same env vars on your hosting (for Vercel, set project env vars in Dashboard).
+5. Verify in Google AdSense:
+   - `AdSense code snippet`: already included in `index.html` head.
+   - `Meta tag`: already included in `index.html` head (`google-adsense-account`).
+   - `Ads.txt snippet`: generated to `dist/ads.txt` automatically from `VITE_ADSENSE_PUBLISHER_ID`.
+6. Confirm live checks:
+   - `https://mahean.com/ads.txt` returns `google.com, pub-..., DIRECT, f08c47fec0942fa0`
+   - Page source contains `google-adsense-account` and `adsbygoogle.js?client=ca-pub-...`
+7. Run readiness validation after build:
+   - `npm run adsense:check`
+   - This verifies AdSense head snippet, `ads.txt`, legal routes, and `robots.txt` crawl settings in `dist/`.
+
+Notes:
+- In production, ads render only when publisher ID + valid slot are configured.
+- In development, placeholder boxes are shown for easier placement checking.
+- Cookie notice is shown on public pages and links to Privacy Policy + Google Ad Settings.

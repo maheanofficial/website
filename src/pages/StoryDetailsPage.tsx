@@ -175,8 +175,17 @@ const StoryDetailsPage = () => {
     const articleImage = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
 
     // Format content with simplistic formatter matching demo
+    const escapeHtml = (raw: string) => raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const renderFormattedText = (text: string) => {
-        const formattedText = text
+        // Escape user content first, then apply limited formatting markers.
+        const safeText = escapeHtml(text);
+        const formattedText = safeText
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/~(.*?)~/g, '<span style="opacity: 0.7;">$1</span>')
@@ -227,6 +236,11 @@ const StoryDetailsPage = () => {
         'Suspense'
     ].filter(Boolean).join(', ');
     const toTagLabel = (tag: string) => (tag.startsWith('#') ? tag : `#${tag}`);
+    const reportIssueMailto = `mailto:maheanofficial@gmail.com?subject=${encodeURIComponent(
+        `Content report: ${story.title}`
+    )}&body=${encodeURIComponent(
+        `Please review this story for policy/copyright issue.\n\nURL: ${canonicalUrl}\nStory ID: ${story.id}\nReason:`
+    )}`;
 
     return (
         <article className="story-details-page fade-in-up">
@@ -382,6 +396,15 @@ const StoryDetailsPage = () => {
                         className="story-prose"
                         dangerouslySetInnerHTML={renderFormattedText(currentPart.content)}
                     />
+                </div>
+
+                <div className="story-report-box">
+                    <p className="story-report-text">
+                        Found policy-violating or copyright-problematic content?
+                    </p>
+                    <a href={reportIssueMailto} className="story-report-link">
+                        Report this story
+                    </a>
                 </div>
 
                 {/* Bottom Ad */}

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/prerender-public.cjs",
+    "adsense:check": "node scripts/adsense-readiness.cjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

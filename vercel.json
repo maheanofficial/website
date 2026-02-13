@@ -1,7 +1,31 @@
 {
   "routes": [
     { "src": "/api/admin-users/?$", "dest": "/api/admin-users.js" },
+    { "src": "/sitemap.xml", "dest": "/api/sitemap.js" },
     { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
+    { "src": "/$", "dest": "/index.html" },
+    { "src": "/audiobooks/?$", "dest": "/index.html" },
+    { "src": "/stories/?$", "dest": "/index.html" },
+    { "src": "/stories/[^/]+/?$", "dest": "/index.html" },
+    { "src": "/series/?$", "dest": "/index.html" },
+    { "src": "/authors/?$", "dest": "/index.html" },
+    { "src": "/categories/?$", "dest": "/index.html" },
+    { "src": "/tags/?$", "dest": "/index.html" },
+    { "src": "/login/?$", "dest": "/index.html" },
+    { "src": "/forgot-password/?$", "dest": "/index.html" },
+    { "src": "/update-password/?$", "dest": "/index.html" },
+    { "src": "/signup/?$", "dest": "/index.html" },
+    { "src": "/admin/?$", "dest": "/index.html" },
+    { "src": "/dashboard/?$", "dest": "/index.html" },
+    { "src": "/admin/dashboard(?:/.*)?$", "dest": "/index.html" },
+    { "src": "/author/dashboard(?:/.*)?$", "dest": "/index.html" },
+    { "src": "/skills/?$", "dest": "/index.html" },
+    { "src": "/contact/?$", "dest": "/index.html" },
+    { "src": "/privacy/?$", "dest": "/index.html" },
+    { "src": "/terms/?$", "dest": "/index.html" },
+    { "src": "/disclaimer/?$", "dest": "/index.html" },
+    { "src": "/about/?$", "dest": "/index.html" },
+    { "src": "/links/?$", "dest": "/index.html" },
+    { "src": "/.*", "status": 404, "dest": "/404.html" }
   ]
 }

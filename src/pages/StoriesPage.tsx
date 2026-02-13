@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Search, Filter, Calendar, PenTool, ChevronRight, Sparkles, TrendingUp } from 'lucide-react';
 import StoryCard from '../components/StoryCard';
@@ -17,7 +17,25 @@ const STORIES_PER_PAGE = 12;
 
 export default function StoriesPage() {
     const location = useLocation();
-    const canonicalUrl = `${SITE_URL}${location.pathname}${location.search}`;
+    const canonicalUrl = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        const canonicalParams = new URLSearchParams();
+        const author = params.get('author');
+        const tag = params.get('tag');
+        const category = params.get('category');
+
+        // Keep canonical focused on content-defining filters only.
+        if (author) {
+            canonicalParams.set('author', author);
+        } else if (tag) {
+            canonicalParams.set('tag', tag);
+        } else if (category && category !== 'all') {
+            canonicalParams.set('category', category);
+        }
+
+        const query = canonicalParams.toString();
+        return `${SITE_URL}/stories${query ? `?${query}` : ''}`;
+    }, [location.search]);
     const [stories, setStories] = useState<Story[]>([]);
     const [authors, setAuthors] = useState<Author[]>([]);
 
