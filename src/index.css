@@ -55,6 +55,8 @@
   --spacing-lg: 4rem;
   --spacing-xl: 6rem;
   --header-space: 180px;
+  /* Approximate fixed header height (logo + vertical padding). */
+  --header-height: 142px;
 
   /* Border Radius - Friendly & Modern */
   --radius-sm: 8px;
@@ -776,6 +778,7 @@ a:hover {
     --text-3xl: 1.5rem;
     --spacing-xl: 3rem;
     --header-space: 120px;
+    --header-height: 72px;
   }
 
   .section {
@@ -843,6 +846,7 @@ a:hover {
     --spacing-lg: 2.5rem;
     --spacing-xl: 3rem;
     --header-space: 120px;
+    --header-height: 72px;
   }
 
   .container {
@@ -874,6 +878,7 @@ a:hover {
     --spacing-lg: 2rem;
     --spacing-xl: 2.5rem;
     --header-space: 104px;
+    --header-height: 66px;
   }
 
   .container {
