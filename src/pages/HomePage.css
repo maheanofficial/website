@@ -1,18 +1,7 @@
 .home-stories-header {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-    justify-content: space-between;
+    justify-content: flex-end;
     margin-bottom: 32px;
-}
-
-.home-stories-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: 0.2px;
-    margin: 0;
 }
 
 .home-stories-more {
@@ -26,11 +15,4 @@
 
 .home-stories-more:hover {
     color: var(--accent-secondary);
-}
-
-@media (min-width: 768px) {
-    .home-stories-header {
-        flex-direction: row;
-        align-items: center;
-    }
 }

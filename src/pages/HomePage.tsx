@@ -73,8 +73,6 @@ const HomePage = () => {
             {/* Most Viewed Stories Section */}
             <div className="container py-8">
                 <div className="home-stories-header">
-                    <h3 className="home-stories-title">সবচেয়ে বেশি দেখা গল্প</h3>
-
                     <Link to="/stories" className="home-stories-more">
                         আরও দেখুন <ChevronRight size={16} />
                     </Link>
