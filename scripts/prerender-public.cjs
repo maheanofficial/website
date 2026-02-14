@@ -476,12 +476,17 @@ const fetchStoryRows = async () => {
 
   const selects = [
     'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, status, date, updated_at',
-    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, date, updated_at',
+    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, status, date',
     'id, slug, title, excerpt, content, author, tags, cover_image, image, status, date, updated_at',
-    'id, slug, title, excerpt, content, author, tags, cover_image, image, date, updated_at',
+    'id, slug, title, excerpt, content, author, tags, cover_image, image, status, date',
+    'id, title, excerpt, content, author, tags, cover_image, image, status, date, updated_at',
+    'id, title, excerpt, content, status, date, updated_at',
     'id, title, excerpt, content, date, updated_at',
-    'id, title, excerpt, content, author, status, date, updated_at',
-    'id, title'
+    'id, title, excerpt, content, date',
+    'id, title, excerpt, content',
+    'id, title, excerpt',
+    'id, title',
+    'id'
   ];
 
   let lastError = null;
