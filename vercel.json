@@ -1,13 +1,16 @@
 {
   "routes": [
     { "src": "/api/admin-users/?$", "dest": "/api/admin-users.js" },
+    { "src": "/api/story-redirect/?$", "dest": "/api/story-redirect.js" },
     { "src": "/sitemap.xml", "dest": "/api/sitemap.js" },
     { "handle": "filesystem" },
     { "src": "/$", "dest": "/index.html" },
     { "src": "/audiobooks/?$", "dest": "/index.html" },
     { "src": "/stories/?$", "dest": "/index.html" },
+    { "src": "/stories/([0-9]+)/part/([0-9]+)/?$", "dest": "/api/story-redirect.js?id=$1&part=$2" },
+    { "src": "/stories/([0-9]+)/?$", "dest": "/api/story-redirect.js?id=$1&part=1" },
+    { "src": "/stories/([^/]+)/?$", "status": 301, "headers": { "Location": "/stories/$1/part/1" } },
     { "src": "/stories/[^/]+/part/[^/]+/?$", "dest": "/index.html" },
-    { "src": "/stories/[^/]+/?$", "dest": "/index.html" },
     { "src": "/series/?$", "dest": "/index.html" },
     { "src": "/authors/?$", "dest": "/index.html" },
     { "src": "/categories/?$", "dest": "/index.html" },
