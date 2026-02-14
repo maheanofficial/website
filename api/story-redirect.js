@@ -24,6 +24,7 @@ const SUPABASE_ANON_KEY = pickFirstEnv(
 
 const STORY_TABLE = 'stories';
 const STORY_SELECT_FALLBACKS = [
+    'id, slug, title, excerpt, parts',
     'id, slug, title, excerpt',
     'id, slug, title',
     'id, title, excerpt',
@@ -147,7 +148,12 @@ export default async function handler(req, res) {
             : '';
         const segment = rawSlug || metaSlug || generatedSlug || rawId || id;
 
-        const location = `/stories/${encodeURIComponent(segment)}/part/${partNumber}`;
+        const partsFromRow = Array.isArray(story?.parts) ? story.parts.length : 0;
+        const partsFromMeta = Array.isArray(meta?.parts) ? meta.parts.length : 0;
+        const totalParts = Math.max(1, partsFromRow || partsFromMeta);
+        const safePart = Math.min(partNumber, totalParts);
+
+        const location = `/stories/${encodeURIComponent(segment)}/part/${safePart}`;
         res.statusCode = 301;
         res.setHeader('Location', location);
         res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');

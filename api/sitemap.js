@@ -37,6 +37,8 @@ const SUPABASE_ANON_KEY = pickFirstEnv(
 const STORY_TABLE = 'stories';
 const PUBLIC_STATUSES = new Set(['published', 'completed', 'ongoing']);
 const STORY_SELECT_FALLBACKS = [
+    'id, slug, title, excerpt, parts, status, date, updated_at',
+    'id, slug, title, excerpt, parts, status, date',
     'id, slug, title, excerpt, status, date, updated_at',
     'id, slug, title, excerpt, status, date',
     'id, slug, title, excerpt, date',
@@ -82,7 +84,10 @@ const toDateOnly = (value) => {
     return new Date(timestamp).toISOString().slice(0, 10);
 };
 
-const toStoryPath = (story) => {
+const MAX_PARTS_PER_STORY = Number.parseInt(process.env.SITEMAP_MAX_PARTS_PER_STORY || '', 10) || 200;
+const MAX_DYNAMIC_URLS = Number.parseInt(process.env.SITEMAP_MAX_DYNAMIC_URLS || '', 10) || 45000;
+
+const toStorySegment = (story) => {
     const meta = parseLegacyMeta(story?.excerpt);
     const rawSlug = typeof story.slug === 'string' ? story.slug.trim() : '';
     const metaSlug = typeof meta?.slug === 'string' ? meta.slug.trim() : '';
@@ -91,8 +96,15 @@ const toStoryPath = (story) => {
         ? String(story.id).trim()
         : '';
     const segment = rawSlug || metaSlug || generatedSlug || rawId;
-    if (!segment) return null;
-    return `/stories/${encodeURIComponent(segment)}/part/1`;
+    return segment || null;
+};
+
+const toStoryPartCount = (story) => {
+    const meta = parseLegacyMeta(story?.excerpt);
+    const parts = Array.isArray(story?.parts) ? story.parts : null;
+    const metaParts = Array.isArray(meta?.parts) ? meta.parts : null;
+    const count = (parts?.length || 0) || (metaParts?.length || 0);
+    return Math.max(1, count);
 };
 
 const parseLegacyMeta = (excerpt) => {
@@ -189,19 +201,28 @@ export default async function handler(req, res) {
         try {
             const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const rows = await fetchStoriesWithColumnFallback(supabase);
-            rows
-                .filter(isPublicStory)
-                .forEach((story) => {
-                    const path = toStoryPath(story);
-                    if (!path || existingPaths.has(path)) return;
+            let dynamicCount = 0;
+            for (const story of rows.filter(isPublicStory)) {
+                if (dynamicCount >= MAX_DYNAMIC_URLS) break;
+                const segment = toStorySegment(story);
+                if (!segment) continue;
+                const partsTotal = Math.min(toStoryPartCount(story), MAX_PARTS_PER_STORY);
+                const lastmod = toDateOnly(story.updated_at || story.date);
+
+                for (let partIndex = 1; partIndex <= partsTotal; partIndex += 1) {
+                    if (dynamicCount >= MAX_DYNAMIC_URLS) break;
+                    const path = `/stories/${encodeURIComponent(segment)}/part/${partIndex}`;
+                    if (existingPaths.has(path)) continue;
                     entries.push({
                         path,
-                        lastmod: toDateOnly(story.updated_at || story.date),
+                        lastmod,
                         changefreq: 'weekly',
-                        priority: '0.8'
+                        priority: partIndex === 1 ? '0.8' : '0.6'
                     });
                     existingPaths.add(path);
-                });
+                    dynamicCount += 1;
+                }
+            }
         } catch (error) {
             console.warn('Failed to include dynamic story routes in sitemap:', error?.message || error);
         }

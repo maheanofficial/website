@@ -373,6 +373,9 @@ const buildSeoHtml = (template, seo) => {
   html = setMetaName(html, 'description', seo.description);
   html = setMetaName(html, 'keywords', seo.keywords || '');
   html = setMetaName(html, 'robots', seo.robots || 'index, follow, max-image-preview:large');
+  if (seo.author) {
+    html = setMetaName(html, 'author', seo.author);
+  }
   html = setMetaProperty(html, 'og:type', seo.ogType || 'website');
   html = setMetaProperty(html, 'og:title', seo.title);
   html = setMetaProperty(html, 'og:description', seo.description);
@@ -380,6 +383,17 @@ const buildSeoHtml = (template, seo) => {
   html = setMetaProperty(html, 'og:site_name', 'Mahean Ahmed');
   html = setMetaProperty(html, 'og:image', ogImage);
   html = setMetaProperty(html, 'og:image:alt', seo.imageAlt || seo.title);
+  if ((seo.ogType || 'website') === 'article') {
+    if (seo.author) {
+      html = setMetaProperty(html, 'article:author', seo.author);
+    }
+    if (seo.publishedTime) {
+      html = setMetaProperty(html, 'article:published_time', seo.publishedTime);
+    }
+    if (seo.modifiedTime) {
+      html = setMetaProperty(html, 'article:modified_time', seo.modifiedTime);
+    }
+  }
   html = setMetaName(html, 'twitter:card', 'summary_large_image');
   html = setMetaName(html, 'twitter:title', seo.title);
   html = setMetaName(html, 'twitter:description', seo.description);
@@ -411,15 +425,43 @@ const isPublicStory = (story) => {
   return ['published', 'completed', 'ongoing'].includes(status);
 };
 
-const toStoryPath = (story) => {
+const toStorySegment = (story) => {
   const meta = parseLegacyMeta(story?.excerpt);
   const rawSlug = typeof story.slug === 'string' ? story.slug.trim() : '';
   const metaSlug = typeof meta?.slug === 'string' ? meta.slug.trim() : '';
   const generated = slugify(typeof story.title === 'string' ? story.title : '');
   const fallbackId = String(story.id || '').trim();
   const segment = rawSlug || metaSlug || generated || fallbackId;
-  if (!segment) return null;
-  return `/stories/${encodeURIComponent(segment)}/part/1`;
+  return segment || null;
+};
+
+const buildFallbackPartTitle = (index) => {
+  const padded = String(index + 1).padStart(2, '0');
+  return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+};
+
+const normalizeStoryParts = (story) => {
+  const meta = parseLegacyMeta(story?.excerpt);
+  const fromRow = Array.isArray(story?.parts) ? story.parts : null;
+  const fromMeta = Array.isArray(meta?.parts) ? meta.parts : null;
+  const candidate = (fromRow && fromRow.length ? fromRow : fromMeta) || [];
+
+  const normalized = candidate
+    .map((part) => {
+      if (!part || typeof part !== 'object') return null;
+      const title = typeof part.title === 'string' ? part.title : '';
+      const content = typeof part.content === 'string' ? part.content : '';
+      if (!title.trim() && !content.trim()) return null;
+      return { title: title.trim(), content: content.trim() };
+    })
+    .filter(Boolean);
+
+  if (normalized.length) return normalized;
+
+  const content = typeof story?.content === 'string' ? story.content : '';
+  const excerpt = normalizeExcerpt(story?.excerpt);
+  const fallback = content || excerpt || '';
+  return [{ title: '', content: String(fallback).trim() }];
 };
 
 const fetchStoryRows = async () => {
@@ -433,6 +475,8 @@ const fetchStoryRows = async () => {
   });
 
   const selects = [
+    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, status, date, updated_at',
+    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, date, updated_at',
     'id, slug, title, excerpt, content, author, tags, cover_image, image, status, date, updated_at',
     'id, slug, title, excerpt, content, author, tags, cover_image, image, date, updated_at',
     'id, title, excerpt, content, date, updated_at',
@@ -453,52 +497,76 @@ const fetchStoryRows = async () => {
   return [];
 };
 
-const toStorySeo = (story) => {
-  const pathValue = toStoryPath(story);
-  if (!pathValue) return null;
-  const title = story.title ? `${story.title} - গল্প | Mahean Ahmed` : 'বাংলা গল্প | Mahean Ahmed';
-  const description =
-    normalizeDescription(normalizeExcerpt(story.excerpt)) ||
-    normalizeDescription(story.content) ||
-    'বাংলা গল্প পড়ুন - Mahean Ahmed';
+const toStoryPartSeos = (story) => {
+  const segment = toStorySegment(story);
+  if (!segment) return [];
+
+  const storyTitle = typeof story.title === 'string' ? story.title.trim() : '';
+  const authorName =
+    typeof story.author === 'string' && story.author.trim() ? story.author.trim() : 'Mahean Ahmed';
+  const image = story.cover_image || story.image || '/mahean-3.jpg';
+  const publishedTime = story.date || undefined;
+  const modifiedTime = story.updated_at || story.date || undefined;
+
   const rawTags = Array.isArray(story.tags)
     ? story.tags.filter((tag) => typeof tag === 'string')
     : [];
-  const keywords = [
-    ...rawTags,
-    typeof story.author === 'string' ? story.author : '',
-    'Bangla Story',
-    'Bengali Story'
-  ]
+  const keywords = [...rawTags, authorName, 'Bangla Story', 'Bengali Story']
     .filter(Boolean)
     .join(', ');
-  const articleUrl = `${SITE_URL}${pathValue}`;
-  const image = story.cover_image || story.image || '/mahean-3.jpg';
 
-  return {
-    path: pathValue,
-    title,
-    description,
-    keywords,
-    ogType: 'article',
-    ogImage: image,
-    imageAlt: story.title || 'Story cover image',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: story.title || 'Bangla Story',
+  const parts = normalizeStoryParts(story);
+  return parts.map((part, index) => {
+    const partTitle = part.title || buildFallbackPartTitle(index);
+    const pathValue = `/stories/${encodeURIComponent(segment)}/part/${index + 1}`;
+    const canonicalUrl = `${SITE_URL}${pathValue}`;
+
+    const description =
+      normalizeDescription(part.content) ||
+      normalizeDescription(normalizeExcerpt(story.excerpt)) ||
+      normalizeDescription(story.content) ||
+      '\u09ac\u09be\u0982\u09b2\u09be \u0997\u09b2\u09cd\u09aa \u09aa\u09dc\u09c1\u09a8 - Mahean Ahmed';
+
+    const pageTitle = storyTitle
+      ? `${storyTitle} - ${partTitle} | Mahean Ahmed`
+      : `Bangla Story | Mahean Ahmed`;
+    const headline = storyTitle ? `${storyTitle} - ${partTitle}` : partTitle;
+
+    return {
+      path: pathValue,
+      title: pageTitle,
       description,
-      url: articleUrl,
-      datePublished: story.date || undefined,
-      dateModified: story.updated_at || story.date || undefined,
-      author: {
-        '@type': 'Person',
-        name: typeof story.author === 'string' && story.author.trim() ? story.author.trim() : 'Mahean Ahmed'
-      },
-      image: [toAbsoluteUrl(image)]
-    }
-  };
+      keywords,
+      ogType: 'article',
+      ogImage: image,
+      imageAlt: storyTitle || 'Story cover image',
+      author: authorName,
+      publishedTime,
+      modifiedTime,
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline,
+        description,
+        url: canonicalUrl,
+        datePublished: publishedTime,
+        dateModified: modifiedTime,
+        author: {
+          '@type': 'Person',
+          name: authorName
+        },
+        image: [toAbsoluteUrl(image)]
+      }
+    };
+  });
 };
+
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+};
+
 
 const run = async () => {
   await loadEnvFiles();
@@ -521,15 +589,22 @@ const run = async () => {
     generated += 1;
   }
 
+  const MAX_PARTS_PER_STORY = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_PARTS_PER_STORY'), 200);
+  const MAX_STORY_ROUTES = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_STORY_ROUTES'), 5000);
+
   const stories = (await fetchStoryRows()).filter(isPublicStory);
   const uniquePaths = new Set();
   for (const story of stories) {
-    const seo = toStorySeo(story);
-    if (!seo || uniquePaths.has(seo.path)) continue;
-    const html = buildSeoHtml(template, seo);
-    await writeRouteHtml(seo.path, html);
-    uniquePaths.add(seo.path);
-    generated += 1;
+    if (uniquePaths.size >= MAX_STORY_ROUTES) break;
+    const seoEntries = toStoryPartSeos(story).slice(0, MAX_PARTS_PER_STORY);
+    for (const seo of seoEntries) {
+      if (!seo || uniquePaths.has(seo.path)) continue;
+      if (uniquePaths.size >= MAX_STORY_ROUTES) break;
+      const html = buildSeoHtml(template, seo);
+      await writeRouteHtml(seo.path, html);
+      uniquePaths.add(seo.path);
+      generated += 1;
+    }
   }
 
   const hasAdsensePublisher = await writeAdsTxt(ADSENSE_PUBLISHER_ID);
