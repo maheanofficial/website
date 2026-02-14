@@ -124,7 +124,7 @@ const slugify = (value) => {
 
     let cleaned = normalized;
     try {
-        cleaned = cleaned.replace(/[^\p{L}\p{N}-]+/gu, '');
+        cleaned = cleaned.replace(/[^\p{L}\p{N}\p{M}-]+/gu, '');
     } catch {
         cleaned = cleaned.replace(/[^\w-]+/g, '');
     }

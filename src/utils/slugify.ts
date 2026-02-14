@@ -16,8 +16,9 @@ export const slugify = (value: string) => {
 
     let cleaned = base;
     try {
-        // Keep letters/numbers from any language + hyphen.
-        cleaned = cleaned.replace(/[^\p{L}\p{N}-]+/gu, '');
+        // Keep letters/numbers/marks from any language + hyphen.
+        // (Marks are needed for scripts like Bangla where vowel signs are combining characters.)
+        cleaned = cleaned.replace(/[^\p{L}\p{N}\p{M}-]+/gu, '');
     } catch {
         // Fallback for older JS engines.
         cleaned = cleaned.replace(/[^\w-]+/g, '');
@@ -28,4 +29,3 @@ export const slugify = (value: string) => {
         .replace(/^-+/, '')
         .replace(/-+$/, '');
 };
-
