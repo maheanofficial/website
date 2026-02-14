@@ -583,19 +583,66 @@
     border-bottom: 1px solid var(--admin-border);
 }
 
+.part-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.part-title-icon {
+    color: var(--admin-muted);
+    opacity: 0.8;
+    flex: 0 0 auto;
+}
+
 .part-title-input {
     background: transparent;
     border: none;
+    border-bottom: 1px dashed rgba(107, 114, 128, 0.35);
     color: var(--accent-primary);
     font-weight: 700;
     font-size: 16px;
-    width: 200px;
+    width: 100%;
+    max-width: 520px;
     letter-spacing: 0.5px;
+    padding: 2px 0;
+    cursor: text;
 }
 
 .part-title-input:focus {
     outline: none;
     text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    border-bottom-color: rgba(245, 158, 11, 0.6);
+}
+
+.part-title-input::placeholder {
+    color: var(--admin-muted);
+}
+
+.part-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+.part-title-reset-btn {
+    font-size: 12px;
+    color: var(--admin-muted);
+    background: rgba(107, 114, 128, 0.12);
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.part-title-reset-btn:hover {
+    background: rgba(107, 114, 128, 0.18);
+    border-color: rgba(107, 114, 128, 0.25);
+    color: var(--admin-text);
 }
 
 /* Update btn-secondary to match premium look */

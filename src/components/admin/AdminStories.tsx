@@ -442,6 +442,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         });
     };
 
+    const buildDefaultPartTitle = (index: number) => {
+        const padded = String(index + 1).padStart(2, '0');
+        return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+    };
+
     const updatePart = (
         id: string | undefined,
         index: number,
@@ -456,6 +461,20 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                     ...part,
                     id: part.id || id || `${Date.now()}-${index + 1}`,
                     [field]: value
+                };
+            })
+        );
+    };
+
+    const resetPartTitle = (id: string | undefined, index: number) => {
+        setParts((prev) =>
+            prev.map((part, idx) => {
+                const matches = (id && part.id) ? part.id === id : idx === index;
+                if (!matches) return part;
+                return {
+                    ...part,
+                    id: part.id || id || `${Date.now()}-${idx + 1}`,
+                    title: buildDefaultPartTitle(idx)
                 };
             })
         );
@@ -489,6 +508,12 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             : 'pending';
         const normalizedCategory = normalizeText(category);
         const normalizedTags = dedupeAndSort(tags);
+        const normalizedParts = parts.map((part, index) => ({
+            ...part,
+            id: part.id || `${Date.now()}-${index + 1}`,
+            title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
+            content: part.content ?? ''
+        }));
         let authorName = existingStory?.author || user?.displayName || 'Admin';
         let authorId = existingStory?.authorId || user?.id || 'admin';
 
@@ -526,7 +551,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             categoryId: normalizedCategory, // Using name as ID for now
             tags: normalizedTags,
             cover_image: coverImage,
-            parts,
+            parts: normalizedParts,
             status: nextStatus,
             date: existingStory?.date || new Date().toISOString(),
             author: authorName,
@@ -534,8 +559,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             submittedBy: existingStory?.submittedBy || user?.id || undefined,
             views: existingStory?.views ?? 0,
             comments: existingStory?.comments ?? 0,
-            content: parts.map(p => p.content).join('\n'), // Legacy
-            excerpt: description || parts[0]?.content.slice(0, 100) || ''
+            content: normalizedParts.map(p => p.content).join('\n'), // Legacy
+            excerpt: description || normalizedParts[0]?.content.slice(0, 100) || ''
         };
         const saveResult = await saveStory(newStory);
         if (!saveResult.success || !saveResult.synced) {
@@ -906,22 +931,38 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                             {parts.map((part, index) => (
                                 <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
-                                        <input
-                                            type="text"
-                                            value={part.title}
-                                            onChange={e => updatePart(part.id, index, 'title', e.target.value)}
-                                            className="part-title-input"
-                                            placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="remove-part-btn"
-                                            onClick={() => removePart(part.id, index)}
-                                            disabled={parts.length === 1}
-                                            title={parts.length === 1 ? '\u0995\u09ae\u09aa\u0995\u09cd\u09b7\u09c7 \u09e7\u099f\u09bf \u09aa\u09b0\u09cd\u09ac \u09b0\u09be\u0996\u09a4\u09c7 \u09b9\u09ac\u09c7' : '\u09aa\u09b0\u09cd\u09ac \u09ae\u09c1\u099b\u09c1\u09a8'}
-                                        >
-                                            {'\u09ae\u09c1\u099b\u09c1\u09a8'}
-                                        </button>
+                                        <div className="part-title-wrap" title={'\u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u09a8\u09be\u09ae \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8 \u0995\u09b0\u09a4\u09c7 \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8'}>
+                                            <Edit size={14} className="part-title-icon" />
+                                            <input
+                                                type="text"
+                                                value={part.title}
+                                                onChange={e => updatePart(part.id, index, 'title', e.target.value)}
+                                                className="part-title-input"
+                                                placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
+                                            />
+                                        </div>
+
+                                        <div className="part-actions">
+                                            {part.title?.trim() && part.title.trim() !== buildDefaultPartTitle(index) ? (
+                                                <button
+                                                    type="button"
+                                                    className="part-title-reset-btn"
+                                                    onClick={() => resetPartTitle(part.id, index)}
+                                                    title={'\u09a1\u09bf\u09ab\u09b2\u09cd\u099f \u09a8\u09be\u09ae\u09c7 \u09ab\u09bf\u09b0\u09c7 \u09af\u09be\u09a8'}
+                                                >
+                                                    {'\u09a1\u09bf\u09ab\u09b2\u09cd\u099f'}
+                                                </button>
+                                            ) : null}
+                                            <button
+                                                type="button"
+                                                className="remove-part-btn"
+                                                onClick={() => removePart(part.id, index)}
+                                                disabled={parts.length === 1}
+                                                title={parts.length === 1 ? '\u0995\u09ae\u09aa\u0995\u09cd\u09b7\u09c7 \u09e7\u099f\u09bf \u09aa\u09b0\u09cd\u09ac \u09b0\u09be\u0996\u09a4\u09c7 \u09b9\u09ac\u09c7' : '\u09aa\u09b0\u09cd\u09ac \u09ae\u09c1\u099b\u09c1\u09a8'}
+                                            >
+                                                {'\u09ae\u09c1\u099b\u09c1\u09a8'}
+                                            </button>
+                                        </div>
                                     </div>
                                     <textarea
                                         value={part.content}
