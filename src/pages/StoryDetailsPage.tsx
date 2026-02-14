@@ -161,8 +161,8 @@ const StoryDetailsPage = () => {
     if (isLoading) {
         return (
             <div className="container py-20 text-center">
-                <h2 className="text-2xl text-white mb-4">à¦—à¦²à§à¦ªà¦Ÿà¦¿ à¦²à§‹à¦¡ à¦¹à¦šà§à¦›à§‡...</h2>
-                <p className="text-gray-400">à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦•à¦¿à¦›à§ à¦•à§à¦·à¦£ à¦…à¦ªà§‡à¦•à§à¦·à¦¾ à¦•à¦°à§à¦¨à¥¤</p>
+                <h2 className="text-2xl text-white mb-4">গল্পটি লোড হচ্ছে...</h2>
+                <p className="text-gray-400">অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন।</p>
             </div>
         );
     }
