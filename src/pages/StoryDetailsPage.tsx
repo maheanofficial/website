@@ -238,11 +238,16 @@ const StoryDetailsPage = () => {
         return { __html: formattedText };
     };
 
+    const partLabel = currentPart.title?.trim()
+        ? currentPart.title.trim()
+        : `পর্ব ${toBanglaNumber(activePartNumber)}`;
+    const seoTitle = `${story.title} - ${partLabel}`;
+
     // SEO Schema
     const articleSchema = {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
-        "headline": story.title,
+        "headline": seoTitle,
         "url": canonicalUrl,
         "mainEntityOfPage": {
             "@type": "WebPage",
@@ -295,7 +300,7 @@ const StoryDetailsPage = () => {
             </div>
 
             <SEO
-                title={`${story.title} - ${story.author} `}
+                title={seoTitle}
                 description={currentPart.content.substring(0, 160) + '...'}
                 keywords={seoKeywords}
                 ogType="article"
