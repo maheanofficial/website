@@ -6,6 +6,7 @@
     { "src": "/$", "dest": "/index.html" },
     { "src": "/audiobooks/?$", "dest": "/index.html" },
     { "src": "/stories/?$", "dest": "/index.html" },
+    { "src": "/stories/[^/]+/part/[^/]+/?$", "dest": "/index.html" },
     { "src": "/stories/[^/]+/?$", "dest": "/index.html" },
     { "src": "/series/?$", "dest": "/index.html" },
     { "src": "/authors/?$", "dest": "/index.html" },

@@ -419,7 +419,7 @@ const toStoryPath = (story) => {
   const fallbackId = String(story.id || '').trim();
   const segment = rawSlug || metaSlug || generated || fallbackId;
   if (!segment) return null;
-  return `/stories/${encodeURIComponent(segment)}`;
+  return `/stories/${encodeURIComponent(segment)}/part/1`;
 };
 
 const fetchStoryRows = async () => {

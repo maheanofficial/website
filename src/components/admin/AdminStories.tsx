@@ -1073,7 +1073,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                      <button
                                          className="action-btn"
                                          title="View"
-                                         onClick={() => window.open(`/stories/${story.slug || story.id}`, '_blank')}
+                                         onClick={() => window.open(`/stories/${story.slug || story.id}/part/1`, '_blank')}
                                      >
                                          <Eye size={16} />
                                      </button>

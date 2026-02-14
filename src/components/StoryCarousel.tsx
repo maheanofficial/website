@@ -71,7 +71,7 @@ export default function StoryCarousel({ stories }: StoryCarouselProps) {
                                 </div>
                             </div>
 
-                            <Link to={`/stories/${currentStory.slug || currentStory.id}`} className="carousel-btn" style={{ background: '#f59e0b', color: 'black', border: 'none', padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <Link to={`/stories/${currentStory.slug || currentStory.id}/part/1`} className="carousel-btn" style={{ background: '#f59e0b', color: 'black', border: 'none', padding: '10px 24px', borderRadius: '30px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                                 <Play size={16} fill="black" />
                                 <span>এখনই পড়ুন</span>
                             </Link>

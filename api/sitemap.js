@@ -92,7 +92,7 @@ const toStoryPath = (story) => {
         : '';
     const segment = rawSlug || metaSlug || generatedSlug || rawId;
     if (!segment) return null;
-    return `/stories/${encodeURIComponent(segment)}`;
+    return `/stories/${encodeURIComponent(segment)}/part/1`;
 };
 
 const parseLegacyMeta = (excerpt) => {

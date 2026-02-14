@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen } from 'lucide-react';
 import { getStories, incrementViews, type Story } from '../utils/storyManager';
@@ -17,14 +17,26 @@ const StoryDetailsPage = () => {
     // We also might want /stories/:slug/part/:partNumber in future, 
     // but for now let's handle basic view and internal state for parts
     const navigate = useNavigate();
-    const { id } = useParams<{ id: string }>();
+    const location = useLocation();
+    const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
     const [story, setStory] = useState<Story | null>(null);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentPartNumber, setCurrentPartNumber] = useState(1);
+    const [currentPartNumber, setCurrentPartNumber] = useState(() => {
+        const parsed = Number.parseInt(partNumber || '', 10);
+        if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+        return parsed;
+    });
     const [showPartsList, setShowPartsList] = useState(false);
     const [readingProgress, setReadingProgress] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
+
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+    const parseRequestedPartNumber = (value?: string) => {
+        const parsed = Number.parseInt(value || '', 10);
+        if (!Number.isFinite(parsed) || parsed <= 0) return null;
+        return parsed;
+    };
     const normalizeStory = (entry: Story): Story => {
         if (entry.parts && entry.parts.length > 0) return entry;
         return {
@@ -75,15 +87,35 @@ const StoryDetailsPage = () => {
         };
     }, [id]);
 
-    // If the route uses numeric id but we have a slug, keep the URL clean (SEO/user friendly).
     useEffect(() => {
-        if (!story || !id) return;
+        if (!story) return;
         const storyId = String(story.id || '').trim();
         const storySlug = (story.slug || '').trim();
-        if (storySlug && storyId && id === storyId && id !== storySlug) {
-            navigate(`/stories/${storySlug}`, { replace: true });
+        const baseSegment = storySlug || storyId || id;
+        if (!baseSegment) return;
+
+        const totalParts = Math.max(1, story.parts?.length || 0);
+        const requestedPart = parseRequestedPartNumber(partNumber) ?? 1;
+        const safePart = clamp(requestedPart, 1, totalParts);
+
+        if (currentPartNumber !== safePart) {
+            setCurrentPartNumber(safePart);
         }
-    }, [story, id, navigate]);
+
+        const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`;
+        if (decodeURI(location.pathname) !== decodeURI(desiredPath)) {
+            navigate(desiredPath, { replace: true });
+        }
+    }, [story, id, partNumber, location.pathname, navigate, currentPartNumber]);
+
+    const goToPart = (nextPartNumber: number) => {
+        if (!story) return;
+        const totalParts = Math.max(1, story.parts?.length || 0);
+        const safePart = clamp(nextPartNumber, 1, totalParts);
+        const baseSegment = (story.slug || String(story.id || '')).trim() || id;
+        if (!baseSegment) return;
+        navigate(`/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`);
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -167,19 +199,19 @@ const StoryDetailsPage = () => {
     }
 
     const parts = story.parts ?? [];
-    const currentPart = parts.find(p => {
-        return (parts.indexOf(p) + 1) === currentPartNumber;
-    }) || parts[0];
+    const totalParts = Math.max(1, parts.length);
+    const activePartNumber = clamp(currentPartNumber, 1, totalParts);
+    const currentPart = parts[activePartNumber - 1] || parts[0];
 
     if (!currentPart) {
         return null;
     }
 
-    const totalParts = parts.length;
-    const nextPartNumber = currentPartNumber < totalParts ? currentPartNumber + 1 : null;
-    const prevPartNumber = currentPartNumber > 1 ? currentPartNumber - 1 : null;
+    const nextPartNumber = activePartNumber < totalParts ? activePartNumber + 1 : null;
+    const prevPartNumber = activePartNumber > 1 ? activePartNumber - 1 : null;
     // Author Details
-    const storyPath = `/stories/${story.slug || story.id}`;
+    const baseSegment = story.slug || story.id;
+    const storyPath = `/stories/${encodeURIComponent(baseSegment)}/part/${activePartNumber}`;
     const canonicalUrl = `${SITE_URL}${storyPath}`;
     const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const articleImage = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;
@@ -354,8 +386,8 @@ const StoryDetailsPage = () => {
                 <div className="parts-navigation-box">
                     <div className="parts-header">
                         <h2 className="current-part-title">
-                            {currentPart.title || `পর্ব ${toBanglaNumber(currentPartNumber)}`}
-                            <span className="part-counter">({toBanglaNumber(currentPartNumber)}/{toBanglaNumber(totalParts)})</span>
+                            {currentPart.title || `পর্ব ${toBanglaNumber(activePartNumber)}`}
+                            <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)})</span>
                         </h2>
 
                         <button
@@ -374,10 +406,10 @@ const StoryDetailsPage = () => {
                                 <button
                                     key={idx}
                                     onClick={() => {
-                                        setCurrentPartNumber(idx + 1);
+                                        goToPart(idx + 1);
                                         setShowPartsList(false);
                                     }}
-                                    className={`part-grid-item ${idx + 1 === currentPartNumber ? 'active' : ''}`}
+                                    className={`part-grid-item ${idx + 1 === activePartNumber ? 'active' : ''}`}
                                 >
                                     {idx + 1}
                                 </button>
@@ -395,7 +427,7 @@ const StoryDetailsPage = () => {
                     <AudioPlayer
                         src="" // Empty src triggers TTS mode if text is provided
                         text={currentPart.content}
-                        title={`${story.title} - পর্ব ${toBanglaNumber(currentPartNumber)}`}
+                        title={`${story.title} - পর্ব ${toBanglaNumber(activePartNumber)}`}
                         cover={story.cover_image || story.image}
                     />
                 </div>
@@ -424,7 +456,7 @@ const StoryDetailsPage = () => {
                 <div className="story-footer-nav">
                     {prevPartNumber ? (
                         <button
-                            onClick={() => setCurrentPartNumber(prevPartNumber)}
+                            onClick={() => goToPart(prevPartNumber)}
                             className="nav-btn prev-btn"
                         >
                             <ArrowLeft className="icon-sm" />
@@ -437,7 +469,7 @@ const StoryDetailsPage = () => {
                     {nextPartNumber ? (
                         <button
                             onClick={() => {
-                                setCurrentPartNumber(nextPartNumber);
+                                goToPart(nextPartNumber);
                                 setTimeout(() => {
                                     window.scrollTo({ top: 400, behavior: 'smooth' });
                                 }, 100);

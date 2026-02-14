@@ -38,7 +38,7 @@ const Stories = () => {
                         <article key={story.id} className="story-card">
                             <div className="story-content">
                                 <span className="story-category">{story.category}</span>
-                                <Link to={`/stories/${story.slug || story.id}`} style={{ textDecoration: 'none' }}>
+                                <Link to={`/stories/${story.slug || story.id}/part/1`} style={{ textDecoration: 'none' }}>
                                     <h3 className="story-title">{story.title}</h3>
                                 </Link>
                                 <p className="story-excerpt">
@@ -50,7 +50,7 @@ const Stories = () => {
                                     <span>{formatLongDate(story.date)}</span>
                                 </div>
 
-                                <Link to={`/stories/${story.slug || story.id}`} className="btn btn-sm btn-secondary read-more-btn">
+                                <Link to={`/stories/${story.slug || story.id}/part/1`} className="btn btn-sm btn-secondary read-more-btn">
                                     পড়া শুরু করুন
                                 </Link>
                             </div>
