@@ -99,11 +99,20 @@ const toStorySegment = (story) => {
     return segment || null;
 };
 
+const countNonEmptyParts = (value) => {
+    if (!Array.isArray(value)) return 0;
+    return value.reduce((total, entry) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return total;
+        const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+        const content = typeof entry.content === 'string' ? entry.content.trim() : '';
+        if (!title && !content) return total;
+        return total + 1;
+    }, 0);
+};
+
 const toStoryPartCount = (story) => {
     const meta = parseLegacyMeta(story?.excerpt);
-    const parts = Array.isArray(story?.parts) ? story.parts : null;
-    const metaParts = Array.isArray(meta?.parts) ? meta.parts : null;
-    const count = (parts?.length || 0) || (metaParts?.length || 0);
+    const count = countNonEmptyParts(story?.parts) || countNonEmptyParts(meta?.parts);
     return Math.max(1, count);
 };
 

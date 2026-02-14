@@ -80,6 +80,17 @@ const parsePositiveInt = (value, fallback) => {
     return parsed;
 };
 
+const countNonEmptyParts = (value) => {
+    if (!Array.isArray(value)) return 0;
+    return value.reduce((total, entry) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return total;
+        const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+        const content = typeof entry.content === 'string' ? entry.content.trim() : '';
+        if (!title && !content) return total;
+        return total + 1;
+    }, 0);
+};
+
 const fetchStoryByIdWithFallback = async (supabase, id) => {
     let lastError = null;
     for (const selectClause of STORY_SELECT_FALLBACKS) {
@@ -148,8 +159,8 @@ export default async function handler(req, res) {
             : '';
         const segment = rawSlug || metaSlug || generatedSlug || rawId || id;
 
-        const partsFromRow = Array.isArray(story?.parts) ? story.parts.length : 0;
-        const partsFromMeta = Array.isArray(meta?.parts) ? meta.parts.length : 0;
+        const partsFromRow = countNonEmptyParts(story?.parts);
+        const partsFromMeta = countNonEmptyParts(meta?.parts);
         const totalParts = Math.max(1, partsFromRow || partsFromMeta);
         const safePart = Math.min(partNumber, totalParts);
 
