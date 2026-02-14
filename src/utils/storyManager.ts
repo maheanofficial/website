@@ -101,6 +101,7 @@ type LegacyStoryMeta = {
     coverImage?: string;
     slug?: string;
     tags?: string[];
+    parts?: StoryPart[];
     comments?: number;
     isFeatured?: boolean;
     readTime?: string;
@@ -122,8 +123,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const toStringArray = (value: unknown): string[] =>
     Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 
+const toStoryParts = (value: unknown): StoryPart[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((entry) => {
+            if (!isRecord(entry)) return null;
+            const title = typeof entry.title === 'string' ? entry.title : '';
+            const content = typeof entry.content === 'string' ? entry.content : '';
+            const id = typeof entry.id === 'string' ? entry.id : undefined;
+            if (!title && !content) return null;
+            return { id, title, content };
+        })
+        .filter(Boolean) as StoryPart[];
+};
+
 const buildLegacyStoryMeta = (story: Story): LegacyStoryMeta => {
     const normalizedStatus = toStoryStatus(story.status);
+    const legacyParts = Array.isArray(story.parts) && story.parts.length > 1 ? story.parts : undefined;
     return {
         status: normalizedStatus,
         submittedBy: story.submittedBy || undefined,
@@ -132,6 +148,7 @@ const buildLegacyStoryMeta = (story: Story): LegacyStoryMeta => {
         coverImage: story.cover_image || story.image || undefined,
         slug: story.slug || undefined,
         tags: story.tags?.length ? story.tags : undefined,
+        parts: legacyParts,
         comments: typeof story.comments === 'number' ? story.comments : undefined,
         isFeatured: typeof story.is_featured === 'boolean' ? story.is_featured : undefined,
         readTime: story.readTime || undefined
@@ -176,6 +193,7 @@ const parseExcerptWithMeta = (excerpt?: string | null): { excerpt: string; meta:
             coverImage: typeof parsed.coverImage === 'string' ? parsed.coverImage : undefined,
             slug: typeof parsed.slug === 'string' ? parsed.slug : undefined,
             tags: toStringArray(parsed.tags),
+            parts: toStoryParts(parsed.parts),
             comments: typeof parsed.comments === 'number' ? parsed.comments : undefined,
             isFeatured: typeof parsed.isFeatured === 'boolean' ? parsed.isFeatured : undefined,
             readTime: typeof parsed.readTime === 'string' ? parsed.readTime : undefined
@@ -246,6 +264,8 @@ const mapRowToStory = (row: StoryRow): Story => {
         ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
         : [];
     const legacyMeta = parsedExcerpt.meta;
+    const legacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];
+    const parts = rowParts.length ? rowParts : (legacyParts.length ? legacyParts : fallbackParts);
 
     return {
         id: row.id,
@@ -262,7 +282,7 @@ const mapRowToStory = (row: StoryRow): Story => {
         category: row.category ?? row.category_id ?? legacyMeta?.category ?? undefined,
         cover_image: row.cover_image ?? legacyMeta?.coverImage ?? undefined,
         tags: rowTags.length ? rowTags : (legacyMeta?.tags ?? []),
-        parts: rowParts.length ? rowParts : fallbackParts,
+        parts,
         comments: row.comments ?? legacyMeta?.comments ?? 0,
         is_featured: row.is_featured ?? legacyMeta?.isFeatured ?? false,
         readTime: row.read_time ?? legacyMeta?.readTime ?? undefined,

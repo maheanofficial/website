@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X, Globe, Lock } from 'lucide-react';
 import './AdminStories.css';
 import { getAllStories, saveStory, deleteStory, type Story, type StoryPart } from '../../utils/storyManager';
@@ -26,6 +26,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [stories, setStories] = useState<Story[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit'>('list');
     const navigate = useNavigate();
+    const { id: routeStoryId } = useParams<{ id: string }>();
     const isAdmin = user?.role === 'admin';
     const defaultStatus: Story['status'] = isAdmin ? 'published' : 'pending';
     const serverSyncErrorMessage = 'Server sync failed. This post was not submitted for approval. Please login with email/Google and try again.';
@@ -111,6 +112,42 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     useEffect(() => {
         void loadData();
     }, [loadData]);
+
+    useEffect(() => {
+        if (initialViewMode !== 'edit') return;
+        if (!routeStoryId) return;
+        if (!stories.length) return;
+
+        const story = stories.find((entry) => entry.id === routeStoryId);
+        if (!story) return;
+
+        setEditingId(story.id);
+        setTitle(story.title);
+        setSlug(story.slug || '');
+        setCategory(story.category || story.categoryId || '');
+        setTags(story.tags || []);
+        setSelectedTagOption('');
+        setNewTagName('');
+        setNewCategoryName('');
+        setDescription(story.excerpt || '');
+        setCoverImage(story.cover_image || story.image || '');
+        setParts(story.parts || [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+        setStatus(story.status || defaultStatus);
+
+        const matchedAuthor = authors.find(author => author.id === story.authorId)
+            || authors.find(author => author.name === story.author);
+        if (matchedAuthor) {
+            setAuthorMode('existing');
+            setSelectedAuthorId(matchedAuthor.id);
+        } else {
+            setAuthorMode('new');
+            setSelectedAuthorId('');
+            setNewAuthorName(story.author || '');
+            setNewAuthorUsername('');
+            setNewAuthorBio('');
+            setNewAuthorAvatar('');
+        }
+    }, [initialViewMode, routeStoryId, stories, authors, defaultStatus]);
 
     useEffect(() => {
         if (viewMode !== 'create' || editingId) return;
@@ -416,36 +453,15 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     };
 
     const handleEdit = (story: Story) => {
-        setEditingId(story.id);
-        setTitle(story.title);
-        setSlug(story.slug || '');
-        setCategory(story.category || '');
-        setTags(story.tags || []);
-        setSelectedTagOption('');
-        setNewTagName('');
-        setNewCategoryName('');
-        setDescription(story.excerpt || '');
-        setCoverImage(story.cover_image || '');
-        setParts(story.parts || [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
-        setStatus(story.status || defaultStatus);
-        const matchedAuthor = authors.find(author => author.id === story.authorId)
-            || authors.find(author => author.name === story.author);
-        if (matchedAuthor) {
-            setAuthorMode('existing');
-            setSelectedAuthorId(matchedAuthor.id);
-        } else {
-            setAuthorMode('new');
-            setSelectedAuthorId('');
-            setNewAuthorName(story.author || '');
-            setNewAuthorUsername('');
-            setNewAuthorBio('');
-            setNewAuthorAvatar('');
-        }
         navigate(`/admin/dashboard/golpo/edit/${story.id}`);
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (viewMode === 'edit' && !editingId) {
+            alert('This story could not be loaded for editing. Please go back and open edit again.');
+            return;
+        }
         const existingStory = editingId ? stories.find(story => story.id === editingId) : null;
         const nextStatus: Story['status'] = isAdmin
             ? (status || existingStory?.status || 'published')
@@ -491,12 +507,12 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             cover_image: coverImage,
             parts,
             status: nextStatus,
-            date: new Date().toISOString(),
+            date: existingStory?.date || new Date().toISOString(),
             author: authorName,
             authorId: authorId,
             submittedBy: existingStory?.submittedBy || user?.id || undefined,
-            views: 0,
-            comments: 0,
+            views: existingStory?.views ?? 0,
+            comments: existingStory?.comments ?? 0,
             content: parts.map(p => p.content).join('\n'), // Legacy
             excerpt: description || parts[0]?.content.slice(0, 100) || ''
         };
