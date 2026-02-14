@@ -180,5 +180,81 @@ ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS image TEXT;
 
+-- 9. Storage Bucket for Uploaded Images (Supabase Storage)
+-- This project uploads images to Supabase Storage and stores the public URL in tables.
+-- Bucket name is used by the frontend (default: 'mahean-media').
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('mahean-media', 'mahean-media', true)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+-- Policies for storage.objects (idempotent via pg_policies checks)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE schemaname = 'storage'
+          AND tablename = 'objects'
+          AND policyname = 'Public read mahean media'
+    ) THEN
+        CREATE POLICY "Public read mahean media"
+            ON storage.objects
+            FOR SELECT
+            USING (bucket_id = 'mahean-media');
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE schemaname = 'storage'
+          AND tablename = 'objects'
+          AND policyname = 'Authenticated insert mahean media'
+    ) THEN
+        CREATE POLICY "Authenticated insert mahean media"
+            ON storage.objects
+            FOR INSERT
+            TO authenticated
+            WITH CHECK (bucket_id = 'mahean-media');
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE schemaname = 'storage'
+          AND tablename = 'objects'
+          AND policyname = 'Authenticated update mahean media'
+    ) THEN
+        CREATE POLICY "Authenticated update mahean media"
+            ON storage.objects
+            FOR UPDATE
+            TO authenticated
+            USING (bucket_id = 'mahean-media')
+            WITH CHECK (bucket_id = 'mahean-media');
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_policies
+        WHERE schemaname = 'storage'
+          AND tablename = 'objects'
+          AND policyname = 'Authenticated delete mahean media'
+    ) THEN
+        CREATE POLICY "Authenticated delete mahean media"
+            ON storage.objects
+            FOR DELETE
+            TO authenticated
+            USING (bucket_id = 'mahean-media');
+    END IF;
+END $$;
+
 -- Success message
 SELECT 'Database schema created successfully!' as message;

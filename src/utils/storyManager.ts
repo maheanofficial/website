@@ -140,7 +140,17 @@ const toStoryParts = (value: unknown): StoryPart[] => {
 
 const buildLegacyStoryMeta = (story: Story): LegacyStoryMeta => {
     const normalizedStatus = toStoryStatus(story.status);
-    const legacyParts = Array.isArray(story.parts) && story.parts.length > 1 ? story.parts : undefined;
+    const storyParts = Array.isArray(story.parts) ? story.parts : [];
+    const legacyParts = storyParts.length > 1
+        ? storyParts
+        : storyParts.length === 1 && storyParts[0]?.title?.trim()
+            ? [{
+                id: storyParts[0].id,
+                title: storyParts[0].title.trim(),
+                // Avoid duplicating long story content in excerpt meta for single-part stories.
+                content: ''
+            }]
+            : undefined;
     return {
         status: normalizedStatus,
         submittedBy: story.submittedBy || undefined,
@@ -265,7 +275,10 @@ const mapRowToStory = (row: StoryRow): Story => {
         ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
         : [];
     const legacyMeta = parsedExcerpt.meta;
-    const legacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];
+    const rawLegacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];
+    const legacyParts = rawLegacyParts.length === 1 && !rawLegacyParts[0].content && content
+        ? [{ ...rawLegacyParts[0], content }]
+        : rawLegacyParts;
     const parts = rowParts.length ? rowParts : (legacyParts.length ? legacyParts : fallbackParts);
     const resolvedSlug = (row.slug ?? legacyMeta?.slug ?? '').trim();
     const slugValue = resolvedSlug || slugify(row.title);

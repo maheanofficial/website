@@ -766,6 +766,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                                 value={newAuthorAvatar}
                                                 onChange={setNewAuthorAvatar}
                                                 isRound={true}
+                                                folder="authors/avatars"
                                             />
                                         </div>
                                         <div className="form-group">
@@ -922,6 +923,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 helperText="Recommended ratio: 16:9"
                                 variant="classic"
                                 containerClass="thumbnail-uploader-container w-full aspect-video"
+                                folder="stories/covers"
                             />
                             <div className="ai-divider">
                                 <span>or</span>

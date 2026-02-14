@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { Upload, X, Link as LinkIcon } from 'lucide-react';
+import { Loader2, Upload, X, Link as LinkIcon } from 'lucide-react';
 import SmartImage from './SmartImage';
+import { uploadImageToStorage } from '../utils/imageStorage';
 
 interface ImageUploadWidgetProps {
     label: string;
@@ -9,25 +10,49 @@ interface ImageUploadWidgetProps {
     onChange: (value: string) => void;
     placeholder?: string;
     isRound?: boolean;
+    folder?: string;
 }
 
-const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image", isRound = false }: ImageUploadWidgetProps) => {
+const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image", isRound = false, folder }: ImageUploadWidgetProps) => {
     const [showUrlInput, setShowUrlInput] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert("File size exceeds 2MB limit.");
-                return;
-            }
+    const readFileAsDataUrl = (file: File) =>
+        new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                onChange(base64);
-            };
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to read image file.'));
             reader.readAsDataURL(file);
+        });
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert("File size exceeds 2MB limit.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const uploaded = await uploadImageToStorage(file, { folder });
+            onChange(uploaded.url);
+        } catch (error) {
+            console.warn('Supabase storage upload failed; falling back to base64.', error);
+            try {
+                const base64 = await readFileAsDataUrl(file);
+                onChange(base64);
+            } catch (fallbackError) {
+                console.warn('Base64 fallback failed', fallbackError);
+                alert('Image upload failed. Please try again.');
+            }
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -65,14 +90,17 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="flex-1 btn btn-secondary text-sm flex items-center justify-center gap-2 py-2"
+                            disabled={isUploading}
                         >
-                            <Upload size={16} /> Upload Pic
+                            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                            {isUploading ? 'Uploading...' : 'Upload Pic'}
                         </button>
                         <button
                             type="button"
                             onClick={() => setShowUrlInput(!showUrlInput)}
                             className="btn btn-outline text-sm px-3"
                             title="Enter URL"
+                            disabled={isUploading}
                         >
                             <LinkIcon size={16} />
                         </button>

@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
-import { Upload, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Loader2, Upload, X } from 'lucide-react';
 import SmartImage from '../SmartImage';
+import { uploadImageToStorage } from '../../utils/imageStorage';
 import './ImageUploader.css';
 
 interface ImageUploaderProps {
@@ -11,6 +12,7 @@ interface ImageUploaderProps {
     isRound?: boolean;
     containerClass?: string;
     variant?: 'classic' | 'circle';
+    folder?: string;
 }
 
 const ImageUploader = ({
@@ -20,25 +22,60 @@ const ImageUploader = ({
     helperText,
     isRound = false,
     containerClass = '',
-    variant = 'circle'
+    variant = 'circle',
+    folder
 }: ImageUploaderProps) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [localPreview, setLocalPreview] = useState<string | null>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert("File size exceeds 2MB limit.");
-                return;
-            }
+    const readFileAsDataUrl = (file: File) =>
+        new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                onChange(base64);
-            };
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to read image file.'));
             reader.readAsDataURL(file);
+        });
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size exceeds 2MB limit.');
+            return;
+        }
+
+        const previewUrl = URL.createObjectURL(file);
+        setLocalPreview(previewUrl);
+        setIsUploading(true);
+
+        try {
+            const uploaded = await uploadImageToStorage(file, { folder });
+            onChange(uploaded.url);
+        } catch (error) {
+            console.warn('Supabase storage upload failed; falling back to base64.', error);
+            try {
+                const base64 = await readFileAsDataUrl(file);
+                onChange(base64);
+                alert(
+                    "Storage upload failed, so we saved this image as base64 inside the database (old behavior).\n\nTo store images as CDN URLs, create a Supabase Storage bucket named 'mahean-media' and allow authenticated uploads + public read."
+                );
+            } catch (fallbackError) {
+                console.warn('Base64 fallback failed', fallbackError);
+                alert('Image upload failed. Please try again.');
+            }
+        } finally {
+            setIsUploading(false);
+            setLocalPreview(null);
+            URL.revokeObjectURL(previewUrl);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
+
+    const previewValue = localPreview || value;
 
     return (
         <div className="w-full">
@@ -51,13 +88,17 @@ const ImageUploader = ({
             />
 
             <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`image-uploader ${isRound ? 'image-uploader--round' : 'image-uploader--rect'} ${containerClass}`}
+                onClick={() => {
+                    if (isUploading) return;
+                    fileInputRef.current?.click();
+                }}
+                className={`image-uploader ${isRound ? 'image-uploader--round' : 'image-uploader--rect'} ${isUploading ? 'image-uploader--uploading' : ''} ${containerClass}`}
+                aria-busy={isUploading}
             >
-                {value ? (
+                {previewValue ? (
                     <>
                         <SmartImage
-                            src={value}
+                            src={previewValue}
                             alt="Preview"
                             className="image-uploader__image"
                             isRound={isRound}
@@ -65,10 +106,17 @@ const ImageUploader = ({
                         <div className="image-uploader__overlay">
                             <Upload className="image-uploader__overlay-icon" size={32} />
                         </div>
+                        {isUploading ? (
+                            <div className="image-uploader__busy">
+                                <Loader2 className="image-uploader__spinner" size={28} />
+                                <span>Uploading...</span>
+                            </div>
+                        ) : null}
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
+                                setLocalPreview(null);
                                 onChange('');
                             }}
                             className="image-uploader__remove"
@@ -101,6 +149,12 @@ const ImageUploader = ({
                                 </div>
                             </>
                         )}
+                        {isUploading ? (
+                            <div className="image-uploader__busy">
+                                <Loader2 className="image-uploader__spinner" size={28} />
+                                <span>Uploading...</span>
+                            </div>
+                        ) : null}
                     </div>
                 )}
             </div>

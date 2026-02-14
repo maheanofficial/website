@@ -13,20 +13,13 @@ import AudioPlayer from '../components/AudioPlayer';
 import './StoryDetailsPage.css';
 
 const StoryDetailsPage = () => {
-    // Routes can be /stories/:id or /stories/:slug
-    // We also might want /stories/:slug/part/:partNumber in future, 
-    // but for now let's handle basic view and internal state for parts
+    // Routes can be /stories/:id/part/:partNumber or /stories/:slug/part/:partNumber
     const navigate = useNavigate();
     const location = useLocation();
     const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
     const [story, setStory] = useState<Story | null>(null);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentPartNumber, setCurrentPartNumber] = useState(() => {
-        const parsed = Number.parseInt(partNumber || '', 10);
-        if (!Number.isFinite(parsed) || parsed <= 0) return 1;
-        return parsed;
-    });
     const [showPartsList, setShowPartsList] = useState(false);
     const [readingProgress, setReadingProgress] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -98,15 +91,11 @@ const StoryDetailsPage = () => {
         const requestedPart = parseRequestedPartNumber(partNumber) ?? 1;
         const safePart = clamp(requestedPart, 1, totalParts);
 
-        if (currentPartNumber !== safePart) {
-            setCurrentPartNumber(safePart);
-        }
-
         const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`;
         if (decodeURI(location.pathname) !== decodeURI(desiredPath)) {
             navigate(desiredPath, { replace: true });
         }
-    }, [story, id, partNumber, location.pathname, navigate, currentPartNumber]);
+    }, [story, id, partNumber, location.pathname, navigate]);
 
     const goToPart = (nextPartNumber: number) => {
         if (!story) return;
@@ -138,7 +127,7 @@ const StoryDetailsPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, [id, currentPartNumber]);
+    }, [id, partNumber]);
 
     // Reading progress tracking
     useEffect(() => {
@@ -167,7 +156,7 @@ const StoryDetailsPage = () => {
 
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [currentPartNumber]);
+    }, [partNumber]);
 
     if (isLoading) {
         return (
@@ -200,7 +189,7 @@ const StoryDetailsPage = () => {
 
     const parts = story.parts ?? [];
     const totalParts = Math.max(1, parts.length);
-    const activePartNumber = clamp(currentPartNumber, 1, totalParts);
+    const activePartNumber = clamp(parseRequestedPartNumber(partNumber) ?? 1, 1, totalParts);
     const currentPart = parts[activePartNumber - 1] || parts[0];
 
     if (!currentPart) {

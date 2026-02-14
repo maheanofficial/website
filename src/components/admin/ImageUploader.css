@@ -4,6 +4,10 @@
     cursor: pointer;
 }
 
+.image-uploader--uploading {
+    cursor: progress;
+}
+
 .image-uploader--round {
     width: 120px;
     height: 120px;
@@ -41,6 +45,32 @@
 
 .image-uploader:hover .image-uploader__overlay {
     opacity: 1;
+}
+
+.image-uploader__busy {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.image-uploader__spinner {
+    animation: image-uploader-spin 1s linear infinite;
+}
+
+@keyframes image-uploader-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .image-uploader__remove {

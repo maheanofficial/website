@@ -98,3 +98,12 @@ Notes:
 - In production, ads render only when publisher ID + valid slot are configured.
 - In development, placeholder boxes are shown for easier placement checking.
 - Cookie notice is shown on public pages and links to Privacy Policy + Google Ad Settings.
+
+## Image Uploads (Supabase Storage)
+
+Admin image uploads (story covers, avatars, category images) are stored as **Supabase Storage public URLs** when a bucket is configured.
+
+- Default bucket: `mahean-media` (configurable via `VITE_SUPABASE_STORAGE_BUCKET`)
+- Required Storage policies: see `supabase-schema.sql` section "Storage Bucket for Uploaded Images"
+
+If Storage upload fails (bucket/policy/session issues), the UI falls back to storing the image as a base64 data URL in the database (legacy behavior).

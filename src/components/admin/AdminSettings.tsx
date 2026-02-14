@@ -104,6 +104,7 @@ const ProfilePanel = () => {
                         onChange={(value) => handleChange('avatar', value)}
                         isRound={true}
                         containerClass="settings-avatar-uploader"
+                        folder="profiles/avatars"
                     />
                     <span className="settings-avatar-note">প্রোফাইল ছবি আপলোড করুন</span>
                 </div>

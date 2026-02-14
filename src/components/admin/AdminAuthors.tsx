@@ -229,6 +229,7 @@ const AdminAuthors = () => {
                                 value={avatar}
                                 onChange={setAvatar}
                                 isRound={true}
+                                folder="authors/avatars"
                             />
                         </div>
                         <div className="form-group">
