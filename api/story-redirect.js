@@ -20,7 +20,7 @@ const SUPABASE_ANON_KEY = pickFirstEnv(
     'SUPABASE_ANON_KEY',
     'VITE_SUPABASE_ANON_KEY',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-) || '';
+) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA';
 
 const STORY_TABLE = 'stories';
 const STORY_SELECT_FALLBACKS = [
@@ -97,7 +97,8 @@ const fetchStoryByIdWithFallback = async (supabase, id) => {
 };
 
 export default async function handler(req, res) {
-    if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    const method = (req.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
         res.statusCode = 405;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end('Method Not Allowed');
@@ -157,4 +158,3 @@ export default async function handler(req, res) {
         res.end(`Redirect failed. ${(error && error.message) ? error.message : ''}`.trim());
     }
 }
-
