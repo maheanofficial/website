@@ -442,14 +442,35 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         });
     };
 
-    const updatePart = (id: string | undefined, field: 'title' | 'content', value: string) => {
-        if (!id) return;
-        setParts(prev => prev.map(part => (part.id === id ? { ...part, [field]: value } : part)));
+    const updatePart = (
+        id: string | undefined,
+        index: number,
+        field: 'title' | 'content',
+        value: string
+    ) => {
+        setParts((prev) =>
+            prev.map((part, idx) => {
+                const matches = (id && part.id) ? part.id === id : idx === index;
+                if (!matches) return part;
+                return {
+                    ...part,
+                    id: part.id || id || `${Date.now()}-${index + 1}`,
+                    [field]: value
+                };
+            })
+        );
     };
 
-    const removePart = (id: string | undefined) => {
-        if (!id) return;
-        setParts(prev => (prev.length > 1 ? prev.filter(part => part.id !== id) : prev));
+    const removePart = (id: string | undefined, index: number) => {
+        setParts((prev) => {
+            if (prev.length <= 1) return prev;
+            return prev.filter((part, idx) => {
+                if (id && part.id) {
+                    return part.id !== id;
+                }
+                return idx !== index;
+            });
+        });
     };
 
     const handleEdit = (story: Story) => {
@@ -883,27 +904,28 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                             </div>
 
                             {parts.map((part, index) => (
-                                <div key={part.id} className="part-editor">
+                                <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
                                         <input
                                             type="text"
                                             value={part.title}
-                                            onChange={e => updatePart(part.id, 'title', e.target.value)}
+                                            onChange={e => updatePart(part.id, index, 'title', e.target.value)}
                                             className="part-title-input"
                                             placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
                                         />
                                         <button
                                             type="button"
                                             className="remove-part-btn"
-                                            onClick={() => removePart(part.id)}
+                                            onClick={() => removePart(part.id, index)}
                                             disabled={parts.length === 1}
+                                            title={parts.length === 1 ? '\u0995\u09ae\u09aa\u0995\u09cd\u09b7\u09c7 \u09e7\u099f\u09bf \u09aa\u09b0\u09cd\u09ac \u09b0\u09be\u0996\u09a4\u09c7 \u09b9\u09ac\u09c7' : '\u09aa\u09b0\u09cd\u09ac \u09ae\u09c1\u099b\u09c1\u09a8'}
                                         >
                                             {'\u09ae\u09c1\u099b\u09c1\u09a8'}
                                         </button>
                                     </div>
                                     <textarea
                                         value={part.content}
-                                        onChange={e => updatePart(part.id, 'content', e.target.value)}
+                                        onChange={e => updatePart(part.id, index, 'content', e.target.value)}
                                         rows={6}
                                         className="form-textarea-flat resize-none"
                                         placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')} \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8....`}
