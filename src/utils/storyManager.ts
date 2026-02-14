@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { slugify } from './slugify';
 
 export interface StoryPart {
     id?: string;
@@ -266,6 +267,8 @@ const mapRowToStory = (row: StoryRow): Story => {
     const legacyMeta = parsedExcerpt.meta;
     const legacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];
     const parts = rowParts.length ? rowParts : (legacyParts.length ? legacyParts : fallbackParts);
+    const resolvedSlug = (row.slug ?? legacyMeta?.slug ?? '').trim();
+    const slugValue = resolvedSlug || slugify(row.title);
 
     return {
         id: row.id,
@@ -277,7 +280,7 @@ const mapRowToStory = (row: StoryRow): Story => {
         views: row.views ?? 0,
         image: row.image ?? row.cover_image ?? legacyMeta?.coverImage ?? undefined,
         date: row.date ?? row.created_at ?? new Date().toISOString(),
-        slug: row.slug ?? legacyMeta?.slug ?? undefined,
+        slug: slugValue || undefined,
         author: row.author ?? legacyMeta?.author ?? undefined,
         category: row.category ?? row.category_id ?? legacyMeta?.category ?? undefined,
         cover_image: row.cover_image ?? legacyMeta?.coverImage ?? undefined,

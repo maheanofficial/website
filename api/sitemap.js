@@ -37,12 +37,18 @@ const SUPABASE_ANON_KEY = pickFirstEnv(
 const STORY_TABLE = 'stories';
 const PUBLIC_STATUSES = new Set(['published', 'completed', 'ongoing']);
 const STORY_SELECT_FALLBACKS = [
-    'id, slug, status, date, updated_at',
-    'id, status, date, updated_at',
-    'id, date, updated_at',
+    'id, slug, title, excerpt, status, date, updated_at',
+    'id, slug, title, excerpt, status, date',
+    'id, slug, title, excerpt, date',
+    'id, title, excerpt, date',
+    'id, title, excerpt',
+    'id, title',
     'id'
 ];
 const TODAY = new Date().toISOString().slice(0, 10);
+
+const LEGACY_META_START = '__MAHEAN_META__:';
+const LEGACY_META_END = ':__MAHEAN_META_END__';
 
 const STATIC_ROUTES = [
     { path: '/', changefreq: 'weekly', priority: '1.0' },
@@ -77,13 +83,56 @@ const toDateOnly = (value) => {
 };
 
 const toStoryPath = (story) => {
+    const meta = parseLegacyMeta(story?.excerpt);
     const rawSlug = typeof story.slug === 'string' ? story.slug.trim() : '';
+    const metaSlug = typeof meta?.slug === 'string' ? meta.slug.trim() : '';
+    const generatedSlug = slugify(typeof story.title === 'string' ? story.title : '');
     const rawId = typeof story.id === 'string' || typeof story.id === 'number'
         ? String(story.id).trim()
         : '';
-    const segment = rawSlug || rawId;
+    const segment = rawSlug || metaSlug || generatedSlug || rawId;
     if (!segment) return null;
     return `/stories/${encodeURIComponent(segment)}`;
+};
+
+const parseLegacyMeta = (excerpt) => {
+    if (typeof excerpt !== 'string' || !excerpt.startsWith(LEGACY_META_START)) return null;
+    const markerEndIndex = excerpt.indexOf(LEGACY_META_END);
+    if (markerEndIndex < 0) return null;
+    const raw = excerpt.slice(LEGACY_META_START.length, markerEndIndex);
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+};
+
+const slugify = (value) => {
+    let text = String(value || '');
+    try {
+        text = text.normalize('NFKC');
+    } catch {
+        // ignore
+    }
+
+    const normalized = text
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-');
+
+    let cleaned = normalized;
+    try {
+        cleaned = cleaned.replace(/[^\p{L}\p{N}-]+/gu, '');
+    } catch {
+        cleaned = cleaned.replace(/[^\w-]+/g, '');
+    }
+
+    return cleaned
+        .replace(/-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
 };
 
 const isPublicStory = (story) => {

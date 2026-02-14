@@ -276,6 +276,47 @@ const normalizeExcerpt = (value) => {
   return raw.slice(markerEnd + LEGACY_META_END.length);
 };
 
+const parseLegacyMeta = (value) => {
+  const raw = String(value || '');
+  if (!raw.startsWith(LEGACY_META_START)) return null;
+  const markerEnd = raw.indexOf(LEGACY_META_END);
+  if (markerEnd < 0) return null;
+  const payload = raw.slice(LEGACY_META_START.length, markerEnd);
+  try {
+    const parsed = JSON.parse(payload);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const slugify = (value) => {
+  let text = String(value || '');
+  try {
+    text = text.normalize('NFKC');
+  } catch {
+    // ignore
+  }
+
+  const normalized = text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-');
+
+  let cleaned = normalized;
+  try {
+    cleaned = cleaned.replace(/[^\p{L}\p{N}-]+/gu, '');
+  } catch {
+    cleaned = cleaned.replace(/[^\w-]+/g, '');
+  }
+
+  return cleaned
+    .replace(/-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
+
 const setTitle = (html, title) =>
   html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
 
@@ -371,10 +412,14 @@ const isPublicStory = (story) => {
 };
 
 const toStoryPath = (story) => {
-  const slug =
-    typeof story.slug === 'string' && story.slug.trim() ? story.slug.trim() : String(story.id || '').trim();
-  if (!slug) return null;
-  return `/stories/${encodeURIComponent(slug)}`;
+  const meta = parseLegacyMeta(story?.excerpt);
+  const rawSlug = typeof story.slug === 'string' ? story.slug.trim() : '';
+  const metaSlug = typeof meta?.slug === 'string' ? meta.slug.trim() : '';
+  const generated = slugify(typeof story.title === 'string' ? story.title : '');
+  const fallbackId = String(story.id || '').trim();
+  const segment = rawSlug || metaSlug || generated || fallbackId;
+  if (!segment) return null;
+  return `/stories/${encodeURIComponent(segment)}`;
 };
 
 const fetchStoryRows = async () => {

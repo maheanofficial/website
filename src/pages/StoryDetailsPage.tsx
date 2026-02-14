@@ -75,6 +75,16 @@ const StoryDetailsPage = () => {
         };
     }, [id]);
 
+    // If the route uses numeric id but we have a slug, keep the URL clean (SEO/user friendly).
+    useEffect(() => {
+        if (!story || !id) return;
+        const storyId = String(story.id || '').trim();
+        const storySlug = (story.slug || '').trim();
+        if (storySlug && storyId && id === storyId && id !== storySlug) {
+            navigate(`/stories/${storySlug}`, { replace: true });
+        }
+    }, [story, id, navigate]);
+
     useEffect(() => {
         let isMounted = true;
         const loadAuthor = async () => {

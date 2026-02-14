@@ -5,6 +5,7 @@ import './AdminStories.css';
 import { getAllStories, saveStory, deleteStory, type Story, type StoryPart } from '../../utils/storyManager';
 import { getCategories, saveCategory, type Category } from '../../utils/categoryManager';
 import { getAllAuthors, saveAuthor, type Author } from '../../utils/authorManager';
+import { slugify } from '../../utils/slugify';
 import ImageUploader from './ImageUploader';
 import type { User } from '../../utils/userManager';
 
@@ -39,6 +40,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
+    const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
     const [category, setCategory] = useState('');
     const [tags, setTags] = useState<string[]>([]); // New Tags
     const [description, setDescription] = useState(''); // Maps to excerpt
@@ -81,6 +83,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const resetForm = useCallback(() => {
         setTitle('');
         setSlug('');
+        setIsSlugManuallyEdited(false);
         setCategory('');
         setTags([]);
         setSelectedTagOption('');
@@ -164,15 +167,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     // Auto-generate slug from title if empty
     useEffect(() => {
         if (viewMode === 'create' && title && !editingId) {
-            setSlug(slugify(title));
+            if (!isSlugManuallyEdited) {
+                setSlug(slugify(title));
+            }
         }
-    }, [title, viewMode, editingId]);
-
-    const slugify = (value: string) => value
-        .toLowerCase()
-        .trim()
-        .replace(/ /g, '-')
-        .replace(/[^\w-]+/g, '');
+    }, [title, viewMode, editingId, isSlugManuallyEdited]);
 
     const resolveCoverAuthor = () => {
         if (authorMode === 'existing' && selectedAuthorId) {
@@ -508,12 +507,26 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             : 'pending';
         const normalizedCategory = normalizeText(category);
         const normalizedTags = dedupeAndSort(tags);
+        const storyId = editingId || Date.now().toString();
         const normalizedParts = parts.map((part, index) => ({
             ...part,
             id: part.id || `${Date.now()}-${index + 1}`,
             title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
             content: part.content ?? ''
         }));
+        const baseSlug = slug.trim() ? slug : title;
+        let normalizedSlug = slugify(baseSlug);
+        if (!normalizedSlug) {
+            normalizedSlug = slugify(title);
+        }
+        if (normalizedSlug) {
+            const hasConflict = stories.some((entry) =>
+                entry.id !== storyId && slugify(entry.slug || '') === normalizedSlug
+            );
+            if (hasConflict) {
+                normalizedSlug = `${normalizedSlug}-${storyId.slice(-5)}`;
+            }
+        }
         let authorName = existingStory?.author || user?.displayName || 'Admin';
         let authorId = existingStory?.authorId || user?.id || 'admin';
 
@@ -544,9 +557,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
 
         const newStory: Story = {
-            id: editingId || Date.now().toString(),
+            id: storyId,
             title,
-            slug,
+            slug: normalizedSlug || undefined,
             category: normalizedCategory,
             categoryId: normalizedCategory, // Using name as ID for now
             tags: normalizedTags,
@@ -651,23 +664,27 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                             <div className="form-group">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="form-label-flat !mb-0">Slug</label>
-                                    <button type="button" className="btn-auto-slug" onClick={() => {
-                                        if (title) {
-                                            setSlug(slugify(title));
-                                        }
-                                    }}>
-                                        <Sparkles size={12} /> Auto-Generate Slug
-                                    </button>
+                                     <button type="button" className="btn-auto-slug" onClick={() => {
+                                         if (title) {
+                                             setSlug(slugify(title));
+                                            setIsSlugManuallyEdited(false);
+                                         }
+                                     }}>
+                                         <Sparkles size={12} /> Auto-Generate Slug
+                                     </button>
                                 </div>
-                                <input
-                                    type="text"
-                                    value={slug}
-                                    onChange={e => setSlug(e.target.value)}
-                                    className="form-input-flat"
-                                    placeholder="e.g., ek-samudro-prem"
-                                />
-                            </div>
-                        </div>
+                                 <input
+                                     type="text"
+                                     value={slug}
+                                    onChange={(e) => {
+                                        setSlug(e.target.value);
+                                        setIsSlugManuallyEdited(true);
+                                    }}
+                                     className="form-input-flat"
+                                     placeholder="e.g., ek-samudro-prem"
+                                 />
+                             </div>
+                         </div>
 
                         {/* Author Section */}
                         <div className="mb-8">
@@ -1053,13 +1070,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 <div className="col-parts cell-text">{story.parts?.length || 0}</div>
                                 <div className="col-created cell-text text-gray-400">{new Date(story.date).toLocaleDateString()}</div>
                                 <div className="col-actions flex gap-2 justify-end">
-                                    <button
-                                        className="action-btn"
-                                        title="View"
-                                        onClick={() => window.open(`/stories/${story.id}`, '_blank')}
-                                    >
-                                        <Eye size={16} />
-                                    </button>
+                                     <button
+                                         className="action-btn"
+                                         title="View"
+                                         onClick={() => window.open(`/stories/${story.slug || story.id}`, '_blank')}
+                                     >
+                                         <Eye size={16} />
+                                     </button>
                                     <button className="action-btn" onClick={() => handleEdit(story)} title="Edit"><Edit size={16} /></button>
                                     <button
                                         className="action-btn"
