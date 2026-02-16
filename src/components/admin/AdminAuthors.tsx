@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trash2, Plus, Users, Edit2, X, Sparkles } from 'lucide-react';
 
 import { getAllAuthors, saveAuthor, deleteAuthor, type Author } from '../../utils/authorManager';
@@ -8,7 +7,7 @@ import SmartImage from '../SmartImage';
 
 const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
-    const navigate = useNavigate();
+    const latestLoadIdRef = useRef(0);
 
     // Form state
     const [name, setName] = useState('');
@@ -18,30 +17,38 @@ const AdminAuthors = () => {
     const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        const loadAuthors = async () => {
-            const data = await getAllAuthors();
+    const refreshAuthors = useCallback(async () => {
+        const loadId = latestLoadIdRef.current + 1;
+        latestLoadIdRef.current = loadId;
+        const data = await getAllAuthors();
+        // Ignore stale responses to prevent older loads from overwriting recent saves.
+        if (latestLoadIdRef.current === loadId) {
             setAuthors(data);
-        };
-        void loadAuthors();
+        }
     }, []);
+
+    useEffect(() => {
+        void refreshAuthors();
+    }, [refreshAuthors]);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !username) return;
+        const trimmedName = name.trim();
+        const trimmedUsername = username.trim();
+        if (!trimmedName || !trimmedUsername) return;
         const isEditing = Boolean(editingId);
 
         const newAuthor: Author = {
             id: editingId || Date.now().toString(),
-            name,
-            username,
-            bio,
+            name: trimmedName,
+            username: trimmedUsername,
+            bio: bio.trim(),
             avatar: avatar || 'https://via.placeholder.com/150',
             links
         };
 
-        const nextAuthors = await saveAuthor(newAuthor);
-        setAuthors(nextAuthors);
+        await saveAuthor(newAuthor);
+        await refreshAuthors();
 
         // Reset
         setEditingId(null);
@@ -52,7 +59,7 @@ const AdminAuthors = () => {
         setLinks([]);
 
         if (!isEditing) {
-            navigate('/authors');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -92,7 +99,7 @@ const AdminAuthors = () => {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this author?')) {
             await deleteAuthor(id);
-            setAuthors(await getAllAuthors());
+            await refreshAuthors();
         }
     };
 
