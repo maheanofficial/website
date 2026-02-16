@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Trash2, Plus, Users, Edit2, X, Sparkles } from 'lucide-react';
+import { Trash2, Plus, Users, Edit2, X, Sparkles, Search } from 'lucide-react';
 
 import { getAllAuthors, saveAuthor, deleteAuthor, type Author } from '../../utils/authorManager';
 import ImageUploader from './ImageUploader';
@@ -9,6 +9,7 @@ const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
     const latestLoadIdRef = useRef(0);
     const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Form state
     const [name, setName] = useState('');
@@ -31,6 +32,18 @@ const AdminAuthors = () => {
     useEffect(() => {
         void refreshAuthors();
     }, [refreshAuthors]);
+
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const filteredAuthors = normalizedSearchTerm
+        ? authors.filter((author) => {
+            const name = author.name?.toLowerCase() || '';
+            const usernameValue = author.username?.toLowerCase() || '';
+            const bioValue = author.bio?.toLowerCase() || '';
+            return name.includes(normalizedSearchTerm)
+                || usernameValue.includes(normalizedSearchTerm)
+                || bioValue.includes(normalizedSearchTerm);
+        })
+        : authors;
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,8 +70,10 @@ const AdminAuthors = () => {
                 links
             };
 
-            await saveAuthor(newAuthor);
-            await refreshAuthors();
+            const nextAuthors = await saveAuthor(newAuthor);
+            setAuthors(nextAuthors);
+            void refreshAuthors();
+            setSearchTerm('');
             setStatus({
                 type: 'success',
                 message: editingId ? 'Author updated successfully.' : 'Author created successfully.'
@@ -99,6 +114,7 @@ const AdminAuthors = () => {
         setBio('');
         setAvatar('');
         setLinks([]);
+        setSearchTerm('');
         setStatus(null);
     };
 
@@ -134,13 +150,28 @@ const AdminAuthors = () => {
                 {/* List */}
                 <div className="admin-card">
                     <h3 className="card-title">Authors List</h3>
+                    <div className="mb-3 flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search by name, username, or bio"
+                                className="form-input pl-9"
+                            />
+                        </div>
+                        <span className="item-meta whitespace-nowrap">
+                            {filteredAuthors.length}/{authors.length}
+                        </span>
+                    </div>
                     {status && (
                         <p className={`mb-3 text-sm ${status.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
                             {status.message}
                         </p>
                     )}
-                    <div className="author-list">
-                        {authors.map(author => (
+                    <div className="author-list story-list-scroll">
+                        {filteredAuthors.map(author => (
                             <div key={author.id} className="list-item">
                                 <div className="list-item-avatar">
                                     <SmartImage src={author.avatar} alt={author.name} className="w-full h-full object-cover" isRound={true} showFullText={true} />
@@ -161,6 +192,13 @@ const AdminAuthors = () => {
                                 </div>
                             </div>
                         ))}
+                        {filteredAuthors.length === 0 && (
+                            <div className="text-center py-8 text-gray-500 text-sm">
+                                {searchTerm.trim()
+                                    ? `No author found for "${searchTerm}".`
+                                    : 'No authors found.'}
+                            </div>
+                        )}
                     </div>
                 </div>
 

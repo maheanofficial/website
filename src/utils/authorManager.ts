@@ -143,6 +143,7 @@ const mapAuthorToRow = (author: Author) => {
 };
 
 let inMemoryAuthorsCache: Author[] = [];
+let hasAttemptedRemoteBackfill = false;
 
 const storeAuthors = (authors: Author[]) => {
     const normalized = sortAuthors(authors.map(normalizeAuthor));
@@ -286,6 +287,17 @@ const getLocalAuthors = (): Author[] => {
     }
 };
 
+const backfillAuthorsToRemote = async (authors: Author[]) => {
+    for (const author of authors) {
+        const result = await upsertAuthorRowWithColumnFallback(mapAuthorToRow(author));
+        if (result.error) {
+            console.warn('Supabase author backfill failed', result.error);
+            return false;
+        }
+    }
+    return true;
+};
+
 export const getAllAuthors = async (): Promise<Author[]> => {
     const localAuthors = getLocalAuthors();
     try {
@@ -297,7 +309,13 @@ export const getAllAuthors = async (): Promise<Author[]> => {
         if (error) throw error;
 
         const authors = (data || []).map(mapRowToAuthor);
-        const merged = sortAuthors(mergeAuthors(authors, localAuthors));
+
+        if (authors.length === 0 && localAuthors.length > 0 && !hasAttemptedRemoteBackfill) {
+            hasAttemptedRemoteBackfill = true;
+            await backfillAuthorsToRemote(localAuthors);
+        }
+
+        const merged = sortAuthors(mergeAuthors(authors.length ? authors : localAuthors, localAuthors));
         storeAuthors(merged);
         return merged;
     } catch (error) {

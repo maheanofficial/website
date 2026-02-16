@@ -199,6 +199,13 @@ const AdminPage = () => {
                             <Users size={18} />
                             <span>{'\u09b2\u09c7\u0996\u0995'}</span>
                         </Link>
+                        <Link
+                            to="/admin/dashboard/trash"
+                            className={`sidebar-item ${activeTab === 'trash' ? 'active' : ''}`}
+                        >
+                            <Trash2 size={18} />
+                            <span>Trash</span>
+                        </Link>
                     </nav>
                 </div>
 
@@ -219,13 +226,6 @@ const AdminPage = () => {
                             >
                                 <UserPlus size={18} />
                                 <span>Users</span>
-                            </Link>
-                            <Link
-                                to="/admin/dashboard/trash"
-                                className={`sidebar-item ${activeTab === 'trash' ? 'active' : ''}`}
-                            >
-                                <Trash2 size={18} />
-                                <span>Trash</span>
                             </Link>
                         </nav>
                     </div>
@@ -285,10 +285,7 @@ const AdminPage = () => {
                             path="/users"
                             element={isAdmin ? <AdminUsers currentUser={currentUser} /> : <Navigate to="/admin/dashboard" replace />}
                         />
-                        <Route
-                            path="/trash"
-                            element={isAdmin ? <AdminTrash /> : <Navigate to="/admin/dashboard" replace />}
-                        />
+                        <Route path="/trash" element={<AdminTrash />} />
                         <Route path="/profile" element={<AdminProfile />} />
                         <Route path="/settings/*" element={<AdminSettings />} />
                         {/* Fallback */}
