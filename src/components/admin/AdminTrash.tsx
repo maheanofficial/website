@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
-import { getTrashItems, restoreFromTrash, permanentDelete, emptyTrash, type TrashItem } from '../../utils/trashManager';
+import {
+    getTrashItems,
+    restoreFromTrash,
+    permanentDelete,
+    emptyTrash,
+    TRASH_RETENTION_DAYS,
+    type TrashItem
+} from '../../utils/trashManager';
 import { restoreStory, type Story } from '../../utils/storyManager';
 import { restoreAuthor, type Author } from '../../utils/authorManager';
 import { restoreCategory, type Category } from '../../utils/categoryManager';
@@ -74,6 +81,9 @@ const AdminTrash = () => {
             </div>
 
             <div className="admin-card full-width">
+                <p className="text-sm text-gray-400 mb-4">
+                    Items stay in trash for {TRASH_RETENTION_DAYS} days and are then removed automatically.
+                </p>
                 <h3 className="card-title">Deleted Items ({trashItems.length})</h3>
 
                 {trashItems.length === 0 ? (

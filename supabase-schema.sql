@@ -122,9 +122,41 @@ CREATE INDEX IF NOT EXISTS idx_stories_author ON stories(author_id);
 CREATE INDEX IF NOT EXISTS idx_stories_category ON stories(category_id);
 CREATE INDEX IF NOT EXISTS idx_stories_date ON stories(date DESC);
 CREATE INDEX IF NOT EXISTS idx_trash_type ON trash(type);
+CREATE INDEX IF NOT EXISTS idx_trash_deleted_at ON trash(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_timestamp ON activity_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_login_history_timestamp ON login_history(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_date ON analytics_daily(date DESC);
+
+-- Auto-clean trash items older than 30 days.
+CREATE OR REPLACE FUNCTION cleanup_expired_trash()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM trash
+    WHERE deleted_at < NOW() - INTERVAL '30 days';
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION cleanup_expired_trash_on_write()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    PERFORM cleanup_expired_trash();
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trash_cleanup_on_write ON trash;
+CREATE TRIGGER trash_cleanup_on_write
+AFTER INSERT OR UPDATE ON trash
+FOR EACH STATEMENT
+EXECUTE FUNCTION cleanup_expired_trash_on_write();
 
 -- Enable Row Level Security (RLS) - Optional but recommended
 ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
