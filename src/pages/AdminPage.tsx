@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus, Trash2 } from 'lucide-react';
 import './AdminPage.css';
 import AdminStories from '../components/admin/AdminStories';
 import AdminAuthors from '../components/admin/AdminAuthors';
@@ -9,6 +9,7 @@ import AdminProfile from '../components/admin/AdminProfile';
 import DashboardAnalytics from '../components/admin/DashboardAnalytics';
 import AdminApprovals from '../components/admin/AdminApprovals';
 import AdminUsers from '../components/admin/AdminUsers';
+import AdminTrash from '../components/admin/AdminTrash';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
 import type { User } from '../utils/userManager';
 
@@ -83,6 +84,7 @@ const AdminPage = () => {
         if (path.includes('/authors')) return 'authors';
         if (path.includes('/approvals')) return 'approvals';
         if (path.includes('/users')) return 'users';
+        if (path.includes('/trash')) return 'trash';
         if (path.includes('/settings')) return 'settings';
         if (path.includes('/profile')) return 'profile';
         return '';
@@ -110,6 +112,8 @@ const AdminPage = () => {
             crumbs.push({ label: 'Approvals', path: '/admin/dashboard/approvals', icon: undefined });
         } else if (path.includes('/users')) {
             crumbs.push({ label: 'Users', path: '/admin/dashboard/users', icon: undefined });
+        } else if (path.includes('/trash')) {
+            crumbs.push({ label: 'Trash', path: '/admin/dashboard/trash', icon: undefined });
         } else if (path.includes('/settings')) {
             crumbs.push({ label: 'সেটিংস', path: '/admin/dashboard/settings/profile', icon: undefined });
             if (path.includes('/password')) {
@@ -216,6 +220,13 @@ const AdminPage = () => {
                                 <UserPlus size={18} />
                                 <span>Users</span>
                             </Link>
+                            <Link
+                                to="/admin/dashboard/trash"
+                                className={`sidebar-item ${activeTab === 'trash' ? 'active' : ''}`}
+                            >
+                                <Trash2 size={18} />
+                                <span>Trash</span>
+                            </Link>
                         </nav>
                     </div>
                 )}
@@ -273,6 +284,10 @@ const AdminPage = () => {
                         <Route
                             path="/users"
                             element={isAdmin ? <AdminUsers currentUser={currentUser} /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="/trash"
+                            element={isAdmin ? <AdminTrash /> : <Navigate to="/admin/dashboard" replace />}
                         />
                         <Route path="/profile" element={<AdminProfile />} />
                         <Route path="/settings/*" element={<AdminSettings />} />
