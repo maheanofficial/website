@@ -8,6 +8,7 @@ import SmartImage from '../SmartImage';
 const AdminAuthors = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
     const latestLoadIdRef = useRef(0);
+    const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Form state
     const [name, setName] = useState('');
@@ -37,18 +38,36 @@ const AdminAuthors = () => {
         const trimmedUsername = username.trim();
         if (!trimmedName || !trimmedUsername) return;
         const isEditing = Boolean(editingId);
+        const duplicateUsername = authors.find((author) =>
+            author.id !== editingId
+            && author.username?.trim().toLowerCase() === trimmedUsername.toLowerCase()
+        );
+        if (duplicateUsername) {
+            setStatus({ type: 'error', message: `Username "${trimmedUsername}" already exists.` });
+            return;
+        }
 
-        const newAuthor: Author = {
-            id: editingId || Date.now().toString(),
-            name: trimmedName,
-            username: trimmedUsername,
-            bio: bio.trim(),
-            avatar: avatar || 'https://via.placeholder.com/150',
-            links
-        };
+        try {
+            const newAuthor: Author = {
+                id: editingId || Date.now().toString(),
+                name: trimmedName,
+                username: trimmedUsername,
+                bio: bio.trim(),
+                avatar: avatar || 'https://via.placeholder.com/150',
+                links
+            };
 
-        await saveAuthor(newAuthor);
-        await refreshAuthors();
+            await saveAuthor(newAuthor);
+            await refreshAuthors();
+            setStatus({
+                type: 'success',
+                message: editingId ? 'Author updated successfully.' : 'Author created successfully.'
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to save author.';
+            setStatus({ type: 'error', message });
+            return;
+        }
 
         // Reset
         setEditingId(null);
@@ -80,6 +99,7 @@ const AdminAuthors = () => {
         setBio('');
         setAvatar('');
         setLinks([]);
+        setStatus(null);
     };
 
     const addLink = () => {
@@ -100,6 +120,7 @@ const AdminAuthors = () => {
         if (window.confirm('Are you sure you want to delete this author?')) {
             await deleteAuthor(id);
             await refreshAuthors();
+            setStatus({ type: 'success', message: 'Author deleted.' });
         }
     };
 
@@ -113,6 +134,11 @@ const AdminAuthors = () => {
                 {/* List */}
                 <div className="admin-card">
                     <h3 className="card-title">Authors List</h3>
+                    {status && (
+                        <p className={`mb-3 text-sm ${status.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {status.message}
+                        </p>
+                    )}
                     <div className="author-list">
                         {authors.map(author => (
                             <div key={author.id} className="list-item">
@@ -121,7 +147,9 @@ const AdminAuthors = () => {
                                 </div>
                                 <div className="list-item-info">
                                     <span className="item-name">{author.name}</span>
-                                    <span className="item-meta">@{author.username}</span>
+                                    <span className="item-meta">
+                                        {author.username ? `@${author.username}` : 'No username'}
+                                    </span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => handleEdit(author)} className="icon-btn edit text-indigo-400 hover:text-indigo-300">

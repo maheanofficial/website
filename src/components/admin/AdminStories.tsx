@@ -549,8 +549,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 avatar: newAuthorAvatar || undefined,
                 links: []
             };
-            await saveAuthor(newAuthor);
-            setAuthors(prev => [...prev, newAuthor]);
+            const nextAuthors = await saveAuthor(newAuthor);
+            setAuthors(nextAuthors);
             setSelectedAuthorId(newAuthor.id);
             authorName = newAuthor.name;
             authorId = newAuthor.id;

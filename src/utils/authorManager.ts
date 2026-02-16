@@ -21,19 +21,98 @@ type AuthorRow = {
     links?: unknown;
 };
 
+type SupabaseErrorLike = {
+    code?: string;
+    message?: string;
+};
+
+const MISSING_COLUMN_REGEX = /Could not find the '([^']+)' column/i;
+const unsupportedAuthorColumns = new Set<string>();
+
 const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
-const authorKey = (author: Author) => author.id || author.username || author.name;
+
+const normalizeKey = (value?: string | null) => (value ?? '').trim().toLowerCase();
+
+const normalizeAuthor = (author: Author): Author => ({
+    id: author.id.trim(),
+    name: author.name.trim(),
+    bio: author.bio?.trim() || undefined,
+    avatar: author.avatar?.trim() || undefined,
+    username: author.username?.trim() || undefined,
+    links: toArray<{ name: string; url: string }>(author.links)
+        .map((link) => ({
+            name: typeof link?.name === 'string' ? link.name.trim() : '',
+            url: typeof link?.url === 'string' ? link.url.trim() : ''
+        }))
+        .filter((link) => Boolean(link.name || link.url))
+});
+
+const authorKey = (author: Author) => {
+    const idKey = normalizeKey(author.id);
+    if (idKey) return `id:${idKey}`;
+    const usernameKey = normalizeKey(author.username);
+    if (usernameKey) return `username:${usernameKey}`;
+    return `name:${normalizeKey(author.name)}`;
+};
+
+const extractMissingAuthorColumn = (error: unknown): string | null => {
+    const candidate = error as SupabaseErrorLike | null;
+    if (!candidate || typeof candidate !== 'object') return null;
+    if (candidate.code !== 'PGRST204' || typeof candidate.message !== 'string') return null;
+    const match = candidate.message.match(MISSING_COLUMN_REGEX);
+    return match?.[1] ?? null;
+};
+
+const upsertAuthorRowWithColumnFallback = async (row: Record<string, unknown>) => {
+    const payload: Record<string, unknown> = { ...row };
+    unsupportedAuthorColumns.forEach((columnName) => {
+        delete payload[columnName];
+    });
+
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+        const { error } = await supabase
+            .from(AUTHOR_TABLE)
+            .upsert(payload, { onConflict: 'id' });
+
+        if (!error) {
+            return { error: null };
+        }
+
+        lastError = error;
+        const missingColumn = extractMissingAuthorColumn(error);
+        if (!missingColumn || !(missingColumn in payload)) {
+            break;
+        }
+
+        unsupportedAuthorColumns.add(missingColumn);
+        delete payload[missingColumn];
+    }
+
+    return { error: lastError };
+};
 
 const mergeAuthors = (primary: Author[], secondary: Author[]) => {
     const map = new Map<string, Author>();
     primary.forEach(author => {
-        map.set(authorKey(author), author);
+        const normalized = normalizeAuthor(author);
+        map.set(authorKey(normalized), normalized);
     });
     secondary.forEach(author => {
-        const key = authorKey(author);
-        if (!map.has(key)) {
-            map.set(key, author);
+        const normalized = normalizeAuthor(author);
+        const key = authorKey(normalized);
+        const existing = map.get(key);
+        if (!existing) {
+            map.set(key, normalized);
+            return;
         }
+        map.set(key, {
+            ...existing,
+            bio: existing.bio || normalized.bio,
+            avatar: existing.avatar || normalized.avatar,
+            username: existing.username || normalized.username,
+            links: existing.links?.length ? existing.links : normalized.links
+        });
     });
     return Array.from(map.values());
 };
@@ -41,33 +120,54 @@ const mergeAuthors = (primary: Author[], secondary: Author[]) => {
 const sortAuthors = (authors: Author[]) =>
     [...authors].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'bn'));
 
-const mapRowToAuthor = (row: AuthorRow): Author => ({
-    id: row.id,
-    name: row.name,
-    bio: row.bio ?? undefined,
-    avatar: row.avatar ?? undefined,
-    username: row.username ?? undefined,
-    links: toArray<{ name: string; url: string }>(row.links)
-});
+const mapRowToAuthor = (row: AuthorRow): Author =>
+    normalizeAuthor({
+        id: row.id,
+        name: row.name,
+        bio: row.bio ?? undefined,
+        avatar: row.avatar ?? undefined,
+        username: row.username ?? undefined,
+        links: toArray<{ name: string; url: string }>(row.links)
+    });
 
-const mapAuthorToRow = (author: Author) => ({
-    id: author.id,
-    name: author.name,
-    bio: author.bio ?? null,
-    avatar: author.avatar ?? null,
-    username: author.username ?? null,
-    links: author.links ?? []
-});
+const mapAuthorToRow = (author: Author) => {
+    const normalized = normalizeAuthor(author);
+    return {
+        id: normalized.id,
+        name: normalized.name,
+        bio: normalized.bio ?? null,
+        avatar: normalized.avatar ?? null,
+        username: normalized.username ?? null,
+        links: normalized.links ?? []
+    };
+};
+
+let inMemoryAuthorsCache: Author[] = [];
 
 const storeAuthors = (authors: Author[]) => {
+    const normalized = sortAuthors(authors.map(normalizeAuthor));
+    inMemoryAuthorsCache = normalized;
     if (typeof window === 'undefined') return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(authors));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    } catch (error) {
+        console.warn('Failed to persist authors in localStorage; using memory cache.', error);
+    }
 };
 
 const getLocalAuthors = (): Author[] => {
-    if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem(STORAGE_KEY);
+    if (typeof window === 'undefined') return inMemoryAuthorsCache;
+    let stored: string | null = null;
+    try {
+        stored = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+        console.warn('Failed to read authors from localStorage; using memory cache.', error);
+        return inMemoryAuthorsCache;
+    }
     if (!stored) {
+        if (inMemoryAuthorsCache.length > 0) {
+            return inMemoryAuthorsCache;
+        }
         const initialAuthors: Author[] = [
             {
                 id: '1',
@@ -156,7 +256,34 @@ const getLocalAuthors = (): Author[] => {
         storeAuthors(initialAuthors);
         return initialAuthors;
     }
-    return JSON.parse(stored);
+    try {
+        const parsed = JSON.parse(stored) as unknown;
+        if (!Array.isArray(parsed)) {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (removeError) {
+                console.warn('Failed to clear invalid authors cache.', removeError);
+            }
+            return getLocalAuthors();
+        }
+        const normalized = parsed
+            .filter((entry): entry is Author => {
+                if (!entry || typeof entry !== 'object') return false;
+                const maybeAuthor = entry as Partial<Author>;
+                return typeof maybeAuthor.id === 'string' && typeof maybeAuthor.name === 'string';
+            })
+            .map((author) => normalizeAuthor(author));
+        inMemoryAuthorsCache = normalized;
+        return normalized;
+    } catch (error) {
+        console.warn('Failed to parse authors cache; resetting.', error);
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (removeError) {
+            console.warn('Failed to clear invalid authors cache.', removeError);
+        }
+        return getLocalAuthors();
+    }
 };
 
 export const getAllAuthors = async (): Promise<Author[]> => {
@@ -186,40 +313,47 @@ export const getAuthorById = async (id: string): Promise<Author | null> => {
 
 export const getAuthorByName = async (name: string): Promise<Author | null> => {
     const authors = await getAllAuthors();
-    return authors.find(a => a.name === name || a.username === name) || null;
+    const needle = normalizeKey(name);
+    return authors.find(a => normalizeKey(a.name) === needle || normalizeKey(a.username) === needle) || null;
 };
 
 export const saveAuthor = async (author: Author) => {
+    const normalizedAuthor = normalizeAuthor(author);
+    if (!normalizedAuthor.id || !normalizedAuthor.name) {
+        return getLocalAuthors();
+    }
+
     const authors = getLocalAuthors();
-    const existingIndex = authors.findIndex(a => a.id === author.id);
+    const existingIndex = authors.findIndex((entry) => {
+        if (entry.id === normalizedAuthor.id) return true;
+        if (normalizedAuthor.username && normalizeKey(entry.username) === normalizeKey(normalizedAuthor.username)) return true;
+        return false;
+    });
 
     if (existingIndex >= 0) {
-        authors[existingIndex] = author;
+        authors[existingIndex] = normalizedAuthor;
     } else {
-        authors.push(author);
+        authors.push(normalizedAuthor);
     }
 
     const nextAuthors = sortAuthors(authors);
     storeAuthors(nextAuthors);
 
     try {
-        const { error } = await supabase
-            .from(AUTHOR_TABLE)
-            .upsert(mapAuthorToRow(author), { onConflict: 'id' });
-        if (error) throw error;
+        const result = await upsertAuthorRowWithColumnFallback(mapAuthorToRow(normalizedAuthor));
+        if (result.error) throw result.error;
     } catch (error) {
         console.warn('Supabase author upsert failed', error);
     }
 
     const { logActivity } = await import('./activityLogManager');
-    await logActivity('create', 'author', `Saved author: ${author.name}`);
+    const action = existingIndex >= 0 ? 'update' : 'create';
+    await logActivity(action, 'author', `${action === 'create' ? 'Created' : 'Updated'} author: ${normalizedAuthor.name}`);
     return nextAuthors;
 };
 
 export const updateAuthor = async (author: Author) => {
     await saveAuthor(author);
-    const { logActivity } = await import('./activityLogManager');
-    await logActivity('update', 'author', `Updated author: ${author.name}`);
 };
 
 export const deleteAuthor = async (id: string) => {
