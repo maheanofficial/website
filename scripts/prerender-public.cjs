@@ -4,7 +4,8 @@ const path = require('node:path');
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const DIST_INDEX = path.join(DIST_DIR, 'index.html');
-const DEFAULT_SITE_URL = 'https://mahean.com';
+const STORIES_TABLE_PATH = path.join(ROOT_DIR, 'data', 'table-stories.json');
+const DEFAULT_SITE_URL = 'https://www.mahean.com';
 const BUILD_MODE = process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
 const parseEnvLine = (line) => {
@@ -72,86 +73,86 @@ const loadEnvFiles = async () => {
 const staticRouteMeta = [
   {
     path: '/',
-    title: 'মাহিয়ান আহমেদ - ভয়েস আর্টিস্ট ও বাংলা গল্প',
-    description: 'বাংলা অডিওবুক, অডিও স্টোরি এবং ভয়েসওভার কনটেন্ট - মাহিয়ান আহমেদের অফিসিয়াল ওয়েবসাইট।',
+    title: 'Mahean Ahmed - Voice Artist and Bangla Stories',
+    description: 'Listen to Bangla audiobooks, stories, and voice-over content by Mahean Ahmed.',
     keywords: 'Mahean Ahmed, Bangla Audiobook, Bangla Story, Voice Artist, Audio Story'
   },
   {
     path: '/stories',
-    title: 'বাংলা গল্পের সংগ্রহ - Mahean Ahmed',
-    description: 'থ্রিলার, হরর, রোমান্টিকসহ সেরা বাংলা গল্প পড়ুন।',
+    title: 'Bangla Stories Collection - Mahean Ahmed',
+    description: 'Read and explore the latest Bangla stories across thriller, horror, and romance genres.',
     keywords: 'Bangla Story, Bengali Story, Thriller Story, Horror Story, Mahean Ahmed'
   },
   {
     path: '/series',
-    title: 'গল্প সিরিজ - Mahean Ahmed',
-    description: 'ধারাবাহিক গল্প ও মাল্টি-পার্ট সিরিজ পড়ুন।',
+    title: 'Story Series - Mahean Ahmed',
+    description: 'Browse multi-part and serialized Bangla story collections.',
     keywords: 'Bangla Series, Story Series, Bengali Serialized Story'
   },
   {
     path: '/authors',
-    title: 'লেখক তালিকা - Mahean Ahmed',
-    description: 'আমাদের প্ল্যাটফর্মের সব লেখকের প্রোফাইল ও প্রকাশিত গল্প দেখুন।',
+    title: 'Authors - Mahean Ahmed',
+    description: 'Discover writer profiles and published stories from our authors.',
     keywords: 'Bangla Authors, Story Writers, Bengali Writers'
   },
   {
     path: '/categories',
-    title: 'গল্প ক্যাটাগরি - Mahean Ahmed',
-    description: 'ক্যাটাগরি অনুযায়ী গল্প খুঁজে পড়ুন।',
+    title: 'Story Categories - Mahean Ahmed',
+    description: 'Find stories by category and genre.',
     keywords: 'Story Categories, Bangla Story Category, Bengali Story Genres'
   },
   {
     path: '/tags',
-    title: 'গল্প ট্যাগ - Mahean Ahmed',
-    description: 'ট্যাগ অনুযায়ী বাংলা গল্প ব্রাউজ করুন।',
+    title: 'Story Tags - Mahean Ahmed',
+    description: 'Browse stories by topic tags and themes.',
     keywords: 'Story Tags, Bangla Tags, Bengali Story Topics'
   },
   {
     path: '/audiobooks',
-    title: 'বাংলা অডিওবুক - Mahean Ahmed',
-    description: 'বাংলা অডিওবুক ও ভয়েস কনটেন্ট শুনুন।',
+    title: 'Bangla Audiobooks - Mahean Ahmed',
+    description: 'Listen to Bangla audiobooks and narrated voice content.',
     keywords: 'Bangla Audiobook, Bengali Audiobook, Voice Narration'
   },
   {
     path: '/skills',
     title: 'Skills - Mahean Ahmed',
-    description: 'মাহিয়ান আহমেদের স্কিল ও কাজের ক্ষেত্র সম্পর্কে জানুন।',
+    description: 'Learn about Mahean Ahmed skills and creative work.',
     keywords: 'Voice Skills, Narration Skills, Mahean Ahmed'
   },
   {
     path: '/contact',
     title: 'Contact - Mahean Ahmed',
-    description: 'ভয়েসওভার বা কন্টেন্ট কোলাবোরেশনের জন্য যোগাযোগ করুন।',
+    description: 'Contact for voice-over and content collaboration.',
     keywords: 'Contact Mahean Ahmed, Voice Over Contact'
   },
   {
     path: '/privacy',
     title: 'Privacy Policy - Mahean Ahmed',
-    description: 'প্রাইভেসি পলিসি পড়ুন।',
+    description: 'Read our privacy policy and data handling information.',
     keywords: 'Privacy Policy'
   },
   {
     path: '/terms',
     title: 'Terms and Conditions - Mahean Ahmed',
-    description: 'ব্যবহারের শর্তাবলি পড়ুন।',
+    description: 'Read terms and conditions for using this site.',
     keywords: 'Terms and Conditions'
   },
   {
     path: '/disclaimer',
-    title: 'দাবিত্যাগ - Mahean Ahmed',
-    description: 'বিজ্ঞাপন, কপিরাইট এবং ওয়েবসাইটের দায়-সীমাবদ্ধতা সম্পর্কিত গুরুত্বপূর্ণ ঘোষণা।',
-    keywords: 'দাবিত্যাগ, AdSense নীতি, Legal Notice'
+    title: 'Disclaimer - Mahean Ahmed',
+    description: 'Read legal disclaimers about ads, copyright, and content usage.',
+    keywords: 'Disclaimer, Legal Notice, Copyright'
   },
   {
     path: '/about',
     title: 'About - Mahean Ahmed',
-    description: 'মাহিয়ান আহমেদ সম্পর্কে বিস্তারিত জানুন।',
+    description: 'Learn more about Mahean Ahmed and his voice content journey.',
     keywords: 'About Mahean Ahmed, Voice Artist Bio'
   },
   {
     path: '/links',
     title: 'Important Links - Mahean Ahmed',
-    description: 'মাহিয়ান আহমেদের গুরুত্বপূর্ণ লিংকসমূহ।',
+    description: 'Find important links and resources from Mahean Ahmed.',
     keywords: 'Mahean Links, Social Links'
   }
 ];
@@ -457,7 +458,19 @@ const normalizeStoryParts = (story) => {
   return [{ title: '', content: String(fallback).trim() }];
 };
 
-const fetchStoryRows = async () => [];
+const fetchStoryRows = async () => {
+  try {
+    const raw = await fs.readFile(STORIES_TABLE_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.rows) ? parsed.rows : [];
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return [];
+    }
+    console.warn('[prerender] unable to read stories table:', error);
+    return [];
+  }
+};
 
 const toStoryPartSeos = (story) => {
   const segment = toStorySegment(story);
@@ -580,3 +593,4 @@ run().catch((error) => {
   console.error('[prerender] failed:', error);
   process.exitCode = 1;
 });
+

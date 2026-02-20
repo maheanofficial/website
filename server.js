@@ -282,13 +282,21 @@ const handleRequest = async (req, res) => {
 
     const requestedPath = pathname === '/' ? '/index.html' : pathname;
     const candidatePath = path.resolve(path.join(DIST_DIR, `.${requestedPath}`));
+    const candidateDirectoryIndexPath = path.resolve(
+        path.join(DIST_DIR, `.${pathname}`, 'index.html')
+    );
 
-    if (!candidatePath.startsWith(DIST_DIR)) {
+    if (!candidatePath.startsWith(DIST_DIR) || !candidateDirectoryIndexPath.startsWith(DIST_DIR)) {
         sendText(res, 403, 'Forbidden');
         return;
     }
 
     if (await serveFile(req, res, candidatePath, 200)) {
+        return;
+    }
+
+    // Serve prerendered route pages such as /about -> dist/about/index.html
+    if (await serveFile(req, res, candidateDirectoryIndexPath, 200)) {
         return;
     }
 

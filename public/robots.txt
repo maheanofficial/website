@@ -10,4 +10,4 @@ Disallow: /forgot-password
 Disallow: /update-password
 
 # Sitemaps
-Sitemap: https://mahean.com/sitemap.xml
+Sitemap: https://www.mahean.com/sitemap.xml

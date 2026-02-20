@@ -27,7 +27,7 @@ const normalizeBaseUrl = (value) => {
 
 const SITE_URL = normalizeBaseUrl(
     pickFirstEnv('SITE_URL', 'VITE_SITE_URL')
-) || 'https://mahean.com';
+) || 'https://www.mahean.com';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -50,11 +50,14 @@ const STATIC_ROUTES = [
 
 const escapeXml = (value) =>
     value
-        .replace(/&/g, '&')
+        .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
+
+const normalizeSitemapHost = (xml) =>
+    String(xml || '').replace(/https?:\/\/(?:www\.)?mahean\.com/gi, SITE_URL);
 
 const buildFallbackSitemap = () => {
     const entries = STATIC_ROUTES.map((route) => `  <url>
@@ -83,7 +86,7 @@ export default async function handler(req, res) {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-        res.end(xml);
+        res.end(normalizeSitemapHost(xml));
         return;
     } catch {
         const xml = buildFallbackSitemap();
