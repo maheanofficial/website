@@ -15,10 +15,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
     env:
       APP_DIR: /home/mahean/main_mahean.com
       NODE_VENV_ACTIVATE: /home/mahean/nodevenv/main_mahean.com/20/bin/activate
       HEALTHCHECK_URL: https://www.mahean.com/healthz
+      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+      CPANEL_PORT: ${{ secrets.CPANEL_PORT || '22' }}
+      CPANEL_USER: ${{ secrets.CPANEL_USER }}
 
     steps:
       - name: Checkout repository
@@ -49,34 +54,49 @@ jobs:
           cp server.js deploy/server.js
           tar -czf deploy.tgz -C deploy .
 
-      - name: Upload bundle to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USER }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
-          port: ${{ secrets.CPANEL_PORT }}
-          source: deploy.tgz
-          target: /home/mahean
+      - name: Configure SSH
+        env:
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_SSH_PASSPHRASE: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+        run: |
+          set -e
+          if [ -z "${CPANEL_HOST}" ] || [ -z "${CPANEL_USER}" ] || [ -z "${CPANEL_SSH_KEY}" ]; then
+            echo "Missing required secrets: CPANEL_HOST, CPANEL_USER, CPANEL_SSH_KEY"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${CPANEL_SSH_KEY}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          eval "$(ssh-agent -s)"
+          if [ -n "${CPANEL_SSH_PASSPHRASE}" ]; then
+            cat > /tmp/askpass.sh <<'EOF'
+          #!/usr/bin/env bash
+          echo "${CPANEL_SSH_PASSPHRASE}"
+          EOF
+            chmod 700 /tmp/askpass.sh
+            export SSH_ASKPASS=/tmp/askpass.sh
+            export DISPLAY=:0
+            setsid ssh-add ~/.ssh/id_deploy < /dev/null
+          else
+            ssh-add ~/.ssh/id_deploy
+          fi
+          ssh-keyscan -p "${CPANEL_PORT}" "${CPANEL_HOST}" >> ~/.ssh/known_hosts
 
       - name: Deploy and restart app
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USER }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
-          port: ${{ secrets.CPANEL_PORT }}
-          script: |
-            set -e
-            cd "${APP_DIR}"
-            tar -xzf /home/mahean/deploy.tgz -C "${APP_DIR}"
-            rm -f /home/mahean/deploy.tgz
-            source "${NODE_VENV_ACTIVATE}"
-            npm install --include=dev --no-audit --no-fund
-            mkdir -p tmp
-            touch tmp/restart.txt
+        run: |
+          set -e
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" deploy.tgz "${CPANEL_USER}@${CPANEL_HOST}:/home/mahean/deploy.tgz"
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+          set -e
+          cd "${APP_DIR}"
+          tar -xzf /home/mahean/deploy.tgz -C "${APP_DIR}"
+          rm -f /home/mahean/deploy.tgz
+          source "${NODE_VENV_ACTIVATE}"
+          npm install --include=dev --no-audit --no-fund
+          mkdir -p tmp
+          touch tmp/restart.txt
+          EOF
 
       - name: Health check
         run: |
