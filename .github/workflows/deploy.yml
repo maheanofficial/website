@@ -109,9 +109,10 @@ jobs:
       - name: Deploy and restart app
         run: |
           set -euo pipefail
-          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
-          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] connected as \$(whoami) in \$(pwd)\""
-          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+          SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${CPANEL_PORT}"
+          ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+          scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
+          ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
           set -euo pipefail
           HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
           APP_DIR_VALUE="${APP_DIR}"
