@@ -9,6 +9,7 @@
     "start": "node server.js",
     "adsense:check": "node scripts/adsense-readiness.cjs",
     "db:init": "node scripts/init-cpanel-db.cjs",
+    "db:import": "node scripts/import-supabase-json.cjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
