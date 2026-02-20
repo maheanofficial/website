@@ -56,7 +56,7 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
     const voiceModeLabels: Record<VoiceMode, string> = {
         female: 'বাংলা নারী কণ্ঠ',
         male: 'বাংলা পুরুষ কণ্ঠ',
-        neutral: 'বাংলা উভয় কণ্ঠ'
+        neutral: 'বাংলা উভয় কণ্ঠ'
     };
 
     const getModeSettings = (mode: VoiceMode) => {
@@ -494,7 +494,7 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                                 <div className="text-[10px] text-center text-gray-400 mt-2 flex flex-col items-center gap-2">
                                     <Mic2 size={20} className="opacity-40" />
                                     <p className="opacity-80 max-w-[220px]">
-                                        বাংলা কণ্ঠ ডিভাইসে না থাকলে ডিফল্ট ভয়েস ব্যবহার হবে। বাংলা ভয়েস যোগ করতে Windows
+                                        বাংলা কণ্ঠ ডিভাইসে না থাকলে ডিফল্ট ভয়েস ব্যবহার হবে। বাংলা ভয়েস যোগ করতে Windows
                                         Settings → Speech → Voices এ যান।
                                     </p>
                                     <button

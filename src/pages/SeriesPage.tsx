@@ -63,7 +63,7 @@ const SeriesPage = () => {
                     <span className="series-kicker">ধারাবাহিক গল্প</span>
                     <h1 className="series-title">সিরিজ গল্পের সংগ্রহ</h1>
                     <p className="series-subtitle">
-                        একাধিক পর্বে সাজানো গল্পগুলো একসাথে পড়ুন। নতুন সিরিজ যুক্ত করতে চাইলে নিচের বোতামে ক্লিক করুন।
+                        একাধিক পর্বে সাজানো গল্পগুলো একসাথে পড়ুন। নতুন সিরিজ যুক্ত করতে চাইলে নিচের বোতামে ক্লিক করুন।
                     </p>
                     <Link to="/login" className="series-cta">
                         নতুন সিরিজ লিখুন
@@ -82,15 +82,15 @@ const SeriesPage = () => {
                     <div className="series-filters">
                         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                             <option value="latest">সর্বশেষ</option>
-                            <option value="popular">জনপ্রিয়</option>
-                            <option value="parts">সবচেয়ে বেশি পর্ব</option>
+                            <option value="popular">জনপ্রিয়</option>
+                            <option value="parts">সবচেয়ে বেশি পর্ব</option>
                         </select>
                     </div>
                 </div>
 
                 <div className="series-summary">
                     <p>
-                        মোট {toBanglaNumber(sortedStories.length)} টি সিরিজ পাওয়া গেছে
+                        মোট {toBanglaNumber(sortedStories.length)} টি সিরিজ পাওয়া গেছে
                     </p>
                 </div>
 
@@ -101,7 +101,7 @@ const SeriesPage = () => {
                         ))
                     ) : (
                         <div className="series-empty">
-                            কোনো সিরিজ পাওয়া যায়নি। অন্য কীওয়ার্ড দিয়ে আবার চেষ্টা করুন।
+                            কোনো সিরিজ পাওয়া যায়নি। অন্য কীওয়ার্ড দিয়ে আবার চেষ্টা করুন।
                         </div>
                     )}
                 </div>

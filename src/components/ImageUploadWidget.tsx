@@ -40,7 +40,7 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
             const uploaded = await uploadImageToStorage(file, { folder });
             onChange(uploaded.url);
         } catch (error) {
-            console.warn('Supabase storage upload failed; falling back to base64.', error);
+            console.warn('Server image upload failed; falling back to base64.', error);
             try {
                 const base64 = await readFileAsDataUrl(file);
                 onChange(base64);

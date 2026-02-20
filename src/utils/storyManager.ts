@@ -237,6 +237,11 @@ const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
     return `${fallback} (${message})`;
 };
 
+const isSupabaseDisabledError = (error: unknown) => {
+    const candidate = error as SupabaseErrorLike | null;
+    return Boolean(candidate && candidate.code === 'SUPABASE_DISABLED');
+};
+
 const upsertStoryRowWithColumnFallback = async (row: Record<string, unknown>) => {
     const payload: Record<string, unknown> = { ...row };
     unsupportedStoryColumns.forEach((columnName) => {
@@ -366,7 +371,7 @@ const getRawStories = (): Story[] => {
                 id: '1',
                 title: 'পুরানো সেই দিনের কথা', // Rabindranath
                 excerpt: 'অতীতের স্মৃতিচারণ আর হারানো দিনের গল্প...',
-                content: 'অনেক দিন আগের কথা, যখন সময়টা ছিল বড্ড ধীরগতির...',
+                content: 'অনেক দিন আগের কথা, যখন সময়টা ছিল বড্ড ধীরগতির...',
                 authorId: '1',
                 categoryId: 'classic',
                 views: 1250,
@@ -381,13 +386,13 @@ const getRawStories = (): Story[] => {
             {
                 id: '2',
                 title: 'দেবী', // Humayun Ahmed
-                excerpt: 'রানুর স্বপ্নের মধ্যে কি সত্যিই কোনো রহস্য লুকিয়ে আছে?',
-                content: 'রানুকে আমি প্রথম দেখি যখন তার বয়স দশ...',
+                excerpt: 'রানুর স্বপ্নের মধ্যে কি সত্যিই কোনো রহস্য লুকিয়ে আছে?',
+                content: 'রানুকে আমি প্রথম দেখি যখন তার বয়স দশ...',
                 authorId: '2',
                 categoryId: 'thriller',
                 views: 3400,
                 date: new Date(Date.now() - 86400000).toISOString(),
-                author: 'হুমায়ূন আহমেদ',
+                author: 'হুমায়ূন আহমেদ',
                 category: 'মিসির আলি',
                 image: 'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a',
                 tags: ['রহস্য', 'মনস্তাত্ত্বিক', 'থ্রিলার'],
@@ -396,14 +401,14 @@ const getRawStories = (): Story[] => {
             },
             {
                 id: '3',
-                title: 'নীলোপল', // Sunil
+                title: 'নীলোপল', // Sunil
                 excerpt: 'কাকাবাবু কি পারবেন নীল বিদ্রোহের রহস্য ভেদ করতে?',
-                content: 'পাহাড়ের উপর থেকে নিচের খাদটা দেখা যাচ্ছে...',
+                content: 'পাহাড়ের উপর থেকে নিচের খাদটা দেখা যাচ্ছে...',
                 authorId: '3',
                 categoryId: 'adventure',
                 views: 2100,
                 date: new Date(Date.now() - 172800000).toISOString(),
-                author: 'সুনীল গঙ্গোপাধ্যায়',
+                author: 'সুনীল গঙ্গোপাধ্যায়',
                 category: 'অ্যাডভেঞ্চার',
                 image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
                 tags: ['অ্যাডভেঞ্চার', 'রোমাঞ্চ', 'ভ্রমণ'],
@@ -412,7 +417,7 @@ const getRawStories = (): Story[] => {
             {
                 id: '4',
                 title: 'মহেশ', // Sarat Chandra
-                excerpt: 'গফুর আর তার প্রিয় ষাঁড় মহেশের এক করুণ কাহিনী।',
+                excerpt: 'গফুর আর তার প্রিয় ষাঁড় মহেশের এক করুণ কাহিনী।',
                 content: 'তর্করত্ন মশাই যখন গফুরের উঠোনে পা দিলেন...',
                 authorId: '4',
                 categoryId: 'tragedy',
@@ -428,15 +433,15 @@ const getRawStories = (): Story[] => {
                 id: '5',
                 title: 'সোনার কেল্লা', // Satyajit Ray
                 excerpt: 'মুকুল কি পারবে তার পূর্বজন্মের স্মৃতি খুঁজে পেতে?',
-                content: 'ফেলুদা বললেন, তোপসে তৈরী হয়ে নে...',
+                content: 'ফেলুদা বললেন, তোপসে তৈরী হয়ে নে...',
                 authorId: '5',
                 categoryId: 'mystery',
                 views: 4500,
                 date: new Date(Date.now() - 345600000).toISOString(),
                 author: 'সত্যজিৎ রায়',
-                category: 'গোয়েন্দা',
+                category: 'গোয়েন্দা',
                 image: 'https://images.unsplash.com/photo-1476900966873-12c82823b10b',
-                tags: ['গোয়েন্দা', 'রহস্য', 'অভিযান'],
+                tags: ['গোয়েন্দা', 'রহস্য', 'অভিযান'],
                 is_featured: true,
                 status: 'published'
             },
@@ -444,7 +449,7 @@ const getRawStories = (): Story[] => {
                 id: '6',
                 title: 'পথের পাঁচালী', // Bibhutibhushan
                 excerpt: 'অপু আর দুর্গার শৈশব, গ্রামীণ বাংলার এক শাশ্বত চিত্র।',
-                content: 'হরিহর রায়ের আদি নিবাস ছিল যশোহর জেলার...',
+                content: 'হরিহর রায়ের আদি নিবাস ছিল যশোহর জেলার...',
                 authorId: '6',
                 categoryId: 'novel',
                 views: 2800,
@@ -457,9 +462,9 @@ const getRawStories = (): Story[] => {
             },
             {
                 id: '7',
-                title: 'ভূতুড়ে ঘড়ি', // Shirshendu
-                excerpt: 'পুরানো বাড়ির চিলেকোঠায় পাওয়া অদ্ভুত এক ঘড়ির গল্প।',
-                content: 'ঘড়িটা যখন দম দিলাম, তখন রাত বারোটা...',
+                title: 'ভূতুড়ে ঘড়ি', // Shirshendu
+                excerpt: 'পুরানো বাড়ির চিলেকোঠায় পাওয়া অদ্ভুত এক ঘড়ির গল্প।',
+                content: 'ঘড়িটা যখন দম দিলাম, তখন রাত বারোটা...',
                 authorId: '7',
                 categoryId: 'ghost',
                 views: 1560,
@@ -487,7 +492,7 @@ const getRawStories = (): Story[] => {
             {
                 id: '9',
                 title: 'কপালকুণ্ডলা', // Bankim
-                excerpt: 'পথিক, তুমি কি পথ হারাইয়াছ?',
+                excerpt: 'পথিক, তুমি কি পথ হারাইয়াছ?',
                 content: 'নবকুমার যখন বনমধ্যে প্রবেশ করিলেন...',
                 authorId: '9',
                 categoryId: 'romance',
@@ -496,13 +501,13 @@ const getRawStories = (): Story[] => {
                 author: 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়',
                 category: 'রোমান্টিক',
                 image: 'https://images.unsplash.com/photo-1518893494013-481c1d8ed3fd',
-                tags: ['?????????', '?????', '???????'],
+                tags: ['উপন্যাস', 'রোমান্টিক', 'ক্লাসিক'],
                 status: 'published'
             },
             {
                 id: '10',
-                title: 'অশরীরের ছায়া', // Mahean
-                excerpt: 'এক ঝড়ের রাতে রেডিও স্টেশনে ঘটে যাওয়া অদ্ভুত ঘটনা।',
+                title: 'অশরীরের ছায়া', // Mahean
+                excerpt: 'এক ঝড়ের রাতে রেডিও স্টেশনে ঘটে যাওয়া অদ্ভুত ঘটনা।',
                 content: 'মাঝরাত। আমি স্টুডিওতে একা...',
                 authorId: '10',
                 categoryId: 'horror',
@@ -614,14 +619,18 @@ export const saveStory = async (story: Story): Promise<StoryMutationResult> => {
         const result = await upsertStoryRowWithColumnFallback(mapStoryToRow(normalized));
         if (result.error) throw result.error;
     } catch (error) {
-        console.warn('Supabase story upsert failed', error);
-        storeStories(previousStories);
-        return {
-            success: false,
-            synced: false,
-            story: normalized,
-            message: getSupabaseErrorMessage(error, 'Story save failed on server.')
-        };
+        if (isSupabaseDisabledError(error)) {
+            console.info('Supabase disabled; keeping story in local mode.');
+        } else {
+            console.warn('Supabase story upsert failed', error);
+            storeStories(previousStories);
+            return {
+                success: false,
+                synced: false,
+                story: normalized,
+                message: getSupabaseErrorMessage(error, 'Story save failed on server.')
+            };
+        }
     }
 
     const { logActivity } = await import('./activityLogManager');
@@ -657,15 +666,19 @@ export const updateStoryStatus = async (
         const result = await upsertStoryRowWithColumnFallback(mapStoryToRow(stories[storyIndex]));
         if (result.error) throw result.error;
     } catch (error) {
-        console.warn('Supabase story status update failed', error);
-        stories[storyIndex] = previousStory;
-        storeStories(stories);
-        return {
-            success: false,
-            synced: false,
-            story: previousStory,
-            message: getSupabaseErrorMessage(error, 'Story status update failed on server.')
-        };
+        if (isSupabaseDisabledError(error)) {
+            console.info('Supabase disabled; keeping status update in local mode.');
+        } else {
+            console.warn('Supabase story status update failed', error);
+            stories[storyIndex] = previousStory;
+            storeStories(stories);
+            return {
+                success: false,
+                synced: false,
+                story: previousStory,
+                message: getSupabaseErrorMessage(error, 'Story status update failed on server.')
+            };
+        }
     }
 
     const { logActivity } = await import('./activityLogManager');

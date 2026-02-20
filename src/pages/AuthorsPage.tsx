@@ -27,7 +27,7 @@ const AuthorsPage = () => {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "বাংলা লেখক তালিকা",
-        "description": "জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা এবং পাঠকের রেটিং দেখুন।",
+        "description": "জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা এবং পাঠকের রেটিং দেখুন।",
         "url": canonicalUrl,
         "mainEntity": {
             "@type": "ItemList",
@@ -44,7 +44,7 @@ const AuthorsPage = () => {
         <div className="authors-page page-offset">
             <SEO
                 title="লেখক তালিকা - Mahean Ahmed"
-                description="জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা, এবং পাঠকের প্রতিক্রিয়া দেখুন।"
+                description="জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা, এবং পাঠকের প্রতিক্রিয়া দেখুন।"
                 keywords="Bangla Authors, Bengali Writers, Story Authors, Mahean Ahmed"
                 canonicalUrl="/authors"
                 jsonLd={authorsSchema}
@@ -54,9 +54,9 @@ const AuthorsPage = () => {
                 <div className="container">
                     <div className="authors-hero-content">
                         <span className="authors-kicker">লেখকদের তালিকা</span>
-                        <h1 className="authors-title">জনপ্রিয় লেখকরা</h1>
+                        <h1 className="authors-title">জনপ্রিয় লেখকরা</h1>
                         <p className="authors-subtitle">
-                            গল্পের জগতে যাদের কলমে উঠে আসে অসাধারণ চরিত্র ও কাহিনি, তাদের গল্পগুলো এক জায়গায় আবিষ্কার করুন।
+                            গল্পের জগতে যাদের কলমে উঠে আসে অসাধারণ চরিত্র ও কাহিনি, তাদের গল্পগুলো এক জায়গায় আবিষ্কার করুন।
                         </p>
                     </div>
 

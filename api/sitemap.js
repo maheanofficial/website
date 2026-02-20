@@ -1,4 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..');
+const DIST_SITEMAP_PATH = path.join(ROOT_DIR, 'dist', 'sitemap.xml');
 
 const pickFirstEnv = (...keys) => {
     for (const key of keys) {
@@ -19,38 +26,10 @@ const normalizeBaseUrl = (value) => {
 };
 
 const SITE_URL = normalizeBaseUrl(
-    pickFirstEnv('SITE_URL', 'VITE_SITE_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_URL')
+    pickFirstEnv('SITE_URL', 'VITE_SITE_URL')
 ) || 'https://mahean.com';
 
-const SUPABASE_URL = pickFirstEnv(
-    'SUPABASE_URL',
-    'VITE_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_URL'
-) || 'https://gepywlhveafqosoyitcb.supabase.co';
-
-const SUPABASE_ANON_KEY = pickFirstEnv(
-    'SUPABASE_ANON_KEY',
-    'VITE_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA';
-
-const STORY_TABLE = 'stories';
-const PUBLIC_STATUSES = new Set(['published', 'completed', 'ongoing']);
-const STORY_SELECT_FALLBACKS = [
-    'id, slug, title, excerpt, parts, status, date, updated_at',
-    'id, slug, title, excerpt, parts, status, date',
-    'id, slug, title, excerpt, status, date, updated_at',
-    'id, slug, title, excerpt, status, date',
-    'id, slug, title, excerpt, date',
-    'id, title, excerpt, date',
-    'id, title, excerpt',
-    'id, title',
-    'id'
-];
 const TODAY = new Date().toISOString().slice(0, 10);
-
-const LEGACY_META_START = '__MAHEAN_META__:';
-const LEGACY_META_END = ':__MAHEAN_META_END__';
 
 const STATIC_ROUTES = [
     { path: '/', changefreq: 'weekly', priority: '1.0' },
@@ -71,125 +50,24 @@ const STATIC_ROUTES = [
 
 const escapeXml = (value) =>
     value
-        .replace(/&/g, '&amp;')
+        .replace(/&/g, '&')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
-const toDateOnly = (value) => {
-    if (!value || typeof value !== 'string') return TODAY;
-    const timestamp = new Date(value).getTime();
-    if (Number.isNaN(timestamp)) return TODAY;
-    return new Date(timestamp).toISOString().slice(0, 10);
-};
+const buildFallbackSitemap = () => {
+    const entries = STATIC_ROUTES.map((route) => `  <url>
+    <loc>${escapeXml(`${SITE_URL}${route.path}`)}</loc>
+    <lastmod>${TODAY}</lastmod>
+    <changefreq>${route.changefreq}</changefreq>
+    <priority>${route.priority}</priority>
+  </url>`);
 
-const MAX_PARTS_PER_STORY = Number.parseInt(process.env.SITEMAP_MAX_PARTS_PER_STORY || '', 10) || 200;
-const MAX_DYNAMIC_URLS = Number.parseInt(process.env.SITEMAP_MAX_DYNAMIC_URLS || '', 10) || 45000;
-
-const toStorySegment = (story) => {
-    const meta = parseLegacyMeta(story?.excerpt);
-    const rawSlug = typeof story.slug === 'string' ? story.slug.trim() : '';
-    const metaSlug = typeof meta?.slug === 'string' ? meta.slug.trim() : '';
-    const generatedSlug = slugify(typeof story.title === 'string' ? story.title : '');
-    const rawId = typeof story.id === 'string' || typeof story.id === 'number'
-        ? String(story.id).trim()
-        : '';
-    const segment = rawSlug || metaSlug || generatedSlug || rawId;
-    return segment || null;
-};
-
-const countNonEmptyParts = (value) => {
-    if (!Array.isArray(value)) return 0;
-    return value.reduce((total, entry) => {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return total;
-        const title = typeof entry.title === 'string' ? entry.title.trim() : '';
-        const content = typeof entry.content === 'string' ? entry.content.trim() : '';
-        if (!title && !content) return total;
-        return total + 1;
-    }, 0);
-};
-
-const toStoryPartCount = (story) => {
-    const meta = parseLegacyMeta(story?.excerpt);
-    const count = countNonEmptyParts(story?.parts) || countNonEmptyParts(meta?.parts);
-    return Math.max(1, count);
-};
-
-const parseLegacyMeta = (excerpt) => {
-    if (typeof excerpt !== 'string' || !excerpt.startsWith(LEGACY_META_START)) return null;
-    const markerEndIndex = excerpt.indexOf(LEGACY_META_END);
-    if (markerEndIndex < 0) return null;
-    const raw = excerpt.slice(LEGACY_META_START.length, markerEndIndex);
-    try {
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-        return parsed;
-    } catch {
-        return null;
-    }
-};
-
-const slugify = (value) => {
-    let text = String(value || '');
-    try {
-        text = text.normalize('NFKC');
-    } catch {
-        // ignore
-    }
-
-    const normalized = text
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '-');
-
-    let cleaned = normalized;
-    try {
-        cleaned = cleaned.replace(/[^\p{L}\p{N}\p{M}-]+/gu, '');
-    } catch {
-        cleaned = cleaned.replace(/[^\w-]+/g, '');
-    }
-
-    return cleaned
-        .replace(/-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-};
-
-const isPublicStory = (story) => {
-    const rawStatus = typeof story.status === 'string' ? story.status.trim().toLowerCase() : '';
-    if (!rawStatus) return true;
-    return PUBLIC_STATUSES.has(rawStatus);
-};
-
-const xmlEntry = (entry) => `  <url>
-    <loc>${escapeXml(`${SITE_URL}${entry.path}`)}</loc>
-    <lastmod>${entry.lastmod}</lastmod>
-    <changefreq>${entry.changefreq}</changefreq>
-    <priority>${entry.priority}</priority>
-  </url>`;
-
-const fetchStoriesWithColumnFallback = async (supabase) => {
-    let lastError = null;
-
-    for (const selectClause of STORY_SELECT_FALLBACKS) {
-        const { data, error } = await supabase
-            .from(STORY_TABLE)
-            .select(selectClause)
-            .limit(5000);
-
-        if (!error) {
-            return Array.isArray(data) ? data : [];
-        }
-
-        lastError = error;
-    }
-
-    if (lastError) {
-        throw lastError;
-    }
-
-    return [];
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.join('\n')}
+</urlset>`;
 };
 
 export default async function handler(req, res) {
@@ -200,50 +78,18 @@ export default async function handler(req, res) {
         return;
     }
 
-    const entries = STATIC_ROUTES.map((route) => ({
-        ...route,
-        lastmod: TODAY
-    }));
-    const existingPaths = new Set(entries.map((entry) => entry.path));
-
-    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-        try {
-            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            const rows = await fetchStoriesWithColumnFallback(supabase);
-            let dynamicCount = 0;
-            for (const story of rows.filter(isPublicStory)) {
-                if (dynamicCount >= MAX_DYNAMIC_URLS) break;
-                const segment = toStorySegment(story);
-                if (!segment) continue;
-                const partsTotal = Math.min(toStoryPartCount(story), MAX_PARTS_PER_STORY);
-                const lastmod = toDateOnly(story.updated_at || story.date);
-
-                for (let partIndex = 1; partIndex <= partsTotal; partIndex += 1) {
-                    if (dynamicCount >= MAX_DYNAMIC_URLS) break;
-                    const path = `/stories/${encodeURIComponent(segment)}/part/${partIndex}`;
-                    if (existingPaths.has(path)) continue;
-                    entries.push({
-                        path,
-                        lastmod,
-                        changefreq: 'weekly',
-                        priority: partIndex === 1 ? '0.8' : '0.6'
-                    });
-                    existingPaths.add(path);
-                    dynamicCount += 1;
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to include dynamic story routes in sitemap:', error?.message || error);
-        }
+    try {
+        const xml = await fs.readFile(DIST_SITEMAP_PATH, 'utf8');
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+        res.end(xml);
+        return;
+    } catch {
+        const xml = buildFallbackSitemap();
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+        res.end(xml);
     }
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries.map(xmlEntry).join('\n')}
-</urlset>`;
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-    res.end(xml);
 }

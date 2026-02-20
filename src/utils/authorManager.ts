@@ -180,7 +180,7 @@ const getLocalAuthors = (): Author[] => {
             },
             {
                 id: '2',
-                name: 'হুমায়ূন আহমেদ',
+                name: 'হুমায়ূন আহমেদ',
                 username: 'humayun',
                 bio: 'বাংলা সাহিত্যের অন্যতম জনপ্রিয় কথাশিল্পী ও চলচ্চিত্র নির্মাতা।',
                 avatar: 'https://upload.wikimedia.org/wikipedia/en/8/84/Humayun_Ahmed.jpg',
@@ -188,7 +188,7 @@ const getLocalAuthors = (): Author[] => {
             },
             {
                 id: '3',
-                name: 'সুনীল গঙ্গোপাধ্যায়',
+                name: 'সুনীল গঙ্গোপাধ্যায়',
                 username: 'sunil',
                 bio: 'আধুনিক বাংলা কবিতার অন্যতম প্রধান কবি ও ঔপন্যাসিক।',
                 avatar: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Sunil_Gangopadhyay_at_Kolkata_Book_Fair_2009.jpg',
@@ -214,7 +214,7 @@ const getLocalAuthors = (): Author[] => {
                 id: '6',
                 name: 'বিভূতিভূষণ বন্দ্যোপাধ্যায়',
                 username: 'bibhuti',
-                bio: 'প্রকৃতিপ্রেমী লেখক, পথের পাঁচালীর রচয়িতা।',
+                bio: 'প্রকৃতিপ্রেমী লেখক, পথের পাঁচালীর রচয়িতা।',
                 avatar: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Bibhutibhushan_Bandyopadhyay.jpg',
                 links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/বিভূতিভূষণ_বন্দ্যোপাধ্যায়' }]
             },
@@ -222,7 +222,7 @@ const getLocalAuthors = (): Author[] => {
                 id: '7',
                 name: 'শীর্ষেন্দু মুখোপাধ্যায়',
                 username: 'shirshendu',
-                bio: 'অদ্ভুতুড়ে ও রোমাঞ্চকর গল্পের জাদুকর।',
+                bio: 'অদ্ভুতুড়ে ও রোমাঞ্চকর গল্পের জাদুকর।',
                 avatar: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Shirshendu_Mukhopadhyay_2013.jpg',
                 links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/শীর্ষেন্দু_মুখোপাধ্যায়' }]
             },

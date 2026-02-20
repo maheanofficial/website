@@ -26,10 +26,10 @@ const CategoriesPage = () => {
     const categoryDescriptions: Record<string, string> = {
         'ক্লাসিক': 'চিরকালীন বাংলা সাহিত্যের অনন্য সব গল্প ও উপন্যাসের সংগ্রহ।',
         'রোমান্টিক': 'ভালোবাসা, অনুভূতি আর সম্পর্কের গল্প একসাথে।',
-        'গোয়েন্দা': 'রহস্যের জট খুলতে তৈরি বুদ্ধিদীপ্ত গল্প।',
+        'গোয়েন্দা': 'রহস্যের জট খুলতে তৈরি বুদ্ধিদীপ্ত গল্প।',
         'থ্রিলার': 'অপ্রত্যাশিত টুইস্ট আর টান টান উত্তেজনার গল্প।',
         'হরর': 'ভৌতিক অভিজ্ঞতা আর শিহরণ জাগানো কাহিনি।',
-        'উপন্যাস': 'বড় গল্পের বিস্তৃত জগৎ, চরিত্র আর আবেগের মেলবন্ধন।',
+        'উপন্যাস': 'বড় গল্পের বিস্তৃত জগৎ, চরিত্র আর আবেগের মেলবন্ধন।',
         'অ্যাডভেঞ্চার': 'দুঃসাহসিক অভিযান আর রোমাঞ্চকর যাত্রা।'
     };
 
@@ -66,7 +66,7 @@ const CategoriesPage = () => {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "বাংলা গল্পের ক্যাটাগরি",
-        "description": "বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা এবং পাঠকপ্রিয়তা দেখুন।",
+        "description": "বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা এবং পাঠকপ্রিয়তা দেখুন।",
         "url": `${SITE_URL}/categories`,
         "mainEntity": {
             "@type": "ItemList",
@@ -83,7 +83,7 @@ const CategoriesPage = () => {
         <div className="categories-page page-offset">
             <SEO
                 title="ক্যাটাগরি - বাংলা গল্পের ধরনসমূহ | Mahean Ahmed"
-                description="বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা, এবং পাঠকপ্রিয়তা দেখুন।"
+                description="বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা, এবং পাঠকপ্রিয়তা দেখুন।"
                 keywords="Bangla Story Categories, Bengali Genres, Thriller, Horror, Romance"
                 canonicalUrl="/categories"
                 jsonLd={categoriesSchema}
@@ -92,9 +92,9 @@ const CategoriesPage = () => {
             <div className="container">
                 <div className="categories-hero">
                     <span className="categories-kicker">গল্পের ক্যাটাগরি</span>
-                    <h1 className="categories-title">সব ধরনের গল্প এক জায়গায়</h1>
+                    <h1 className="categories-title">সব ধরনের গল্প এক জায়গায়</h1>
                     <p className="categories-subtitle">
-                        আপনার পছন্দের ক্যাটাগরি বেছে নিয়ে সেরা বাংলা গল্পগুলো পড়ুন এবং নতুন লেখকদের সাথে পরিচিত হন।
+                        আপনার পছন্দের ক্যাটাগরি বেছে নিয়ে সেরা বাংলা গল্পগুলো পড়ুন এবং নতুন লেখকদের সাথে পরিচিত হন।
                     </p>
                 </div>
 
@@ -124,7 +124,7 @@ const CategoriesPage = () => {
                                     {categoryDescriptions[category.name] || `${category.name} ঘরানার আরও নতুন গল্প খুঁজে নিন।`}
                                 </p>
                                 <div className="category-meta">
-                                    <span>পড়া হয়েছে {toBanglaNumber(category.views)} বার</span>
+                                    <span>পড়া হয়েছে {toBanglaNumber(category.views)} বার</span>
                                     {category.sampleTitle && <span>সাম্প্রতিক: {category.sampleTitle}</span>}
                                 </div>
                             </div>

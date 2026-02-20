@@ -54,12 +54,12 @@ const ImageUploader = ({
             const uploaded = await uploadImageToStorage(file, { folder });
             onChange(uploaded.url);
         } catch (error) {
-            console.warn('Supabase storage upload failed; falling back to base64.', error);
+            console.warn('Server image upload failed; falling back to base64.', error);
             try {
                 const base64 = await readFileAsDataUrl(file);
                 onChange(base64);
                 alert(
-                    "Storage upload failed, so we saved this image as base64 inside the database (old behavior).\n\nTo store images as CDN URLs, create a Supabase Storage bucket named 'mahean-media' and allow authenticated uploads + public read."
+                    "Server upload failed, so the image was saved as base64 inside the content data.\n\nYou can retry later to upload the image to cPanel file storage."
                 );
             } catch (fallbackError) {
                 console.warn('Base64 fallback failed', fallbackError);

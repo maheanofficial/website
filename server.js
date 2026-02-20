@@ -1,0 +1,328 @@
+import fs from 'node:fs';
+import { promises as fsp } from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import adminUsersHandler from './api/admin-users.js';
+import authHandler from './api/auth.js';
+import cleanupTrashHandler from './api/cleanup-trash.js';
+import dbHandler from './api/db.js';
+import sitemapHandler from './api/sitemap.js';
+import storyRedirectHandler from './api/story-redirect.js';
+import uploadImageHandler from './api/upload-image.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DIST_DIR = path.join(__dirname, 'dist');
+const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
+const NOT_FOUND_HTML_PATH = path.join(DIST_DIR, '404.html');
+
+const MIME_TYPES = {
+    '.avif': 'image/avif',
+    '.css': 'text/css; charset=utf-8',
+    '.gif': 'image/gif',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.map': 'application/json; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.mp3': 'audio/mpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.txt': 'text/plain; charset=utf-8',
+    '.ttf': 'font/ttf',
+    '.webp': 'image/webp',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.xml': 'application/xml; charset=utf-8'
+};
+
+const API_HANDLERS = new Map([
+    ['/api/admin-users', adminUsersHandler],
+    ['/api/auth', authHandler],
+    ['/api/cleanup-trash', cleanupTrashHandler],
+    ['/api/db', dbHandler],
+    ['/api/upload-image', uploadImageHandler],
+    ['/api/story-redirect', storyRedirectHandler]
+]);
+
+const toNormalizedPathname = (pathname) => {
+    const decoded = safeDecodeURIComponent(pathname || '/');
+    if (decoded !== '/' && decoded.endsWith('/')) {
+        return decoded.replace(/\/+$/, '');
+    }
+    return decoded || '/';
+};
+
+const safeDecodeURIComponent = (value) => {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+};
+
+const sendText = (res, statusCode, body, contentType = 'text/plain; charset=utf-8') => {
+    res.statusCode = statusCode;
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', Buffer.byteLength(body));
+    res.end(body);
+};
+
+const applySecurityHeaders = (res) => {
+    if (res.headersSent) return;
+    if (!res.hasHeader('X-Content-Type-Options')) {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    if (!res.hasHeader('X-Frame-Options')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    }
+    if (!res.hasHeader('Referrer-Policy')) {
+        res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+    if (!res.hasHeader('Permissions-Policy')) {
+        res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    }
+    if (!res.hasHeader('Strict-Transport-Security')) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+    if (!res.hasHeader('Cross-Origin-Resource-Policy')) {
+        res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    }
+};
+
+const existsFile = async (filePath) => {
+    try {
+        const stat = await fsp.stat(filePath);
+        return stat.isFile() ? stat : null;
+    } catch {
+        return null;
+    }
+};
+
+const toMimeType = (filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    return MIME_TYPES[ext] || 'application/octet-stream';
+};
+
+const toCacheControl = (filePath) => {
+    if (filePath.endsWith('.html')) {
+        return 'no-cache';
+    }
+
+    const relative = path.relative(DIST_DIR, filePath).replace(/\\/g, '/');
+    const isHashedAsset = relative.startsWith('assets/')
+        && /\.[a-f0-9]{8,}\./i.test(path.basename(relative));
+
+    if (isHashedAsset) {
+        return 'public, max-age=31536000, immutable';
+    }
+
+    return 'public, max-age=3600';
+};
+
+const toEtag = (stat) =>
+    `W/"${stat.size.toString(16)}-${Math.trunc(stat.mtimeMs).toString(16)}"`;
+
+const isNotModified = (req, stat, etag) => {
+    const method = (req.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+        return false;
+    }
+
+    const ifNoneMatch = typeof req.headers['if-none-match'] === 'string'
+        ? req.headers['if-none-match'].trim()
+        : '';
+    if (ifNoneMatch && ifNoneMatch === etag) {
+        return true;
+    }
+
+    const ifModifiedSince = typeof req.headers['if-modified-since'] === 'string'
+        ? Date.parse(req.headers['if-modified-since'])
+        : NaN;
+    if (!Number.isNaN(ifModifiedSince) && stat.mtimeMs <= (ifModifiedSince + 1000)) {
+        return true;
+    }
+
+    return false;
+};
+
+const serveFile = async (req, res, filePath, statusCode = 200) => {
+    const stat = await existsFile(filePath);
+    if (!stat) {
+        return false;
+    }
+
+    const etag = toEtag(stat);
+    res.statusCode = statusCode;
+    res.setHeader('Content-Type', toMimeType(filePath));
+    res.setHeader('Cache-Control', toCacheControl(filePath));
+    res.setHeader('Last-Modified', stat.mtime.toUTCString());
+    res.setHeader('ETag', etag);
+
+    if (statusCode === 200 && isNotModified(req, stat, etag)) {
+        res.statusCode = 304;
+        res.removeHeader('Content-Length');
+        res.end();
+        return true;
+    }
+
+    res.setHeader('Content-Length', stat.size);
+
+    if ((req.method || 'GET').toUpperCase() === 'HEAD') {
+        res.end();
+        return true;
+    }
+
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (error) => {
+        if (!res.headersSent) {
+            sendText(res, 500, 'Failed to read static file.');
+        } else {
+            res.destroy(error);
+        }
+    });
+    stream.pipe(res);
+    return true;
+};
+
+const runHandler = async (req, res, handler, rewrittenUrl) => {
+    const originalUrl = req.url;
+    if (rewrittenUrl) {
+        req.url = rewrittenUrl;
+    }
+
+    try {
+        await handler(req, res);
+    } catch (error) {
+        console.error('API handler failed:', error);
+        if (!res.headersSent) {
+            sendText(res, 500, 'Internal Server Error');
+        } else {
+            res.end();
+        }
+    } finally {
+        req.url = originalUrl;
+    }
+};
+
+const isHtmlNavigation = (req) => {
+    const acceptHeader = typeof req.headers.accept === 'string'
+        ? req.headers.accept
+        : '';
+    if (!acceptHeader) return true;
+    return acceptHeader.includes('text/html') || acceptHeader.includes('*/*');
+};
+
+const handleRequest = async (req, res) => {
+    applySecurityHeaders(res);
+
+    const baseUrl = `http://${req.headers.host || 'localhost'}`;
+    const parsed = new URL(req.url || '/', baseUrl);
+    const pathname = toNormalizedPathname(parsed.pathname);
+    const method = (req.method || 'GET').toUpperCase();
+
+    if (pathname === '/healthz') {
+        sendText(res, 200, 'ok');
+        return;
+    }
+
+    const directApiHandler = API_HANDLERS.get(pathname);
+    if (directApiHandler) {
+        await runHandler(req, res, directApiHandler);
+        return;
+    }
+
+    if (pathname === '/sitemap.xml') {
+        await runHandler(req, res, sitemapHandler);
+        return;
+    }
+
+    const numericStoryPartMatch = pathname.match(/^\/stories\/(\d+)\/part\/(\d+)$/);
+    if (numericStoryPartMatch) {
+        const [, id, part] = numericStoryPartMatch;
+        await runHandler(
+            req,
+            res,
+            storyRedirectHandler,
+            `/api/story-redirect?id=${encodeURIComponent(id)}&part=${encodeURIComponent(part)}`
+        );
+        return;
+    }
+
+    const numericStoryMatch = pathname.match(/^\/stories\/(\d+)$/);
+    if (numericStoryMatch) {
+        const [, id] = numericStoryMatch;
+        await runHandler(
+            req,
+            res,
+            storyRedirectHandler,
+            `/api/story-redirect?id=${encodeURIComponent(id)}&part=1`
+        );
+        return;
+    }
+
+    const slugStoryMatch = pathname.match(/^\/stories\/([^/]+)$/);
+    if (slugStoryMatch && !/^\d+$/.test(slugStoryMatch[1])) {
+        res.statusCode = 301;
+        res.setHeader('Location', `/stories/${slugStoryMatch[1]}/part/1`);
+        res.end();
+        return;
+    }
+
+    if (method !== 'GET' && method !== 'HEAD') {
+        sendText(res, 405, 'Method Not Allowed');
+        return;
+    }
+
+    const requestedPath = pathname === '/' ? '/index.html' : pathname;
+    const candidatePath = path.resolve(path.join(DIST_DIR, `.${requestedPath}`));
+
+    if (!candidatePath.startsWith(DIST_DIR)) {
+        sendText(res, 403, 'Forbidden');
+        return;
+    }
+
+    if (await serveFile(req, res, candidatePath, 200)) {
+        return;
+    }
+
+    const hasExtension = Boolean(path.extname(pathname));
+    if (!hasExtension && isHtmlNavigation(req)) {
+        if (await serveFile(req, res, INDEX_HTML_PATH, 200)) {
+            return;
+        }
+    }
+
+    if (await serveFile(req, res, NOT_FOUND_HTML_PATH, 404)) {
+        return;
+    }
+
+    sendText(res, 404, 'Not Found');
+};
+
+const server = http.createServer((req, res) => {
+    handleRequest(req, res).catch((error) => {
+        console.error('Request handling failed:', error);
+        if (!res.headersSent) {
+            applySecurityHeaders(res);
+            sendText(res, 500, 'Internal Server Error');
+            return;
+        }
+        res.end();
+    });
+});
+
+server.requestTimeout = 60_000;
+server.headersTimeout = 65_000;
+server.keepAliveTimeout = 5_000;
+
+const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
+server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});

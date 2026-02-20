@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Eye, EyeOff } from 'lucide-react';
-import { signInWithGoogle, signInWithEmailOnly } from '../utils/auth';
+import { signInWithGoogle, signInWithEmailOnly, getCurrentUser } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SubmitStoryPage.css';
 const ConstellationCanvas = () => {
@@ -134,11 +134,26 @@ const SubmitStoryPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
+    useEffect(() => {
+        let isMounted = true;
+        const syncAuthFromCallback = async () => {
+            const user = await getCurrentUser();
+            if (isMounted && user) {
+                navigate('/admin/dashboard', { replace: true });
+            }
+        };
+        syncAuthFromCallback();
+        return () => {
+            isMounted = false;
+        };
+    }, [navigate]);
+
     const handleGoogleLogin = async () => {
         try {
             await signInWithGoogle();
-        } catch {
-            alert('গুগল দিয়ে লগ ইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Google sign-in failed. Please try again.';
+            alert(message);
         }
     };
 
@@ -151,7 +166,7 @@ const SubmitStoryPage = () => {
         } catch (error: unknown) {
             console.error('Login error:', error);
             const message = error instanceof Error ? error.message : 'অনুগ্রহ করে আবার চেষ্টা করুন।';
-            alert(`লগইন ব্যর্থ হয়েছে: ${message}`);
+            alert(`লগইন ব্যর্থ হয়েছে: ${message}`);
         } finally {
             setIsLoading(false);
         }
@@ -183,7 +198,7 @@ const SubmitStoryPage = () => {
 
                     <div className="portal-hero-center">
                         <h1>লেখক পোর্টাল</h1>
-                        <p>""যদি এমন কোনো বই থাকে যা আপনি পড়তে চান, কিন্তু তা এখনও লেখা হয়নি, তবে তা আপনাকেই লিখতে হবে।""</p>
+                        <p>""যদি এমন কোনো বই থাকে যা আপনি পড়তে চান, কিন্তু তা এখনও লেখা হয়নি, তবে তা আপনাকেই লিখতে হবে।""</p>
                         <cite>— টনি মরিসন</cite>
                     </div>
                 </div>
@@ -192,12 +207,12 @@ const SubmitStoryPage = () => {
                 <div className="login-card-glass">
                     <div className="login-header">
                         <h2>আপনার অ্যাকাউন্টে লগ ইন করুন</h2>
-                        <p>লগ ইন করতে আপনার ইমেইল এবং পাসওয়ার্ড লিখুন</p>
+                        <p>লগ ইন করতে আপনার ইমেইল এবং পাসওয়ার্ড লিখুন</p>
                     </div>
 
                     <button className="google-btn" onClick={handleGoogleLogin}>
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
-                        গুগল দিয়ে লগইন করুন
+                        গুগল দিয়ে লগইন করুন
                     </button>
 
                     <div className="divider">
@@ -210,7 +225,7 @@ const SubmitStoryPage = () => {
                             <div className="input-wrapper">
                                 <input
                                     type="text"
-                                    placeholder="admin@local বা email@example.com"
+                                    placeholder="email@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}
@@ -222,13 +237,13 @@ const SubmitStoryPage = () => {
 
                         <div className="form-group">
                             <div className="label-row">
-                                <label>পাসওয়ার্ড</label>
-                                <Link to="/forgot-password" className="forgot-pass">পাসওয়ার্ড ভুলে গেছেন?</Link>
+                                <label>পাসওয়ার্ড</label>
+                                <Link to="/forgot-password" className="forgot-pass">পাসওয়ার্ড ভুলে গেছেন?</Link>
                             </div>
                             <div className="input-wrapper">
                                 <input
                                     type={showPassword ? "text" : "password"}
-                                    placeholder="পাসওয়ার্ড"
+                                    placeholder="পাসওয়ার্ড"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleLogin(e)}

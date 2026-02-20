@@ -15,7 +15,7 @@ const UpdatePasswordPage = () => {
 
     useEffect(() => {
         if (!hasPendingPasswordReset()) {
-            setError('????????? ?? ????????????? ????? ??????? ??? ???? ????? ????????? ??????');
+            setError('রিসেট সেশন নেই। আবার "পাসওয়ার্ড ভুলে গেছেন" পেজ থেকে শুরু করুন।');
         }
     }, []);
 
@@ -39,14 +39,14 @@ const UpdatePasswordPage = () => {
         try {
             await applyPasswordReset(password);
 
-            setMessage('?????????? ??????? ???????? ??? ??????! ???? ???? ???? ????? ?????...');
+            setMessage('পাসওয়ার্ড সফলভাবে আপডেট হয়েছে! এখন লগইন পেজে নেওয়া হচ্ছে...');
 
             setTimeout(() => {
                 navigate('/login');
             }, 2000);
 
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।';
+            const message = err instanceof Error ? err.message : 'পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।';
             setError(message);
         } finally {
             setIsLoading(false);
@@ -56,8 +56,8 @@ const UpdatePasswordPage = () => {
     return (
         <div className="author-portal-page">
             <SEO
-                title="নতুন পাসওয়ার্ড সেট করুন - মাহিয়ানের গল্পকথা"
-                description="আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।"
+                title="নতুন পাসওয়ার্ড সেট করুন - মাহিয়ানের গল্পকথা"
+                description="আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।"
                 noIndex
                 noFollow
                 canonicalUrl="/update-password"
@@ -76,8 +76,8 @@ const UpdatePasswordPage = () => {
 
                 <div className="login-card-glass">
                     <div className="login-header">
-                        <h2>নতুন পাসওয়ার্ড সেট করুন</h2>
-                        <p>আপনার অ্যাকাউন্টের জন্য একটি শক্তিশালী পাসওয়ার্ড দিন</p>
+                        <h2>নতুন পাসওয়ার্ড সেট করুন</h2>
+                        <p>আপনার অ্যাকাউন্টের জন্য একটি শক্তিশালী পাসওয়ার্ড দিন</p>
                     </div>
 
                     {message && (
@@ -94,11 +94,11 @@ const UpdatePasswordPage = () => {
 
                     <form onSubmit={handleSubmit} className="login-form">
                         <div className="form-group">
-                            <label>নতুন পাসওয়ার্ড</label>
+                            <label>নতুন পাসওয়ার্ড</label>
                             <div className="input-wrapper">
                                 <input
                                     type="password"
-                                    placeholder="নতুন পাসওয়ার্ড দিন"
+                                    placeholder="নতুন পাসওয়ার্ড দিন"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -108,11 +108,11 @@ const UpdatePasswordPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>পাসওয়ার্ড নিশ্চিত করুন</label>
+                            <label>পাসওয়ার্ড নিশ্চিত করুন</label>
                             <div className="input-wrapper">
                                 <input
                                     type="password"
-                                    placeholder="পাসওয়ার্ড আবার লিখুন"
+                                    placeholder="পাসওয়ার্ড আবার লিখুন"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
@@ -122,7 +122,7 @@ const UpdatePasswordPage = () => {
                         </div>
 
                         <button type="submit" className="login-submit-btn" disabled={isLoading}>
-                            {isLoading ? 'আপডেট করা হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}
+                            {isLoading ? 'আপডেট করা হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}
                         </button>
                     </form>
                 </div>

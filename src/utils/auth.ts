@@ -1,4 +1,3 @@
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase, restoreSessionFromUrl } from '../lib/supabase';
 import {
     loginUser,
@@ -28,6 +27,20 @@ type EmailAuthResult = {
     needsEmailConfirmation?: boolean;
 };
 
+type SupabaseUserIdentity = {
+    provider?: string;
+    identity_data?: Record<string, unknown>;
+};
+
+type SupabaseUser = {
+    id: string;
+    email?: string;
+    created_at?: string;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+    identities?: SupabaseUserIdentity[];
+};
+
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
 const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
 const DEFAULT_SELF_SERVICE_ROLE: LocalUser['role'] = 'moderator';
@@ -48,6 +61,11 @@ const ADMIN_EMAIL_ALLOWLIST = Array.from(new Set([
     PRIMARY_ADMIN_EMAIL,
     ...parseEmailAllowlist(import.meta.env.VITE_ADMIN_EMAIL_ALLOWLIST as string | undefined)
 ]));
+const ALLOW_LOCAL_AUTH_FALLBACK = import.meta.env.DEV
+    || String(import.meta.env.VITE_ALLOW_LOCAL_AUTH_FALLBACK || '').trim().toLowerCase() === 'true';
+const GOOGLE_OAUTH_ENABLED = String(import.meta.env.VITE_GOOGLE_OAUTH_ENABLED || 'true')
+    .trim()
+    .toLowerCase() !== 'false';
 
 const getStoredOAuthProvider = () => {
     if (typeof window === 'undefined') return undefined;
@@ -186,16 +204,25 @@ const syncSupabaseSession = (user: SupabaseUser | null) => {
 
 const getOAuthRedirectUrl = () => {
     if (typeof window === 'undefined') return '';
-    const configured = import.meta.env.VITE_SUPABASE_REDIRECT_URL as string | undefined;
+    const configured = (
+        import.meta.env.VITE_SUPABASE_REDIRECT_URL as string | undefined
+    ) || (
+        import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URL as string | undefined
+    );
     if (configured) {
         try {
             const url = new URL(configured);
-            if (url.origin === window.location.origin) {
-                return configured;
+            if (url.protocol === 'https:') {
+                return url.toString();
             }
         } catch (error) {
-            console.warn('Invalid VITE_SUPABASE_REDIRECT_URL', error);
+            console.warn('Invalid OAuth redirect URL config', error);
         }
+    }
+
+    const host = window.location.hostname.toLowerCase();
+    if (host === 'mahean.com' || host === 'www.mahean.com') {
+        return 'https://www.mahean.com/admin/dashboard';
     }
     return `${window.location.origin}/admin/dashboard`;
 };
@@ -219,9 +246,14 @@ const getPasswordResetRedirectUrl = () => {
 /**
  * Google OAuth sign-in.
  */
+export const isGoogleAuthEnabled = () => GOOGLE_OAUTH_ENABLED;
+
 export const signInWithGoogle = async () => {
     if (typeof window === 'undefined') {
         throw new Error('Google sign-in requires a browser environment.');
+    }
+    if (!GOOGLE_OAUTH_ENABLED) {
+        throw new Error('Google login is currently disabled by configuration.');
     }
 
     setStoredOAuthProvider('google');
@@ -286,7 +318,7 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
 
     authEventTarget.addEventListener('auth-change', handler);
 
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event: string, session: { user?: SupabaseUser | null } | null) => {
         if (!session?.user) {
             const localUser = enforceStoredProviderRole(getLocalCurrentUser());
             if (localUser) {
@@ -310,6 +342,7 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
  * Stores a local password reset intent for the provided email.
  */
 export const resetPasswordForEmail = async (email: string) => {
+    let lastServerErrorMessage = 'Password reset request failed.';
     if (typeof window !== 'undefined') {
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -319,9 +352,17 @@ export const resetPasswordForEmail = async (email: string) => {
                 return { success: true };
             }
             console.warn('Supabase password reset failed', error);
+            lastServerErrorMessage = error.message || lastServerErrorMessage;
         } catch (error) {
             console.warn('Supabase password reset failed', error);
+            if (error instanceof Error && error.message) {
+                lastServerErrorMessage = error.message;
+            }
         }
+    }
+
+    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+        throw new Error(lastServerErrorMessage);
     }
 
     const result = requestPasswordReset(email);
@@ -336,38 +377,40 @@ export const resetPasswordForEmail = async (email: string) => {
  */
 export const signInWithEmailOnly = async (email: string, pass: string) => {
     const identifier = email.trim();
-    const looksLikeEmail = (value: string) => {
-        const parts = value.split('@');
-        if (parts.length !== 2) return false;
-        return parts[1].includes('.');
-    };
     clearStoredOAuthProvider();
-    const localAttempt = loginUser(identifier, pass);
+    let lastServerErrorMessage = 'Login failed.';
 
     if (typeof window !== 'undefined') {
         try {
-            if (looksLikeEmail(identifier)) {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: identifier,
-                    password: pass
-                });
-                if (!error && data?.user) {
-                    const storedUser = syncSupabaseSession(data.user);
-                    if (!storedUser) {
-                        throw new Error('This account has been removed.');
-                    }
-                    emitAuthChange('SIGNED_IN', storedUser);
-                    return { success: true };
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: identifier,
+                password: pass
+            });
+            if (!error && data?.user) {
+                const storedUser = syncSupabaseSession(data.user);
+                if (!storedUser) {
+                    throw new Error('This account has been removed.');
                 }
-                if (error) {
-                    console.warn('Supabase email sign-in failed', error);
-                }
+                emitAuthChange('SIGNED_IN', storedUser);
+                return { success: true };
+            }
+            if (error) {
+                console.warn('Supabase email sign-in failed', error);
+                lastServerErrorMessage = error.message || lastServerErrorMessage;
             }
         } catch (error) {
             console.warn('Supabase email sign-in failed', error);
+            if (error instanceof Error && error.message) {
+                lastServerErrorMessage = error.message;
+            }
         }
     }
 
+    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+        throw new Error(lastServerErrorMessage);
+    }
+
+    const localAttempt = loginUser(identifier, pass);
     if (localAttempt.success && localAttempt.user) {
         setCurrentUserSession(localAttempt.user);
         emitAuthChange('SIGNED_IN', localAttempt.user);
@@ -381,6 +424,7 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
  * Signs up a new user with email and password (local storage).
  */
 export const signUpWithEmail = async (email: string, password: string, fullName?: string): Promise<EmailAuthResult> => {
+    let lastServerErrorMessage = 'Sign up failed.';
     if (typeof window !== 'undefined') {
         try {
             const signupMetadata: Record<string, string> = {
@@ -412,10 +456,18 @@ export const signUpWithEmail = async (email: string, password: string, fullName?
 
             if (error) {
                 console.warn('Supabase email sign-up failed', error);
+                lastServerErrorMessage = error.message || lastServerErrorMessage;
             }
         } catch (error) {
             console.warn('Supabase email sign-up failed', error);
+            if (error instanceof Error && error.message) {
+                lastServerErrorMessage = error.message;
+            }
         }
+    }
+
+    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+        throw new Error(lastServerErrorMessage);
     }
 
     const result = registerUser(email, password, fullName);
@@ -431,6 +483,7 @@ export const signUpWithEmail = async (email: string, password: string, fullName?
  * Updates the current user password in local storage.
  */
 export const updateCurrentUserPassword = async (currentPassword: string | null, newPassword: string) => {
+    let lastServerErrorMessage = 'Password update failed.';
     if (typeof window !== 'undefined') {
         try {
             const { data, error } = await supabase.auth.getSession();
@@ -440,10 +493,18 @@ export const updateCurrentUserPassword = async (currentPassword: string | null, 
                     return { success: true };
                 }
                 console.warn('Supabase password update failed', updateError);
+                lastServerErrorMessage = updateError.message || lastServerErrorMessage;
             }
         } catch (error) {
             console.warn('Supabase password update failed', error);
+            if (error instanceof Error && error.message) {
+                lastServerErrorMessage = error.message;
+            }
         }
+    }
+
+    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+        throw new Error(lastServerErrorMessage);
     }
 
     const user = getLocalCurrentUser();
@@ -463,6 +524,37 @@ export const updateCurrentUserPassword = async (currentPassword: string | null, 
  * Applies a pending password reset in local storage.
  */
 export const applyPasswordReset = async (newPassword: string) => {
+    let lastServerErrorMessage = 'Password reset failed.';
+    if (typeof window !== 'undefined') {
+        const resetUserId = localStorage.getItem('mahean_password_reset_user');
+        if (resetUserId) {
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update-password',
+                        userId: resetUserId,
+                        newPassword
+                    })
+                });
+                if (response.ok) {
+                    localStorage.removeItem('mahean_password_reset_user');
+                    return { success: true };
+                }
+                const payload = await response.json().catch(() => ({}));
+                lastServerErrorMessage = typeof payload?.error === 'string'
+                    ? payload.error
+                    : lastServerErrorMessage;
+            } catch (error) {
+                console.warn('Server password reset failed', error);
+                if (error instanceof Error && error.message) {
+                    lastServerErrorMessage = error.message;
+                }
+            }
+        }
+    }
+
     if (typeof window !== 'undefined') {
         try {
             await restoreSessionFromUrl();
@@ -473,10 +565,18 @@ export const applyPasswordReset = async (newPassword: string) => {
                     return { success: true };
                 }
                 console.warn('Supabase password reset failed', updateError);
+                lastServerErrorMessage = updateError.message || lastServerErrorMessage;
             }
         } catch (error) {
             console.warn('Supabase password reset failed', error);
+            if (error instanceof Error && error.message) {
+                lastServerErrorMessage = error.message;
+            }
         }
+    }
+
+    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+        throw new Error(lastServerErrorMessage);
     }
 
     const result = consumePasswordReset(newPassword);

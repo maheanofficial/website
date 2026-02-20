@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { getAllStories, updateStoryStatus, type Story } from '../../utils/storyManager';
 import './AdminApprovals.css';

@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Runtime JSON storage (server-side data on cPanel)
+data/*.json
+!data/.gitkeep

@@ -171,7 +171,7 @@ const StoryDetailsPage = () => {
         return (
             <div className="container py-20 text-center">
                 <h2 className="text-2xl text-white mb-4">গল্পটি লোড করতে সমস্যা হচ্ছে!</h2>
-                <p className="text-gray-400 mb-6">গল্পের ডেটা খুঁজে পাওয়া যায়নি।</p>
+                <p className="text-gray-400 mb-6">গল্পের ডেটা খুঁজে পাওয়া যায়নি।</p>
                 <button
                     onClick={() => {
                         localStorage.clear();
@@ -351,7 +351,7 @@ const StoryDetailsPage = () => {
                                 </div>
                                 <div className="author-text-group">
                                     <div className="author-name-lg" style={{ cursor: 'pointer', transition: 'color 0.3s' }}>{story.author}</div>
-                                    <div className="author-role">লেখক (সকল গল্প পড়ুন)</div>
+                                    <div className="author-role">লেখক (সকল গল্প পড়ুন)</div>
                                 </div>
                             </Link>
                         </div>

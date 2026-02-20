@@ -1,11 +1,606 @@
-import { createClient } from '@supabase/supabase-js'
+type SupabaseErrorLike = {
+    message: string;
+    code?: string;
+};
 
-const supabaseUrl = 'https://gepywlhveafqosoyitcb.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA'
+type QueryResult<T = unknown> = {
+    data: T | null;
+    error: SupabaseErrorLike | null;
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+type QueryFilter = {
+    op: 'eq' | 'neq' | 'lt';
+    column: string;
+    value: unknown;
+};
 
-// Helper to safely execute Supabase operations without blocking
+type QueryState = {
+    table: string;
+    action: 'select' | 'insert' | 'upsert' | 'update' | 'delete';
+    columns: string;
+    returnColumns: string;
+    filters: QueryFilter[];
+    orderBy: { column: string; ascending: boolean } | null;
+    single: boolean;
+    values: unknown;
+    onConflict: string;
+};
+
+type SessionLike = {
+    user: SupabaseUser;
+};
+
+type SupabaseUserIdentity = {
+    provider?: string;
+    identity_data?: Record<string, unknown>;
+};
+
+type SupabaseUser = {
+    id: string;
+    email?: string;
+    created_at?: string;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+    identities?: SupabaseUserIdentity[];
+};
+
+const SESSION_KEY = 'mahean_server_auth_session';
+const RESET_USER_KEY = 'mahean_password_reset_user';
+const OAUTH_STATE_KEY = 'mahean_google_oauth_state';
+const OAUTH_REDIRECT_KEY = 'mahean_google_oauth_redirect';
+const OAUTH_CALLBACK_QUERY_KEYS = [
+    'code',
+    'state',
+    'scope',
+    'authuser',
+    'prompt',
+    'error',
+    'error_description'
+];
+const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+const authListeners = new Set<(event: string, session: SessionLike | null) => void>();
+
+const toError = (message: string, code = 'REQUEST_FAILED'): SupabaseErrorLike => ({ message, code });
+
+const readSession = (): SessionLike | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as SessionLike;
+        if (!parsed?.user?.id) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+};
+
+const readLegacyActorId = (): string => {
+    if (typeof window === 'undefined') return '';
+    try {
+        const raw = localStorage.getItem('mahean_current_user');
+        if (!raw) return '';
+        const parsed = JSON.parse(raw) as { id?: string };
+        return typeof parsed?.id === 'string' ? parsed.id : '';
+    } catch {
+        return '';
+    }
+};
+
+const readActorId = (): string => {
+    const session = readSession();
+    if (session?.user?.id) {
+        return session.user.id;
+    }
+    return readLegacyActorId();
+};
+
+const writeSession = (session: SessionLike | null) => {
+    if (typeof window === 'undefined') return;
+    if (!session) {
+        localStorage.removeItem(SESSION_KEY);
+        return;
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+};
+
+const notifyAuth = (event: string, session: SessionLike | null) => {
+    authListeners.forEach((listener) => {
+        try {
+            listener(event, session);
+        } catch (error) {
+            console.warn('Auth listener failed', error);
+        }
+    });
+};
+
+const normalizeProvider = (value: unknown) => {
+    const provider = String(value || '').trim().toLowerCase();
+    if (provider === 'google') return 'google';
+    if (provider === 'email' || provider === 'local') return 'email';
+    return '';
+};
+
+const mapServerUserToSupabaseUser = (user: any): SupabaseUser => {
+    const rawProviders = Array.isArray(user?.providers) ? user.providers : [];
+    const providers = rawProviders
+        .map((entry: unknown) => normalizeProvider(entry))
+        .filter((entry: string): entry is 'google' | 'email' => entry === 'google' || entry === 'email');
+    const uniqueProviders: Array<'google' | 'email'> = Array.from(new Set(providers));
+    const effectiveProviders: Array<'google' | 'email'> = uniqueProviders.length ? uniqueProviders : ['email'];
+    const primaryProvider = effectiveProviders.includes('google') ? 'google' : 'email';
+
+    return {
+        id: String(user?.id || ''),
+        email: typeof user?.email === 'string' ? user.email : undefined,
+        created_at: typeof user?.createdAt === 'string' ? user.createdAt : new Date().toISOString(),
+        app_metadata: {
+            role: user?.role === 'admin' ? 'admin' : 'moderator',
+            provider: primaryProvider
+        },
+        user_metadata: {
+            full_name: user?.displayName || user?.email || 'User',
+            avatar_url: user?.photoURL || undefined
+        },
+        identities: effectiveProviders.map((provider) => ({
+            provider,
+            identity_data: {
+                email: user?.email
+            }
+        }))
+    };
+};
+
+const requestJson = async (url: string, payload: unknown): Promise<{ data: any; error: SupabaseErrorLike | null }> => {
+    if (typeof window === 'undefined') {
+        return { data: null, error: toError('Browser API not available.', 'NO_BROWSER') };
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const parsed = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const message = typeof parsed?.error === 'string'
+                ? parsed.error
+                : (parsed?.error?.message || `Request failed with ${response.status}`);
+            return { data: null, error: toError(message, 'HTTP_ERROR') };
+        }
+        return { data: parsed, error: null };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Network request failed.';
+        return { data: null, error: toError(message, 'NETWORK_ERROR') };
+    }
+};
+
+const baseQueryState = (table: string): QueryState => ({
+    table,
+    action: 'select',
+    columns: '*',
+    returnColumns: '*',
+    filters: [],
+    orderBy: null,
+    single: false,
+    values: null,
+    onConflict: 'id'
+});
+
+const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
+    const isWriteAction = state.action !== 'select';
+    const actorId = isWriteAction ? readActorId() : '';
+    if (isWriteAction && !actorId) {
+        return {
+            data: state.single ? null : [],
+            error: toError('Sign in required to modify data.', 'AUTH_REQUIRED')
+        };
+    }
+
+    const payload = {
+        table: state.table,
+        action: state.action,
+        columns: state.action === 'delete' ? state.returnColumns : state.columns,
+        filters: state.filters,
+        orderBy: state.orderBy,
+        single: state.single,
+        values: state.values,
+        onConflict: state.onConflict,
+        actorId: actorId || undefined
+    };
+    const { data, error } = await requestJson('/api/db', payload);
+    if (error) {
+        return { data: state.single ? null : [], error };
+    }
+    const resultData = data?.data ?? (state.single ? null : []);
+    const resultError = data?.error
+        ? toError(data.error.message || 'Database error.', data.error.code || 'DB_ERROR')
+        : null;
+    return {
+        data: resultData,
+        error: resultError
+    };
+};
+
+const createQueryBuilder = (table: string) => {
+    const state = baseQueryState(table);
+
+    const builder: any = {
+        select(columns = '*') {
+            if (state.action === 'delete') {
+                state.returnColumns = String(columns || '*');
+            } else {
+                state.action = 'select';
+                state.columns = String(columns || '*');
+            }
+            return builder;
+        },
+        eq(column: string, value: unknown) {
+            state.filters.push({ op: 'eq', column, value });
+            return builder;
+        },
+        neq(column: string, value: unknown) {
+            state.filters.push({ op: 'neq', column, value });
+            return builder;
+        },
+        lt(column: string, value: unknown) {
+            state.filters.push({ op: 'lt', column, value });
+            return builder;
+        },
+        order(column: string, options?: { ascending?: boolean }) {
+            state.orderBy = {
+                column,
+                ascending: Boolean(options?.ascending)
+            };
+            return builder;
+        },
+        limit() {
+            return builder;
+        },
+        maybeSingle() {
+            state.single = true;
+            return builder;
+        },
+        insert(values: unknown) {
+            state.action = 'insert';
+            state.values = values;
+            return builder;
+        },
+        upsert(values: unknown, options?: { onConflict?: string }) {
+            state.action = 'upsert';
+            state.values = values;
+            state.onConflict = options?.onConflict || 'id';
+            return builder;
+        },
+        update(values: unknown) {
+            state.action = 'update';
+            state.values = values;
+            return builder;
+        },
+        delete() {
+            state.action = 'delete';
+            return builder;
+        },
+        then(resolve: (value: QueryResult<any>) => unknown, reject?: (reason: unknown) => unknown) {
+            return executeQuery(state).then(resolve, reject);
+        }
+    };
+
+    return builder;
+};
+
+const disabledOAuthError = () => toError('OAuth login is not configured.', 'OAUTH_DISABLED');
+
+const isSameOrigin = (value: string) => {
+    if (typeof window === 'undefined') return false;
+    try {
+        return new URL(value).origin === window.location.origin;
+    } catch {
+        return false;
+    }
+};
+
+const isMaheanHost = (host: string) => {
+    const normalized = String(host || '').trim().toLowerCase();
+    return normalized === 'mahean.com' || normalized === 'www.mahean.com';
+};
+
+const preferredOAuthRedirectUrl = () => {
+    if (typeof window === 'undefined') return '';
+    if (isMaheanHost(window.location.hostname)) {
+        return 'https://www.mahean.com/admin/dashboard';
+    }
+    return `${window.location.origin}/admin/dashboard`;
+};
+
+const toOAuthRedirectUrl = (value?: string) => {
+    if (typeof window === 'undefined') return '';
+    const fallback = preferredOAuthRedirectUrl();
+    if (!value) return fallback;
+    if (isSameOrigin(value)) return value;
+
+    try {
+        const parsed = new URL(value);
+        if (isMaheanHost(window.location.hostname) && isMaheanHost(parsed.hostname) && parsed.protocol === 'https:') {
+            return parsed.toString();
+        }
+    } catch {
+        // Fall through to fallback.
+    }
+
+    return fallback;
+};
+
+const generateOAuthState = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    }
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+};
+
+const readStoredOAuthState = () => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(OAUTH_STATE_KEY) || '';
+};
+
+const readStoredOAuthRedirect = () => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(OAUTH_REDIRECT_KEY) || '';
+};
+
+const storeOAuthState = (state: string, redirectUri: string) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(OAUTH_STATE_KEY, state);
+    localStorage.setItem(OAUTH_REDIRECT_KEY, redirectUri);
+};
+
+const clearOAuthState = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(OAUTH_STATE_KEY);
+    localStorage.removeItem(OAUTH_REDIRECT_KEY);
+};
+
+const clearOAuthQueryParams = () => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    let changed = false;
+    OAUTH_CALLBACK_QUERY_KEYS.forEach((key) => {
+        if (url.searchParams.has(key)) {
+            url.searchParams.delete(key);
+            changed = true;
+        }
+    });
+    if (changed) {
+        window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    }
+};
+
+const exchangeGoogleCodeForSession = async (code: string, redirectUri: string) => {
+    const { data, error } = await requestJson('/api/auth', {
+        action: 'google-oauth-exchange',
+        code,
+        redirectUri
+    });
+    if (error) {
+        return { data: null, error };
+    }
+    if (!data?.user) {
+        return { data: null, error: toError('Google login failed.', 'OAUTH_EXCHANGE_FAILED') };
+    }
+
+    const user = mapServerUserToSupabaseUser(data.user);
+    const session = { user };
+    writeSession(session);
+    notifyAuth('SIGNED_IN', session);
+    return {
+        data: {
+            user,
+            session
+        },
+        error: null
+    };
+};
+
+const fetchGoogleOAuthConfig = async (redirectUri: string) => {
+    const { data, error } = await requestJson('/api/auth', {
+        action: 'google-oauth-config',
+        redirectUri
+    });
+    if (error) {
+        return { data: null, error };
+    }
+
+    const clientId = String(data?.clientId || '').trim();
+    const normalizedRedirectUri = String(data?.redirectUri || '').trim() || redirectUri;
+    const enabled = data?.enabled !== false;
+    if (!enabled || !clientId) {
+        const message = typeof data?.error === 'string'
+            ? data.error
+            : disabledOAuthError().message;
+        return { data: null, error: toError(message, 'OAUTH_DISABLED') };
+    }
+
+    return {
+        data: {
+            clientId,
+            redirectUri: normalizedRedirectUri
+        },
+        error: null
+    };
+};
+
+const auth = {
+    async exchangeCodeForSession(payload?: { code?: string; redirectTo?: string }) {
+        const code = String(payload?.code || '').trim();
+        const redirectUri = toOAuthRedirectUrl(payload?.redirectTo);
+        if (!code || !redirectUri) {
+            return { data: null, error: toError('Missing OAuth code or redirect URL.', 'OAUTH_INVALID_REQUEST') };
+        }
+        return exchangeGoogleCodeForSession(code, redirectUri);
+    },
+    async setSession() {
+        return { data: null, error: disabledOAuthError() };
+    },
+    async signInWithOAuth(payload: { provider?: string; options?: { redirectTo?: string } } = {}) {
+        if (typeof window === 'undefined') {
+            return { data: null, error: toError('Browser API not available.', 'NO_BROWSER') };
+        }
+
+        const provider = String(payload?.provider || '').trim().toLowerCase();
+        if (provider !== 'google') {
+            return { data: null, error: toError('Only Google OAuth is supported here.', 'OAUTH_UNSUPPORTED_PROVIDER') };
+        }
+
+        const requestedRedirectUri = toOAuthRedirectUrl(payload?.options?.redirectTo);
+        const oauthConfig = await fetchGoogleOAuthConfig(requestedRedirectUri);
+        if (oauthConfig.error || !oauthConfig.data) {
+            return { data: null, error: oauthConfig.error || disabledOAuthError() };
+        }
+
+        const { clientId, redirectUri } = oauthConfig.data;
+        const state = generateOAuthState();
+        storeOAuthState(state, redirectUri);
+
+        const authUrl = new URL(GOOGLE_AUTH_ENDPOINT);
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('scope', 'openid email profile');
+        authUrl.searchParams.set('state', state);
+        authUrl.searchParams.set('prompt', 'select_account');
+        authUrl.searchParams.set('access_type', 'online');
+        authUrl.searchParams.set('include_granted_scopes', 'true');
+
+        window.location.assign(authUrl.toString());
+        return { data: { provider: 'google' }, error: null };
+    },
+    async signOut() {
+        writeSession(null);
+        notifyAuth('SIGNED_OUT', null);
+        return { error: null };
+    },
+    async getSession() {
+        const session = readSession();
+        return { data: { session }, error: null };
+    },
+    onAuthStateChange(callback: (event: string, session: SessionLike | null) => void) {
+        authListeners.add(callback);
+        return {
+            data: {
+                subscription: {
+                    unsubscribe: () => authListeners.delete(callback)
+                }
+            }
+        };
+    },
+    async resetPasswordForEmail(email: string) {
+        const { data, error } = await requestJson('/api/auth', {
+            action: 'request-password-reset',
+            identifier: email
+        });
+        if (error) {
+            return { data: null, error };
+        }
+        if (typeof data?.resetUserId === 'string' && data.resetUserId) {
+            localStorage.setItem(RESET_USER_KEY, data.resetUserId);
+        }
+        return { data: { success: true }, error: null };
+    },
+    async signInWithPassword(payload: { email: string; password: string }) {
+        const { data, error } = await requestJson('/api/auth', {
+            action: 'login',
+            identifier: payload.email,
+            password: payload.password
+        });
+        if (error) {
+            return { data: null, error };
+        }
+        const user = mapServerUserToSupabaseUser(data?.user);
+        const session = { user };
+        writeSession(session);
+        notifyAuth('SIGNED_IN', session);
+        return {
+            data: {
+                user,
+                session
+            },
+            error: null
+        };
+    },
+    async signUp(payload: { email: string; password: string; options?: { data?: Record<string, unknown> } }) {
+        const { data, error } = await requestJson('/api/auth', {
+            action: 'signup',
+            email: payload.email,
+            password: payload.password,
+            displayName: payload.options?.data?.full_name
+        });
+        if (error) {
+            return { data: null, error };
+        }
+        const user = mapServerUserToSupabaseUser(data?.user);
+        const session = { user };
+        writeSession(session);
+        notifyAuth('SIGNED_IN', session);
+        return {
+            data: {
+                user,
+                session
+            },
+            error: null
+        };
+    },
+    async updateUser(payload: { password?: string }) {
+        const session = readSession();
+        if (!session?.user?.id) {
+            return { data: null, error: toError('No active session.', 'NO_SESSION') };
+        }
+        if (!payload.password) {
+            return { data: null, error: toError('Password is required.', 'INVALID_PASSWORD') };
+        }
+        const { error } = await requestJson('/api/auth', {
+            action: 'update-password',
+            userId: session.user.id,
+            newPassword: payload.password
+        });
+        if (error) {
+            return { data: null, error };
+        }
+        return { data: { user: session.user }, error: null };
+    }
+};
+
+const storage = {
+    from() {
+        return {
+            async upload() {
+                return {
+                    data: null,
+                    error: toError('Use uploadImageToStorage for cPanel uploads.', 'STORAGE_DISABLED')
+                };
+            },
+            getPublicUrl(path: string) {
+                return {
+                    data: {
+                        publicUrl: path
+                    }
+                };
+            }
+        };
+    }
+};
+
+export const supabase: any = {
+    from: (table: string) => createQueryBuilder(table),
+    auth,
+    storage
+};
+
 export const safeSupabaseCall = async <T>(operation: Promise<T>) => {
     try {
         await operation;
@@ -14,39 +609,56 @@ export const safeSupabaseCall = async <T>(operation: Promise<T>) => {
     }
 };
 
-// If the app was redirected back from an OAuth provider, Supabase may place
-// the session tokens in the URL. Parse them before checking session state.
 export const restoreSessionFromUrl = async () => {
     if (typeof window === 'undefined') return false;
 
     const url = new URL(window.location.href);
-    const authCode = url.searchParams.get('code');
-    const hashParams = new URLSearchParams(url.hash.replace('#', ''));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
+    const code = String(url.searchParams.get('code') || '').trim();
+    const state = String(url.searchParams.get('state') || '').trim();
+    const oauthError = String(url.searchParams.get('error') || '').trim();
 
-    if (!authCode && !accessToken) {
+    if (!code && !oauthError) {
         return false;
     }
 
-    try {
-        if (authCode) {
-            await supabase.auth.exchangeCodeForSession(authCode);
-        } else if (accessToken && refreshToken) {
-            await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-            });
+    if (oauthError) {
+        clearOAuthState();
+        clearOAuthQueryParams();
+        return false;
+    }
+
+    const expectedState = readStoredOAuthState();
+    if (!state || (expectedState && state !== expectedState)) {
+        // Do not block exchange; host changes and tab restarts may lose local state.
+        console.warn('OAuth state mismatch detected. Continuing with code exchange fallback.');
+    }
+
+    const redirectCandidates = Array.from(new Set([
+        readStoredOAuthRedirect(),
+        preferredOAuthRedirectUrl(),
+        `${window.location.origin}/admin/dashboard`,
+        `${window.location.origin}${window.location.pathname}`
+    ].map((value) => toOAuthRedirectUrl(value)).filter(Boolean)));
+
+    let data: any = null;
+    let error: SupabaseErrorLike | null = null;
+
+    for (const redirectUri of redirectCandidates) {
+        const attempt = await exchangeGoogleCodeForSession(code, redirectUri);
+        if (!attempt.error && attempt.data) {
+            data = attempt.data;
+            error = null;
+            break;
         }
-
-        url.hash = '';
-        url.searchParams.delete('code');
-        url.searchParams.delete('type');
-        history.replaceState(null, '', url.pathname + url.search);
-        console.log('Supabase: restored session from URL');
-        return true;
-    } catch (err) {
-        console.warn('Supabase: session restore failed during init', err);
-        return false;
+        error = attempt.error;
     }
+
+    clearOAuthState();
+    clearOAuthQueryParams();
+
+    if (error) {
+        throw new Error(error.message || 'Google login failed.');
+    }
+
+    return Boolean(data?.session?.user);
 };

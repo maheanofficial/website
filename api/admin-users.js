@@ -1,321 +1,168 @@
-import { createClient } from '@supabase/supabase-js';
+import {
+    createUserRecord,
+    findUserByIdentifier,
+    isPrimaryAdminEmail,
+    readUsers,
+    toPublicUser,
+    writeUsers
+} from './_users-store.js';
+import {
+    consumeRateLimit,
+    getClientIp,
+    json,
+    readJsonBody
+} from './_request-utils.js';
 
-const pickFirstEnv = (...keys) => {
-    for (const key of keys) {
-        const value = process.env[key];
-        if (typeof value === 'string' && value.trim()) {
-            return value.trim();
-        }
-    }
-    return '';
-};
-
-const SUPABASE_URL =
-    pickFirstEnv(
-        'SUPABASE_URL',
-        'VITE_SUPABASE_URL',
-        'NEXT_PUBLIC_SUPABASE_URL'
-    )
-    || 'https://gepywlhveafqosoyitcb.supabase.co';
-
-const SUPABASE_ANON_KEY =
-    pickFirstEnv(
-        'SUPABASE_ANON_KEY',
-        'VITE_SUPABASE_ANON_KEY',
-        'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-    )
-    || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA';
-
-const SUPABASE_SERVICE_ROLE_KEY = pickFirstEnv(
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_SERVICE_KEY',
-    'SUPABASE_SECRET_KEY',
-    'SUPABASE_ADMIN_KEY',
-    'SERVICE_ROLE_KEY'
-);
-
-const PRIMARY_ADMIN_EMAIL = (
-    process.env.PRIMARY_ADMIN_EMAIL
-    || process.env.VITE_PRIMARY_ADMIN_EMAIL
-    || 'mahean4bd@gmail.com'
-).trim().toLowerCase();
-
-const parseEmailAllowlist = (value) => (value || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-
-const configuredAllowlist = parseEmailAllowlist(
-    process.env.ADMIN_EMAIL_ALLOWLIST || process.env.VITE_ADMIN_EMAIL_ALLOWLIST
-);
-
-const ADMIN_EMAIL_ALLOWLIST = Array.from(new Set([
-    PRIMARY_ADMIN_EMAIL,
-    ...configuredAllowlist
-]));
-
-const json = (res, statusCode, payload) => {
-    res.statusCode = statusCode;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store');
-    res.end(JSON.stringify(payload));
-};
-
-const readJsonBody = async (req) => {
-    if (req.body && typeof req.body === 'object') {
-        return req.body;
-    }
-
-    let raw = '';
-    for await (const chunk of req) {
-        raw += chunk;
-    }
-
-    if (!raw) return {};
-    return JSON.parse(raw);
-};
-
-const getBearerToken = (authHeader) => {
-    if (typeof authHeader !== 'string') return null;
-    const trimmed = authHeader.trim();
-    if (!trimmed.toLowerCase().startsWith('bearer ')) return null;
-    const token = trimmed.slice(7).trim();
-    return token || null;
-};
-
-const toSafeRole = (value) => (value === 'admin' ? 'admin' : 'moderator');
-
-const pickString = (value) => (typeof value === 'string' ? value : undefined);
-
-const roleFromMetadataBucket = (metadata) => {
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-        return null;
-    }
-    const role = pickString(metadata.admin_panel_role) || pickString(metadata.role);
-    if (role === 'admin' || role === 'moderator') {
-        return toSafeRole(role);
-    }
-    return null;
-};
-
-const roleFromUser = (user) => {
-    return roleFromMetadataBucket(user?.app_metadata) || roleFromMetadataBucket(user?.user_metadata);
-};
-
-const isRequesterAdmin = (user) => {
-    if (!user) return false;
-    const role = roleFromUser(user);
-    if (role === 'admin') {
-        return true;
-    }
-
-    const email = (user.email || '').toLowerCase();
-    return Boolean(email && ADMIN_EMAIL_ALLOWLIST.includes(email));
-};
-
-const normalizeDisplayName = (user) => {
-    const metadata = user?.user_metadata;
-    if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
-        const fullName = pickString(metadata.full_name);
-        const name = pickString(metadata.name);
-        if (fullName?.trim()) return fullName.trim();
-        if (name?.trim()) return name.trim();
-    }
-
-    const email = pickString(user?.email);
-    if (email?.includes('@')) {
-        return email.split('@')[0];
-    }
-    return 'User';
-};
-
-const normalizeProviders = (user) => {
-    const identities = Array.isArray(user?.identities) ? user.identities : [];
-    return identities
-        .map((identity) => {
-            if (!identity || typeof identity !== 'object') return '';
-            const provider = pickString(identity.provider);
-            return provider || '';
-        })
-        .filter(Boolean);
-};
-
-const resolveManagedRole = (user) => {
-    const metadataRole = roleFromUser(user);
-    if (metadataRole) return metadataRole;
-
-    const email = (pickString(user?.email) || '').toLowerCase();
-    if (email && ADMIN_EMAIL_ALLOWLIST.includes(email)) {
-        return 'admin';
-    }
-
-    return 'moderator';
-};
-
-const toManagedUser = (user) => ({
-    id: user.id,
-    email: user.email || '',
-    displayName: normalizeDisplayName(user),
-    role: resolveManagedRole(user),
-    createdAt: user.created_at || new Date().toISOString(),
-    providers: normalizeProviders(user)
-});
+const ADMIN_USERS_BODY_LIMIT_BYTES = 64 * 1024;
+const GLOBAL_WINDOW_MS = 60_000;
+const GLOBAL_MAX_REQUESTS = 120;
+const WRITE_WINDOW_MS = 5 * 60_000;
+const WRITE_MAX_REQUESTS = 50;
 
 const emailLooksValid = (value) => {
-    if (typeof value !== 'string') return false;
-    const trimmed = value.trim();
+    const trimmed = String(value || '').trim();
     if (!trimmed) return false;
     const parts = trimmed.split('@');
     return parts.length === 2 && parts[1].includes('.');
 };
 
+const normalizeRole = (value) => (value === 'admin' ? 'admin' : 'moderator');
+
+const readActorId = (req, body) => {
+    const headerActor = typeof req.headers?.['x-actor-id'] === 'string'
+        ? req.headers['x-actor-id'].trim()
+        : '';
+    if (headerActor) return headerActor;
+    const bodyActor = typeof body?.actorId === 'string' ? body.actorId.trim() : '';
+    return bodyActor;
+};
+
+const assertAdminActor = async (req, body) => {
+    const actorId = readActorId(req, body);
+    if (!actorId) {
+        return { ok: false, statusCode: 401, message: 'actorId is required.' };
+    }
+
+    const users = await readUsers();
+    const actor = users.find((user) => user.id === actorId);
+    if (!actor) {
+        return { ok: false, statusCode: 401, message: 'Invalid actor.' };
+    }
+    if (normalizeRole(actor.role) !== 'admin') {
+        return { ok: false, statusCode: 403, message: 'Only admin can manage users.' };
+    }
+
+    return { ok: true, users, actor };
+};
+
+const applyRateLimit = (res, key, max, windowMs) => {
+    const result = consumeRateLimit(key, max, windowMs);
+    if (result.allowed) return true;
+
+    json(res, 429, { error: 'Too many requests. Please try again later.' }, {
+        'Retry-After': String(result.retryAfterSec)
+    });
+    return false;
+};
+
 export default async function handler(req, res) {
-    if (!['GET', 'POST', 'DELETE'].includes(req.method || '')) {
+    const method = (req.method || 'GET').toUpperCase();
+    if (!['GET', 'POST', 'DELETE'].includes(method)) {
         json(res, 405, { error: 'Method not allowed.' });
         return;
     }
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-        json(res, 500, {
-            error: 'Admin user API is not configured. Missing Supabase server environment variables.'
+    const clientIp = getClientIp(req);
+    if (!applyRateLimit(res, `admin-users:all:${clientIp}`, GLOBAL_MAX_REQUESTS, GLOBAL_WINDOW_MS)) {
+        return;
+    }
+
+    let parsedBody = {};
+    if (method !== 'GET') {
+        try {
+            parsedBody = await readJsonBody(req, { maxBytes: ADMIN_USERS_BODY_LIMIT_BYTES });
+        } catch (error) {
+            json(res, Number(error?.statusCode) || 400, { error: error?.message || 'Invalid JSON body.' });
+            return;
+        }
+    }
+
+    if (
+        method !== 'GET'
+        && !applyRateLimit(res, `admin-users:write:${clientIp}`, WRITE_MAX_REQUESTS, WRITE_WINDOW_MS)
+    ) {
+        return;
+    }
+
+    const auth = await assertAdminActor(req, parsedBody);
+    if (!auth.ok) {
+        json(res, auth.statusCode, { error: auth.message });
+        return;
+    }
+
+    const users = auth.users;
+
+    if (method === 'GET') {
+        json(res, 200, {
+            users: users.map(toPublicUser).sort((a, b) => a.email.localeCompare(b.email))
         });
         return;
     }
 
-    const token = getBearerToken(req.headers.authorization);
-    if (!token) {
-        json(res, 401, { error: 'Missing bearer token.' });
-        return;
-    }
-
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false
-        }
-    });
-
-    const { data: requesterData, error: requesterError } = await authClient.auth.getUser(token);
-    if (requesterError || !requesterData?.user) {
-        json(res, 401, { error: 'Invalid or expired session.' });
-        return;
-    }
-
-    if (!isRequesterAdmin(requesterData.user)) {
-        json(res, 403, { error: 'Admin access required.' });
-        return;
-    }
-
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false
-        }
-    });
-
-    if (req.method === 'GET') {
-        const { data, error } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        if (error) {
-            json(res, 500, { error: `Failed to list users: ${error.message}` });
-            return;
-        }
-
-        const users = (data?.users || []).map(toManagedUser);
-        json(res, 200, { users });
-        return;
-    }
-
-    if (req.method === 'POST') {
-        let body;
-        try {
-            body = await readJsonBody(req);
-        } catch {
-            json(res, 400, { error: 'Invalid JSON body.' });
-            return;
-        }
-
-        const email = pickString(body.email)?.trim().toLowerCase() || '';
-        const password = pickString(body.password) || '';
-        const displayName = pickString(body.displayName)?.trim() || undefined;
-        const requestedRole = toSafeRole(pickString(body.role));
-        const role = email === PRIMARY_ADMIN_EMAIL ? 'admin' : requestedRole;
+    if (method === 'POST') {
+        const email = String(parsedBody.email || '').trim().toLowerCase();
+        const password = String(parsedBody.password || '');
+        const displayName = String(parsedBody.displayName || '').trim();
+        const role = normalizeRole(parsedBody.role);
 
         if (!emailLooksValid(email)) {
             json(res, 400, { error: 'A valid email is required.' });
             return;
         }
-
-        if (password.length < 8) {
-            json(res, 400, { error: 'Password must be at least 8 characters.' });
+        if (password.length < 6) {
+            json(res, 400, { error: 'Password must be at least 6 characters.' });
+            return;
+        }
+        const existing = findUserByIdentifier(users, email);
+        if (existing) {
+            json(res, 409, { error: 'User already exists.' });
             return;
         }
 
-        const { data, error } = await adminClient.auth.admin.createUser({
+        const user = createUserRecord({
             email,
+            username: email,
             password,
-            email_confirm: true,
-            user_metadata: {
-                full_name: displayName || email.split('@')[0]
-            },
-            app_metadata: {
-                admin_panel_role: role
-            }
+            displayName: displayName || email.split('@')[0],
+            role: isPrimaryAdminEmail(email) ? 'admin' : role
         });
 
-        if (error || !data?.user) {
-            json(res, 500, {
-                error: error?.message || 'Failed to create user in Supabase Auth.'
-            });
-            return;
-        }
-
-        json(res, 201, { user: toManagedUser(data.user) });
+        users.push(user);
+        await writeUsers(users);
+        json(res, 201, { user: toPublicUser(user) });
         return;
     }
 
-    let body;
-    try {
-        body = await readJsonBody(req);
-    } catch {
-        json(res, 400, { error: 'Invalid JSON body.' });
-        return;
-    }
-
-    const userId = pickString(body.userId)?.trim() || '';
+    const userId = String(parsedBody.userId || '').trim();
     if (!userId) {
         json(res, 400, { error: 'userId is required.' });
         return;
     }
 
-    if (userId === requesterData.user.id) {
-        json(res, 400, { error: 'You cannot delete your own account.' });
-        return;
-    }
-
-    const target = await adminClient.auth.admin.getUserById(userId);
-    const targetUser = target.data?.user;
-    if (!targetUser) {
+    const target = users.find((user) => user.id === userId);
+    if (!target) {
         json(res, 404, { error: 'User not found.' });
         return;
     }
-
-    const targetEmail = (targetUser.email || '').toLowerCase();
-    if (targetEmail === 'admin@local') {
-        json(res, 400, { error: 'System admin cannot be deleted.' });
+    if (target.id === auth.actor.id) {
+        json(res, 400, { error: 'You cannot delete your own account.' });
         return;
     }
-    if (targetEmail === PRIMARY_ADMIN_EMAIL) {
+    if (isPrimaryAdminEmail(target.email || target.username)) {
         json(res, 400, { error: 'Primary admin account cannot be deleted.' });
         return;
     }
 
-    const { error } = await adminClient.auth.admin.deleteUser(userId);
-    if (error) {
-        json(res, 500, { error: `Failed to delete user: ${error.message}` });
-        return;
-    }
-
+    await writeUsers(users.filter((user) => user.id !== userId));
     json(res, 200, { success: true });
 }

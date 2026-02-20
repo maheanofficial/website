@@ -99,11 +99,53 @@ Notes:
 - In development, placeholder boxes are shown for easier placement checking.
 - Cookie notice is shown on public pages and links to Privacy Policy + Google Ad Settings.
 
-## Image Uploads (Supabase Storage)
+## cPanel Data Mode (No Supabase)
 
-Admin image uploads (story covers, avatars, category images) are stored as **Supabase Storage public URLs** when a bucket is configured.
+This project now runs in **cPanel local server mode**:
 
-- Default bucket: `mahean-media` (configurable via `VITE_SUPABASE_STORAGE_BUCKET`)
-- Required Storage policies: see `supabase-schema.sql` section "Storage Bucket for Uploaded Images"
+- App data is stored server-side in `data/*.json` through `/api/db`.
+- Auth/users are stored in `data/users.json` through `/api/auth` and `/api/admin-users`.
+- Image uploads are stored in `dist/uploads/...` through `/api/upload-image`.
+- `data/` runtime files are intentionally not tracked in git.
 
-If Storage upload fails (bucket/policy/session issues), the UI falls back to storing the image as a base64 data URL in the database (legacy behavior).
+### Required cPanel env vars
+
+- `PRIMARY_ADMIN_EMAIL` (optional, default: `mahean4bd@gmail.com`)
+- `PRIMARY_ADMIN_PASSWORD` (**required in production**, use a strong unique value)
+- `VITE_ALLOW_LOCAL_AUTH_FALLBACK=false` (recommended in production)
+
+### Google Login setup (cPanel)
+
+1. In Google Cloud Console create OAuth client: **Web application**.
+2. Add Authorized JavaScript origins:
+   - `https://www.mahean.com`
+   - `https://mahean.com`
+3. Add Authorized redirect URI (must match exactly):
+   - `https://www.mahean.com/admin/dashboard`
+4. In cPanel Node.js app environment set:
+   - `VITE_GOOGLE_OAUTH_ENABLED=true`
+   - `GOOGLE_OAUTH_CLIENT_ID=...`
+   - `GOOGLE_OAUTH_CLIENT_SECRET=...`
+   - `GOOGLE_OAUTH_REDIRECT_URI=https://www.mahean.com/admin/dashboard`
+   - `GOOGLE_OAUTH_ALLOWED_REDIRECT_ORIGIN=https://www.mahean.com`
+5. Rebuild and restart app.
+6. Test from `/login` and `/signup` using the Google button.
+
+### Security hardening already included
+
+- Passwords are stored as scrypt hashes (auto-migrates old plain-text records on first read).
+- `/api/db` write operations require authenticated actor (`actorId`) and role checks.
+- `/api/upload-image` requires authenticated actor and applies rate limits + MIME restrictions.
+- Auth/admin/db/upload APIs now have request-size limits and IP-based rate limiting.
+- Node server now sets security headers and static asset ETag/Last-Modified caching.
+
+### First deploy checklist
+
+1. Upload/extract project files to app root.
+2. In Node.js app config:
+   - App root: your project folder
+   - Startup file: `server.js`
+3. Run `npm install`.
+4. Restart Node app.
+5. Open `/login` and sign in with primary admin credentials.
+6. Immediately change default/temporary admin password if you used one.

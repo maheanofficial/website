@@ -74,7 +74,7 @@ const ProfilePanel = () => {
         try {
             const user = await getCurrentUser();
             if (!user) {
-                throw new Error('সেশন পাওয়া যাচ্ছে না। আবার লগইন করুন।');
+                throw new Error('সেশন পাওয়া যাচ্ছে না। আবার লগইন করুন।');
             }
 
             updateUserProfile(user.id, {

@@ -179,13 +179,6 @@ const SITE_URL =
     pickFirstEnv('SITE_URL', 'VITE_SITE_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_URL')
   ) || DEFAULT_SITE_URL;
 
-const SUPABASE_URL =
-  pickFirstEnv('SUPABASE_URL', 'VITE_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL') ||
-  'https://gepywlhveafqosoyitcb.supabase.co';
-
-const SUPABASE_ANON_KEY =
-  pickFirstEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY') ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlcHl3bGh2ZWFmcW9zb3lpdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc2OTEsImV4cCI6MjA4NTY2MzY5MX0.Ibn6RPloHkN2VPYMlvYLssecy27DiP6CvXiPvoD_zPA';
 const ADSENSE_SELLER_ID = 'f08c47fec0942fa0';
 const ADSENSE_VERIFICATION_START = '<!-- ADSENSE_VERIFICATION_START -->';
 const ADSENSE_VERIFICATION_END = '<!-- ADSENSE_VERIFICATION_END -->';
@@ -464,43 +457,7 @@ const normalizeStoryParts = (story) => {
   return [{ title: '', content: String(fallback).trim() }];
 };
 
-const fetchStoryRows = async () => {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return [];
-  }
-
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-
-  const selects = [
-    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, status, date, updated_at',
-    'id, slug, title, excerpt, parts, content, author, tags, cover_image, image, status, date',
-    'id, slug, title, excerpt, content, author, tags, cover_image, image, status, date, updated_at',
-    'id, slug, title, excerpt, content, author, tags, cover_image, image, status, date',
-    'id, title, excerpt, content, author, tags, cover_image, image, status, date, updated_at',
-    'id, title, excerpt, content, status, date, updated_at',
-    'id, title, excerpt, content, date, updated_at',
-    'id, title, excerpt, content, date',
-    'id, title, excerpt, content',
-    'id, title, excerpt',
-    'id, title',
-    'id'
-  ];
-
-  let lastError = null;
-  for (const selectClause of selects) {
-    const { data, error } = await supabase.from('stories').select(selectClause).limit(5000);
-    if (!error) {
-      return Array.isArray(data) ? data : [];
-    }
-    lastError = error;
-  }
-
-  console.warn('Story prerender skipped: failed to query stories table.', lastError?.message || lastError);
-  return [];
-};
+const fetchStoryRows = async () => [];
 
 const toStoryPartSeos = (story) => {
   const segment = toStorySegment(story);

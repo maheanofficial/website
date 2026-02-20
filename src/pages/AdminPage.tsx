@@ -119,7 +119,7 @@ const AdminPage = () => {
             if (path.includes('/password')) {
                 crumbs.push({ label: 'পাসওয়ার্ড', path: '', icon: undefined });
             } else if (path.includes('/appearance')) {
-                crumbs.push({ label: 'অ্যাপিয়ারেন্স', path: '', icon: undefined });
+                crumbs.push({ label: 'অ্যাপিয়ারেন্স', path: '', icon: undefined });
             } else {
                 crumbs.push({ label: 'প্রোফাইল', path: '', icon: undefined });
             }

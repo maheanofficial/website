@@ -1,0 +1,30 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_PORT }}
+          script: |
+            set -e
+            cd /home/mahean/onboarding-project
+            git pull origin "${{ github.ref_name }}"
+            source /home/mahean/nodevenv/onboarding-project/20/bin/activate
+            npm install --omit=dev
+            npm run build
+            mkdir -p tmp
+            touch tmp/restart.txt

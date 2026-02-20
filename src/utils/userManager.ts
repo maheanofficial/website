@@ -213,6 +213,23 @@ export const updateUserProfile = (userId: string, updates: Partial<User>): User 
         setCurrentUserSession(updated);
     }
 
+    if (typeof window !== 'undefined') {
+        fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update-profile',
+                userId,
+                displayName: updated.displayName,
+                photoURL: updated.photoURL,
+                email: updated.email,
+                username: updated.username
+            })
+        }).catch((error) => {
+            console.warn('Failed to sync profile update to server', error);
+        });
+    }
+
     return updated;
 };
 

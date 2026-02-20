@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Convert any Arabic numerals (0-9) into Bangla numerals.
  */
 export const toBanglaNumber = (num: number | string): string => {

@@ -69,7 +69,7 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
                 displayName: displayName || undefined,
                 role
             });
-            setStatus({ type: 'success', message: 'User created successfully in Supabase.' });
+            setStatus({ type: 'success', message: 'User created successfully.' });
             setEmail('');
             setDisplayName('');
             setPassword('');
@@ -88,7 +88,7 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
 
         try {
             await deleteManagedUser(user.id);
-            setStatus({ type: 'success', message: 'User deleted from Supabase.' });
+            setStatus({ type: 'success', message: 'User deleted successfully.' });
             await loadUsers();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to delete user.';

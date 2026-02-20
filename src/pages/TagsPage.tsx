@@ -51,7 +51,7 @@ const TagsPage = () => {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "বাংলা গল্পের ট্যাগ",
-        "description": "জনপ্রিয় গল্পের ট্যাগ অনুযায়ী গল্প খুঁজে নিন।",
+        "description": "জনপ্রিয় গল্পের ট্যাগ অনুযায়ী গল্প খুঁজে নিন।",
         "url": `${SITE_URL}/tags`,
         "mainEntity": {
             "@type": "ItemList",
@@ -68,7 +68,7 @@ const TagsPage = () => {
         <div className="tags-page page-offset">
             <SEO
                 title="ট্যাগ - গল্পের টপিকসমূহ | Mahean Ahmed"
-                description="জনপ্রিয় ট্যাগ দেখে সহজে আপনার পছন্দের গল্প খুঁজে নিন।"
+                description="জনপ্রিয় ট্যাগ দেখে সহজে আপনার পছন্দের গল্প খুঁজে নিন।"
                 keywords="Bangla Story Tags, Bengali Topics, Thriller Tags, Romance Tags"
                 canonicalUrl="/tags"
                 jsonLd={tagsSchema}
@@ -79,7 +79,7 @@ const TagsPage = () => {
                     <span className="tags-kicker">গল্পের ট্যাগ</span>
                     <h1 className="tags-title">টপিক ধরে গল্প খুঁজুন</h1>
                     <p className="tags-subtitle">
-                        রোমান্স থেকে রহস্য—প্রতিটি ট্যাগে লুকিয়ে আছে আপনার পছন্দের গল্প।
+                        রোমান্স থেকে রহস্য—প্রতিটি ট্যাগে লুকিয়ে আছে আপনার পছন্দের গল্প।
                     </p>
                 </div>
 
@@ -93,7 +93,7 @@ const TagsPage = () => {
                             <div className="tag-pill">#{tag.name}</div>
                             <div className="tag-meta">
                                 <span>{toBanglaNumber(tag.count)} টি গল্প</span>
-                                <span>{toBanglaNumber(tag.views)} বার পড়া</span>
+                                <span>{toBanglaNumber(tag.views)} বার পড়া</span>
                             </div>
                         </Link>
                     ))}

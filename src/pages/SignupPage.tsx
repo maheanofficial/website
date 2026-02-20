@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Eye, EyeOff, User } from 'lucide-react';
-import { signInWithGoogle, signUpWithEmail } from '../utils/auth';
+import { signInWithGoogle, signUpWithEmail, getCurrentUser } from '../utils/auth';
 import SEO from '../components/SEO';
 import './SignupPage.css';
 
@@ -85,12 +85,28 @@ const SignupPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        let isMounted = true;
+        const syncAuthFromCallback = async () => {
+            const user = await getCurrentUser();
+            if (isMounted && user) {
+                navigate('/admin/dashboard', { replace: true });
+            }
+        };
+        syncAuthFromCallback();
+        return () => {
+            isMounted = false;
+        };
+    }, [navigate]);
 
     const handleGoogleSignup = async () => {
         try {
             await signInWithGoogle();
-        } catch {
-            alert('গুগল দিয়ে সাইন আপ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Google sign-up failed. Please try again.';
+            alert(message);
         }
     };
 
@@ -106,13 +122,13 @@ const SignupPage = () => {
                 alert('Please check your email to confirm your account before logging in.');
                 return;
             }
-            alert('???????????? ??? ??????! ??????????? ???? ????? ?????...');
+            alert('অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে! এখন ড্যাশবোর্ডে নেওয়া হচ্ছে...');
             // Redirect to the author dashboard which serves the admin area
             window.location.href = '/admin/dashboard';
         } catch (err: unknown) {
             console.error('Signup error:', err);
             const message = err instanceof Error ? err.message : 'অনুগ্রহ করে আবার চেষ্টা করুন।';
-            alert(`সাইন আপ ব্যর্থ হয়েছে: ${message}`);
+            alert(`সাইন আপ ব্যর্থ হয়েছে: ${message}`);
         }
     };
 
@@ -150,7 +166,7 @@ const SignupPage = () => {
 
                     <button className="google-btn" onClick={handleGoogleSignup}>
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
-                        গুগল দিয়ে রেজিস্টার করুন
+                        গুগল দিয়ে রেজিস্টার করুন
                     </button>
 
                     <div className="divider">
@@ -191,11 +207,11 @@ const SignupPage = () => {
 
                         {/* Password Field */}
                         <div className="form-group">
-                            <label>পাসওয়ার্ড</label>
+                            <label>পাসওয়ার্ড</label>
                             <div className="input-wrapper">
                                 <input
                                     type={showPassword ? "text" : "password"}
-                                    placeholder="পাসওয়ার্ড"
+                                    placeholder="পাসওয়ার্ড"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -212,11 +228,11 @@ const SignupPage = () => {
 
                         {/* Confirm Password Field */}
                         <div className="form-group">
-                            <label>পাসওয়ার্ড নিশ্চিত করুন</label>
+                            <label>পাসওয়ার্ড নিশ্চিত করুন</label>
                             <div className="input-wrapper">
                                 <input
                                     type={showConfirmPassword ? "text" : "password"}
-                                    placeholder="পাসওয়ার্ড নিশ্চিত করুন"
+                                    placeholder="পাসওয়ার্ড নিশ্চিত করুন"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
