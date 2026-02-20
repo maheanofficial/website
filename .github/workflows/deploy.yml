@@ -24,6 +24,7 @@ jobs:
       CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
       CPANEL_PORT: ${{ secrets.CPANEL_PORT || '22' }}
       CPANEL_USER: ${{ secrets.CPANEL_USER }}
+      CPANEL_PASSWORD: ${{ secrets.CPANEL_PASSWORD }}
       DEPLOY_BUNDLE: deploy-${{ github.sha }}.tgz
 
     steps:
@@ -66,12 +67,23 @@ jobs:
             echo "Missing required secrets: CPANEL_HOST, CPANEL_USER"
             exit 1
           fi
-          if [ -z "${CPANEL_SSH_KEY:-}" ] && [ -z "${CPANEL_SSH_KEY_B64:-}" ]; then
-            echo "Missing SSH key secret. Set CPANEL_SSH_KEY (raw key) or CPANEL_SSH_KEY_B64 (base64 key)."
-            exit 1
-          fi
+
+          # Password auth fallback (recommended only when key auth is unavailable).
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+          ssh-keyscan -p "${CPANEL_PORT}" "${CPANEL_HOST}" >> ~/.ssh/known_hosts
+
+          if [ -n "${CPANEL_PASSWORD:-}" ]; then
+            sudo apt-get update
+            sudo apt-get install -y sshpass
+            echo "Using password-based SSH auth (CPANEL_PASSWORD)."
+            exit 0
+          fi
+
+          if [ -z "${CPANEL_SSH_KEY:-}" ] && [ -z "${CPANEL_SSH_KEY_B64:-}" ]; then
+            echo "Missing SSH key secret. Set CPANEL_SSH_KEY (raw key) or CPANEL_SSH_KEY_B64 (base64 key), or set CPANEL_PASSWORD."
+            exit 1
+          fi
 
           if [ -n "${CPANEL_SSH_KEY_B64:-}" ]; then
             printf '%s' "${CPANEL_SSH_KEY_B64}" | base64 -d > ~/.ssh/id_deploy
@@ -92,6 +104,12 @@ jobs:
             exit 1
           fi
 
+          if [ -n "${CPANEL_SSH_PASSPHRASE:-}" ]; then
+            ssh-keygen -y -P "${CPANEL_SSH_PASSPHRASE}" -f ~/.ssh/id_deploy >/dev/null
+          else
+            ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null
+          fi
+
           if [ -n "${CPANEL_SSH_PASSPHRASE}" ]; then
             eval "$(ssh-agent -s)"
             cat > /tmp/askpass.sh <<'EOF'
@@ -104,15 +122,17 @@ jobs:
             export SSH_ASKPASS_REQUIRE=force
             setsid -w ssh-add ~/.ssh/id_deploy < /dev/null
           fi
-          ssh-keyscan -p "${CPANEL_PORT}" "${CPANEL_HOST}" >> ~/.ssh/known_hosts
 
       - name: Deploy and restart app
         run: |
           set -euo pipefail
-          SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${CPANEL_PORT}"
-          ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
-          scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
-          ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+
+          if [ -n "${CPANEL_PASSWORD:-}" ]; then
+            export SSHPASS="${CPANEL_PASSWORD}"
+            SSH_OPTS="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o BatchMode=no -p ${CPANEL_PORT}"
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            sshpass -e scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
           set -euo pipefail
           HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
           APP_DIR_VALUE="${APP_DIR}"
@@ -144,6 +164,43 @@ jobs:
           npm run db:fix-encoding || true
           touch "\${APP_DIR_VALUE}/tmp/restart.txt"
           EOF
+          else
+            SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${CPANEL_PORT}"
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+          set -euo pipefail
+          HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
+          APP_DIR_VALUE="${APP_DIR}"
+          if [ -z "\${APP_DIR_VALUE}" ]; then
+            APP_DIR_VALUE="\${HOME_DIR}/main_mahean.com"
+          fi
+          NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
+          if [ -z "\${NODE_VENV_VALUE}" ]; then
+            APP_NAME="\$(basename "\${APP_DIR_VALUE}")"
+            NODE_VENV_VALUE="\${HOME_DIR}/nodevenv/\${APP_NAME}/20/bin/activate"
+          fi
+          mkdir -p "\${APP_DIR_VALUE}"
+          mkdir -p "\${APP_DIR_VALUE}/tmp"
+          if [ ! -f "\${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
+            echo "Deploy bundle missing: \${HOME_DIR}/${DEPLOY_BUNDLE}"
+            exit 1
+          fi
+          tar -xzf "\${HOME_DIR}/${DEPLOY_BUNDLE}" -C "\${APP_DIR_VALUE}"
+          rm -f "\${HOME_DIR}/${DEPLOY_BUNDLE}"
+          if [ ! -f "\${NODE_VENV_VALUE}" ]; then
+            echo "Node venv activate script not found: \${NODE_VENV_VALUE}"
+            exit 1
+          fi
+          source "\${NODE_VENV_VALUE}"
+          npm -v
+          node -v
+          npm install --include=dev --no-audit --no-fund
+          npm run db:init
+          npm run db:fix-encoding || true
+          touch "\${APP_DIR_VALUE}/tmp/restart.txt"
+          EOF
+          fi
 
       - name: Health check
         run: |

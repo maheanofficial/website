@@ -159,6 +159,7 @@ Required repository secrets:
 - `CPANEL_HOST` (example: `ms-154.servly.top`)
 - `CPANEL_PORT` (usually `22`)
 - `CPANEL_USER` (example: `mahean`)
+- `CPANEL_PASSWORD` (optional fallback; if set, workflow can deploy using password auth via `sshpass`)
 - `CPANEL_SSH_KEY` (private key content, raw multiline)
 - `CPANEL_SSH_KEY_B64` (optional alternative: base64-encoded private key)
 - `CPANEL_SSH_PASSPHRASE` (optional, only if your SSH key is encrypted)
