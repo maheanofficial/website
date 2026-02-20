@@ -239,7 +239,10 @@ const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
 
 const isSupabaseDisabledError = (error: unknown) => {
     const candidate = error as SupabaseErrorLike | null;
-    return Boolean(candidate && candidate.code === 'SUPABASE_DISABLED');
+    return Boolean(
+        candidate
+        && (candidate.code === 'SUPABASE_DISABLED' || candidate.code === 'STORAGE_DISABLED')
+    );
 };
 
 const upsertStoryRowWithColumnFallback = async (row: Record<string, unknown>) => {

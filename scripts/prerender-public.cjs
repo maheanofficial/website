@@ -154,6 +154,34 @@ const staticRouteMeta = [
     title: 'Important Links - Mahean Ahmed',
     description: 'Find important links and resources from Mahean Ahmed.',
     keywords: 'Mahean Links, Social Links'
+  },
+  {
+    path: '/login',
+    title: 'লেখক পোর্টাল - লগ ইন করুন | মাহিয়ানের গল্পকথা',
+    description: 'মাহিয়ানের গল্পকথা লেখক পোর্টালে লগ ইন করুন।',
+    keywords: 'লগইন, লেখক পোর্টাল, মাহিয়ানের গল্পকথা',
+    robots: 'noindex, nofollow, noarchive'
+  },
+  {
+    path: '/signup',
+    title: 'সাইন আপ করুন - মাহিয়ানের গল্পকথা',
+    description: 'মাহিয়ানের গল্পকথায় নতুন অ্যাকাউন্ট তৈরি করুন।',
+    keywords: 'সাইন আপ, নতুন অ্যাকাউন্ট, লেখক পোর্টাল',
+    robots: 'noindex, nofollow, noarchive'
+  },
+  {
+    path: '/forgot-password',
+    title: 'পাসওয়ার্ড ভুলে গেছেন? - মাহিয়ানের গল্পকথা',
+    description: 'মাহিয়ানের গল্পকথা পাসওয়ার্ড রিসেট পেজ।',
+    keywords: 'পাসওয়ার্ড রিসেট, লেখক পোর্টাল',
+    robots: 'noindex, nofollow, noarchive'
+  },
+  {
+    path: '/update-password',
+    title: 'নতুন পাসওয়ার্ড সেট করুন - মাহিয়ানের গল্পকথা',
+    description: 'আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন।',
+    keywords: 'নতুন পাসওয়ার্ড, পাসওয়ার্ড আপডেট',
+    robots: 'noindex, nofollow, noarchive'
   }
 ];
 
