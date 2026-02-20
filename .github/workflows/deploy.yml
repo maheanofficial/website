@@ -108,28 +108,29 @@ jobs:
 
       - name: Deploy and restart app
         run: |
-          set -e
-          REMOTE_BUNDLE="/home/${CPANEL_USER}/${DEPLOY_BUNDLE}"
-          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:${REMOTE_BUNDLE}"
+          set -euo pipefail
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] connected as \$(whoami) in \$(pwd)\""
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
           set -euo pipefail
+          HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
           APP_DIR_VALUE="${APP_DIR}"
           if [ -z "\${APP_DIR_VALUE}" ]; then
-            APP_DIR_VALUE="/home/${CPANEL_USER}/main_mahean.com"
+            APP_DIR_VALUE="\${HOME_DIR}/main_mahean.com"
           fi
           NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
           if [ -z "\${NODE_VENV_VALUE}" ]; then
             APP_NAME="\$(basename "\${APP_DIR_VALUE}")"
-            NODE_VENV_VALUE="/home/${CPANEL_USER}/nodevenv/\${APP_NAME}/20/bin/activate"
+            NODE_VENV_VALUE="\${HOME_DIR}/nodevenv/\${APP_NAME}/20/bin/activate"
           fi
           mkdir -p "\${APP_DIR_VALUE}"
           mkdir -p "\${APP_DIR_VALUE}/tmp"
-          if [ ! -f "${REMOTE_BUNDLE}" ]; then
-            echo "Deploy bundle missing: ${REMOTE_BUNDLE}"
+          if [ ! -f "\${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
+            echo "Deploy bundle missing: \${HOME_DIR}/${DEPLOY_BUNDLE}"
             exit 1
           fi
-          tar -xzf "${REMOTE_BUNDLE}" -C "\${APP_DIR_VALUE}"
-          rm -f "${REMOTE_BUNDLE}"
+          tar -xzf "\${HOME_DIR}/${DEPLOY_BUNDLE}" -C "\${APP_DIR_VALUE}"
+          rm -f "\${HOME_DIR}/${DEPLOY_BUNDLE}"
           if [ ! -f "\${NODE_VENV_VALUE}" ]; then
             echo "Node venv activate script not found: \${NODE_VENV_VALUE}"
             exit 1
