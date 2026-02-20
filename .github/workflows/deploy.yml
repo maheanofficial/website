@@ -68,10 +68,29 @@ jobs:
             exit 1
           fi
 
+          HOST_VALUE="${CPANEL_HOST#http://}"
+          HOST_VALUE="${HOST_VALUE#https://}"
+          HOST_VALUE="${HOST_VALUE%%/*}"
+          if [ -z "${HOST_VALUE}" ]; then
+            echo "Invalid CPANEL_HOST secret."
+            exit 1
+          fi
+
+          PORT_VALUE="$(printf '%s' "${CPANEL_PORT}" | tr -cd '0-9')"
+          if [ -z "${PORT_VALUE}" ]; then
+            PORT_VALUE="22"
+          fi
+
+          echo "CPANEL_HOST_CLEAN=${HOST_VALUE}" >> "${GITHUB_ENV}"
+          echo "CPANEL_PORT_CLEAN=${PORT_VALUE}" >> "${GITHUB_ENV}"
+
           # Password auth fallback (recommended only when key auth is unavailable).
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -p "${CPANEL_PORT}" "${CPANEL_HOST}" >> ~/.ssh/known_hosts
+          if ! ssh-keyscan -p "${PORT_VALUE}" "${HOST_VALUE}" >> ~/.ssh/known_hosts; then
+            echo "ssh-keyscan failed for ${HOST_VALUE}:${PORT_VALUE}"
+            exit 1
+          fi
 
           if [ -n "${CPANEL_PASSWORD:-}" ]; then
             sudo apt-get update
@@ -126,13 +145,15 @@ jobs:
       - name: Deploy and restart app
         run: |
           set -euo pipefail
+          HOST_VALUE="${CPANEL_HOST_CLEAN:-${CPANEL_HOST}}"
+          PORT_VALUE="${CPANEL_PORT_CLEAN:-${CPANEL_PORT}}"
 
           if [ -n "${CPANEL_PASSWORD:-}" ]; then
             export SSHPASS="${CPANEL_PASSWORD}"
-            SSH_OPTS="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o BatchMode=no -p ${CPANEL_PORT}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
-            sshpass -e scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+            SSH_OPTS="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o BatchMode=no -p ${PORT_VALUE}"
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            sshpass -e scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" <<EOF
           set -euo pipefail
           HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
           APP_DIR_VALUE="${APP_DIR}"
@@ -165,10 +186,10 @@ jobs:
           touch "\${APP_DIR_VALUE}/tmp/restart.txt"
           EOF
           else
-            SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${CPANEL_PORT}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
-            scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:~/${DEPLOY_BUNDLE}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
+            SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${PORT_VALUE}"
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" <<EOF
           set -euo pipefail
           HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
           APP_DIR_VALUE="${APP_DIR}"
