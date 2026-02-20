@@ -264,6 +264,46 @@ const writeAdsTxt = async (publisherId) => {
 
 const LEGACY_META_START = '__MAHEAN_META__:';
 const LEGACY_META_END = ':__MAHEAN_META_END__';
+const MOJIBAKE_PATTERN = /(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�)/;
+
+const scoreMojibake = (value) => (String(value).match(/(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�|�)/g) || []).length;
+const scoreBangla = (value) => (String(value).match(/[\u0980-\u09FF]/g) || []).length;
+
+const decodeLatin1AsUtf8 = (value) => {
+  try {
+    return Buffer.from(String(value), 'latin1').toString('utf8');
+  } catch {
+    return String(value);
+  }
+};
+
+const repairMojibakeText = (value) => {
+  const input = String(value ?? '');
+  if (!input || !MOJIBAKE_PATTERN.test(input)) return input;
+
+  let current = input;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const decoded = decodeLatin1AsUtf8(current);
+    if (!decoded || decoded === current) break;
+    const improvedBangla = scoreBangla(decoded) > scoreBangla(current);
+    const reducedNoise = scoreMojibake(decoded) < scoreMojibake(current);
+    if (!improvedBangla && !reducedNoise) break;
+    current = decoded;
+  }
+
+  return current;
+};
+
+const repairDeep = (value) => {
+  if (typeof value === 'string') return repairMojibakeText(value);
+  if (Array.isArray(value)) return value.map(repairDeep);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, repairDeep(entry)])
+    );
+  }
+  return value;
+};
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const escapeHtml = (value) =>
@@ -282,7 +322,7 @@ const toAbsoluteUrl = (value) => {
 };
 
 const normalizeDescription = (value) => {
-  const plain = String(value || '')
+  const plain = repairMojibakeText(String(value || ''))
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -292,10 +332,10 @@ const normalizeDescription = (value) => {
 
 const normalizeExcerpt = (value) => {
   const raw = String(value || '');
-  if (!raw.startsWith(LEGACY_META_START)) return raw;
+  if (!raw.startsWith(LEGACY_META_START)) return repairMojibakeText(raw);
   const markerEnd = raw.indexOf(LEGACY_META_END);
-  if (markerEnd < 0) return raw;
-  return raw.slice(markerEnd + LEGACY_META_END.length);
+  if (markerEnd < 0) return repairMojibakeText(raw);
+  return repairMojibakeText(raw.slice(markerEnd + LEGACY_META_END.length));
 };
 
 const parseLegacyMeta = (value) => {
@@ -307,7 +347,7 @@ const parseLegacyMeta = (value) => {
   try {
     const parsed = JSON.parse(payload);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    return parsed;
+    return repairDeep(parsed);
   } catch {
     return null;
   }
@@ -490,7 +530,7 @@ const fetchStoryRows = async () => {
   try {
     const raw = await fs.readFile(STORIES_TABLE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed?.rows) ? parsed.rows : [];
+    return Array.isArray(parsed?.rows) ? repairDeep(parsed.rows) : [];
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       return [];

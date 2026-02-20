@@ -65,8 +65,6 @@ export type StoryMutationResult = {
     message?: string;
 };
 
-const toArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
-
 const mergeStories = (primary: Story[], secondary: Story[]) => {
     const map = new Map<string, Story>();
     secondary.forEach(story => map.set(story.id, normalizeStory(story)));
@@ -117,20 +115,57 @@ const LEGACY_META_START = '__MAHEAN_META__:';
 const LEGACY_META_END = ':__MAHEAN_META_END__';
 const MISSING_COLUMN_REGEX = /Could not find the '([^']+)' column/i;
 const unsupportedStoryColumns = new Set<string>();
+const MOJIBAKE_PATTERN = /(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�)/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const scoreMojibake = (value: string) => (value.match(/(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�|�)/g) || []).length;
+
+const scoreBangla = (value: string) => (value.match(/[\u0980-\u09FF]/g) || []).length;
+
+const decodeLatin1AsUtf8 = (value: string) => {
+    try {
+        const bytes = Uint8Array.from(value, (char) => char.charCodeAt(0) & 0xff);
+        return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    } catch {
+        return value;
+    }
+};
+
+const repairMojibakeText = (value: string) => {
+    if (!value || !MOJIBAKE_PATTERN.test(value)) return value;
+
+    let current = value;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const decoded = decodeLatin1AsUtf8(current);
+        if (!decoded || decoded === current) break;
+
+        const improvedBangla = scoreBangla(decoded) > scoreBangla(current);
+        const reducedNoise = scoreMojibake(decoded) < scoreMojibake(current);
+        if (!improvedBangla && !reducedNoise) break;
+
+        current = decoded;
+    }
+
+    return current;
+};
+
 const toStringArray = (value: unknown): string[] =>
-    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+    Array.isArray(value)
+        ? value
+            .filter((entry): entry is string => typeof entry === 'string')
+            .map((entry) => repairMojibakeText(entry).trim())
+            .filter(Boolean)
+        : [];
 
 const toStoryParts = (value: unknown): StoryPart[] => {
     if (!Array.isArray(value)) return [];
     return value
         .map((entry) => {
             if (!isRecord(entry)) return null;
-            const title = typeof entry.title === 'string' ? entry.title : '';
-            const content = typeof entry.content === 'string' ? entry.content : '';
+            const title = repairMojibakeText(typeof entry.title === 'string' ? entry.title : '');
+            const content = repairMojibakeText(typeof entry.content === 'string' ? entry.content : '');
             const id = typeof entry.id === 'string' ? entry.id : undefined;
             if (!title && !content) return null;
             return { id, title, content };
@@ -182,40 +217,40 @@ const encodeExcerptWithMeta = (excerpt: string, meta: LegacyStoryMeta) => {
 const parseExcerptWithMeta = (excerpt?: string | null): { excerpt: string; meta: LegacyStoryMeta | null } => {
     const value = excerpt ?? '';
     if (!value.startsWith(LEGACY_META_START)) {
-        return { excerpt: value, meta: null };
+        return { excerpt: repairMojibakeText(value), meta: null };
     }
 
     const markerEndIndex = value.indexOf(LEGACY_META_END);
     if (markerEndIndex < 0) {
-        return { excerpt: value, meta: null };
+        return { excerpt: repairMojibakeText(value), meta: null };
     }
 
     const rawMeta = value.slice(LEGACY_META_START.length, markerEndIndex);
     try {
         const parsed = JSON.parse(rawMeta) as unknown;
         if (!isRecord(parsed)) {
-            return { excerpt: value, meta: null };
+            return { excerpt: repairMojibakeText(value), meta: null };
         }
         const meta: LegacyStoryMeta = {
             status: normalizeStoryStatus(typeof parsed.status === 'string' ? parsed.status : undefined),
-            submittedBy: typeof parsed.submittedBy === 'string' ? parsed.submittedBy : undefined,
-            author: typeof parsed.author === 'string' ? parsed.author : undefined,
-            category: typeof parsed.category === 'string' ? parsed.category : undefined,
-            coverImage: typeof parsed.coverImage === 'string' ? parsed.coverImage : undefined,
-            slug: typeof parsed.slug === 'string' ? parsed.slug : undefined,
+            submittedBy: typeof parsed.submittedBy === 'string' ? repairMojibakeText(parsed.submittedBy) : undefined,
+            author: typeof parsed.author === 'string' ? repairMojibakeText(parsed.author) : undefined,
+            category: typeof parsed.category === 'string' ? repairMojibakeText(parsed.category) : undefined,
+            coverImage: typeof parsed.coverImage === 'string' ? repairMojibakeText(parsed.coverImage) : undefined,
+            slug: typeof parsed.slug === 'string' ? repairMojibakeText(parsed.slug) : undefined,
             tags: toStringArray(parsed.tags),
             parts: toStoryParts(parsed.parts),
             comments: typeof parsed.comments === 'number' ? parsed.comments : undefined,
             isFeatured: typeof parsed.isFeatured === 'boolean' ? parsed.isFeatured : undefined,
-            readTime: typeof parsed.readTime === 'string' ? parsed.readTime : undefined
+            readTime: typeof parsed.readTime === 'string' ? repairMojibakeText(parsed.readTime) : undefined
         };
         return {
-            excerpt: value.slice(markerEndIndex + LEGACY_META_END.length),
+            excerpt: repairMojibakeText(value.slice(markerEndIndex + LEGACY_META_END.length)),
             meta
         };
     } catch (error) {
         console.warn('Failed to parse legacy story metadata from excerpt', error);
-        return { excerpt: value, meta: null };
+        return { excerpt: repairMojibakeText(value), meta: null };
     }
 };
 
@@ -276,9 +311,10 @@ const upsertStoryRowWithColumnFallback = async (row: Record<string, unknown>) =>
 
 const mapRowToStory = (row: StoryRow): Story => {
     const parsedExcerpt = parseExcerptWithMeta(row.excerpt);
-    const content = row.content ?? '';
-    const rowTags = toArray<string>(row.tags);
-    const rowParts = toArray<StoryPart>(row.parts);
+    const title = repairMojibakeText(row.title ?? '');
+    const content = repairMojibakeText(row.content ?? '');
+    const rowTags = toStringArray(row.tags);
+    const rowParts = toStoryParts(row.parts);
     const fallbackParts = content
         ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
         : [];
@@ -289,11 +325,11 @@ const mapRowToStory = (row: StoryRow): Story => {
         : rawLegacyParts;
     const parts = rowParts.length ? rowParts : (legacyParts.length ? legacyParts : fallbackParts);
     const resolvedSlug = (row.slug ?? legacyMeta?.slug ?? '').trim();
-    const slugValue = resolvedSlug || slugify(row.title);
+    const slugValue = resolvedSlug || slugify(title);
 
     return {
         id: row.id,
-        title: row.title,
+        title,
         excerpt: parsedExcerpt.excerpt,
         content,
         authorId: row.author_id ?? '',
@@ -302,8 +338,8 @@ const mapRowToStory = (row: StoryRow): Story => {
         image: row.image ?? row.cover_image ?? legacyMeta?.coverImage ?? undefined,
         date: row.date ?? row.created_at ?? new Date().toISOString(),
         slug: slugValue || undefined,
-        author: row.author ?? legacyMeta?.author ?? undefined,
-        category: row.category ?? row.category_id ?? legacyMeta?.category ?? undefined,
+        author: repairMojibakeText(row.author ?? legacyMeta?.author ?? ''),
+        category: repairMojibakeText(row.category ?? row.category_id ?? legacyMeta?.category ?? ''),
         cover_image: row.cover_image ?? legacyMeta?.coverImage ?? undefined,
         tags: rowTags.length ? rowTags : (legacyMeta?.tags ?? []),
         parts,
@@ -316,43 +352,49 @@ const mapRowToStory = (row: StoryRow): Story => {
 };
 
 const mapStoryToRow = (story: Story): Record<string, unknown> => {
-    const meta = buildLegacyStoryMeta(story);
+    const normalizedStory = normalizeStory(story);
+    const meta = buildLegacyStoryMeta(normalizedStory);
 
     return {
-        id: story.id,
-        title: story.title,
-        excerpt: encodeExcerptWithMeta(story.excerpt ?? '', meta),
-        content: story.content ?? '',
-        author_id: story.authorId ?? '',
-        author: story.author ?? null,
-        category_id: story.categoryId ?? story.category ?? '',
-        category: story.category ?? story.categoryId ?? null,
-        views: story.views ?? 0,
-        image: story.image ?? null,
-        cover_image: story.cover_image ?? null,
-        slug: story.slug ?? null,
-        tags: story.tags ?? [],
-        parts: story.parts ?? [],
-        comments: story.comments ?? 0,
-        is_featured: story.is_featured ?? false,
-        read_time: story.readTime ?? null,
-        status: toStoryStatus(story.status),
-        submitted_by: story.submittedBy ?? null,
-        date: story.date ?? new Date().toISOString(),
+        id: normalizedStory.id,
+        title: normalizedStory.title,
+        excerpt: encodeExcerptWithMeta(normalizedStory.excerpt ?? '', meta),
+        content: normalizedStory.content ?? '',
+        author_id: normalizedStory.authorId ?? '',
+        author: normalizedStory.author ?? null,
+        category_id: normalizedStory.categoryId ?? normalizedStory.category ?? '',
+        category: normalizedStory.category ?? normalizedStory.categoryId ?? null,
+        views: normalizedStory.views ?? 0,
+        image: normalizedStory.image ?? null,
+        cover_image: normalizedStory.cover_image ?? null,
+        slug: normalizedStory.slug ?? null,
+        tags: normalizedStory.tags ?? [],
+        parts: normalizedStory.parts ?? [],
+        comments: normalizedStory.comments ?? 0,
+        is_featured: normalizedStory.is_featured ?? false,
+        read_time: normalizedStory.readTime ?? null,
+        status: toStoryStatus(normalizedStory.status),
+        submitted_by: normalizedStory.submittedBy ?? null,
+        date: normalizedStory.date ?? new Date().toISOString(),
         updated_at: new Date().toISOString()
     };
 };
 
 const normalizeStory = (story: Story): Story => ({
     ...story,
+    title: repairMojibakeText(story.title ?? ''),
+    excerpt: repairMojibakeText(story.excerpt ?? ''),
+    content: repairMojibakeText(story.content ?? ''),
     views: story.views ?? 0,
     comments: story.comments ?? 0,
     status: toStoryStatus(story.status),
     date: story.date ?? new Date().toISOString(),
     categoryId: story.categoryId ?? story.category ?? '',
-    category: story.category ?? story.categoryId,
+    category: repairMojibakeText(story.category ?? story.categoryId ?? ''),
     authorId: story.authorId ?? story.submittedBy ?? '',
-    author: story.author ?? story.submittedBy
+    author: repairMojibakeText(story.author ?? story.submittedBy ?? ''),
+    tags: toStringArray(story.tags),
+    parts: toStoryParts(story.parts)
 });
 
 const sortStoriesByDate = (stories: Story[]) =>

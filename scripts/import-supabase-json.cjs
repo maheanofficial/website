@@ -33,6 +33,50 @@ const toRows = (parsed) => {
 
 const stripBom = (raw) => raw.replace(/^\uFEFF/, '');
 
+const MOJIBAKE_PATTERN = /(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�)/;
+
+const scoreMojibake = (value) => (String(value).match(/(?:à¦|à§|Ã|Â|â€|â€™|â€œ|â€�|�)/g) || []).length;
+
+const scoreBangla = (value) => (String(value).match(/[\u0980-\u09FF]/g) || []).length;
+
+const decodeLatin1AsUtf8 = (value) => {
+  try {
+    return Buffer.from(String(value), 'latin1').toString('utf8');
+  } catch {
+    return String(value);
+  }
+};
+
+const repairMojibakeText = (value) => {
+  const input = String(value ?? '');
+  if (!input || !MOJIBAKE_PATTERN.test(input)) return input;
+
+  let current = input;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const decoded = decodeLatin1AsUtf8(current);
+    if (!decoded || decoded === current) break;
+
+    const improvedBangla = scoreBangla(decoded) > scoreBangla(current);
+    const reducedNoise = scoreMojibake(decoded) < scoreMojibake(current);
+    if (!improvedBangla && !reducedNoise) break;
+
+    current = decoded;
+  }
+
+  return current;
+};
+
+const repairDeep = (value) => {
+  if (typeof value === 'string') return repairMojibakeText(value);
+  if (Array.isArray(value)) return value.map(repairDeep);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, repairDeep(entry)])
+    );
+  }
+  return value;
+};
+
 const readTableExport = async (exportDir, table) => {
   const candidates = [
     path.join(exportDir, `${table}.json`),
@@ -43,7 +87,7 @@ const readTableExport = async (exportDir, table) => {
     try {
       const raw = await fs.readFile(candidate, 'utf8');
       const parsed = JSON.parse(stripBom(raw));
-      return { rows: toRows(parsed), source: candidate };
+      return { rows: repairDeep(toRows(parsed)), source: candidate };
     } catch (error) {
       if (!(error && typeof error === 'object' && error.code === 'ENOENT')) {
         throw error;
