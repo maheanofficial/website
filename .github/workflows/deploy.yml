@@ -7,24 +7,87 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      APP_DIR: /home/mahean/main_mahean.com
+      NODE_VENV_ACTIVATE: /home/mahean/nodevenv/main_mahean.com/20/bin/activate
+      HEALTHCHECK_URL: https://www.mahean.com/healthz
 
     steps:
-      - name: Deploy over SSH
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Prepare deployment bundle
+        run: |
+          set -e
+          rm -rf deploy
+          mkdir -p deploy
+          cp -r api deploy/api
+          cp -r dist deploy/dist
+          cp -r scripts deploy/scripts
+          cp package.json deploy/package.json
+          cp package-lock.json deploy/package-lock.json
+          cp server.js deploy/server.js
+          tar -czf deploy.tgz -C deploy .
+
+      - name: Upload bundle to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+          port: ${{ secrets.CPANEL_PORT }}
+          source: deploy.tgz
+          target: /home/mahean
+
+      - name: Deploy and restart app
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.CPANEL_HOST }}
           username: ${{ secrets.CPANEL_USER }}
           key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
           script: |
             set -e
-            cd /home/mahean/onboarding-project
-            git pull origin "${{ github.ref_name }}"
-            source /home/mahean/nodevenv/onboarding-project/20/bin/activate
-            npm install --omit=dev
-            npm run build
+            cd "${APP_DIR}"
+            tar -xzf /home/mahean/deploy.tgz -C "${APP_DIR}"
+            rm -f /home/mahean/deploy.tgz
+            source "${NODE_VENV_ACTIVATE}"
+            npm install --include=dev --no-audit --no-fund
             mkdir -p tmp
             touch tmp/restart.txt
+
+      - name: Health check
+        run: |
+          set -e
+          for i in $(seq 1 18); do
+            if curl -fsS "${HEALTHCHECK_URL}" | grep -qi '^ok$'; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Waiting for app to become healthy... (${i}/18)"
+            sleep 5
+          done
+          echo "Health check failed"
+          exit 1

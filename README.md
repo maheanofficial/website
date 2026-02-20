@@ -149,3 +149,22 @@ This project now runs in **cPanel local server mode**:
 4. Restart Node app.
 5. Open `/login` and sign in with primary admin credentials.
 6. Immediately change default/temporary admin password if you used one.
+
+### GitHub auto deploy (stable)
+
+This repo includes `.github/workflows/deploy.yml` for automatic cPanel deploy on push to `main`/`master`.
+
+Required repository secrets:
+
+- `CPANEL_HOST` (example: `ms-154.servly.top`)
+- `CPANEL_PORT` (usually `22`)
+- `CPANEL_USER` (example: `mahean`)
+- `CPANEL_SSH_KEY` (private key content)
+- `CPANEL_SSH_PASSPHRASE` (optional, only if your SSH key is encrypted)
+
+What the workflow does:
+
+1. Build app in GitHub Actions (`npm ci`, `npm run build`).
+2. Uploads deploy bundle to `/home/mahean/main_mahean.com`.
+3. Runs `npm install --include=dev`, triggers restart via `tmp/restart.txt`.
+4. Verifies `https://www.mahean.com/healthz` returns `ok`.
