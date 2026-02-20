@@ -58,19 +58,42 @@ jobs:
       - name: Configure SSH
         env:
           CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_SSH_KEY_B64: ${{ secrets.CPANEL_SSH_KEY_B64 }}
           CPANEL_SSH_PASSPHRASE: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
         run: |
-          set -e
-          if [ -z "${CPANEL_HOST}" ] || [ -z "${CPANEL_USER}" ] || [ -z "${CPANEL_SSH_KEY}" ]; then
-            echo "Missing required secrets: CPANEL_HOST, CPANEL_USER, CPANEL_SSH_KEY"
+          set -euo pipefail
+          if [ -z "${CPANEL_HOST}" ] || [ -z "${CPANEL_USER}" ]; then
+            echo "Missing required secrets: CPANEL_HOST, CPANEL_USER"
+            exit 1
+          fi
+          if [ -z "${CPANEL_SSH_KEY:-}" ] && [ -z "${CPANEL_SSH_KEY_B64:-}" ]; then
+            echo "Missing SSH key secret. Set CPANEL_SSH_KEY (raw key) or CPANEL_SSH_KEY_B64 (base64 key)."
             exit 1
           fi
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${CPANEL_SSH_KEY}" | tr -d '\r' > ~/.ssh/id_deploy
+
+          if [ -n "${CPANEL_SSH_KEY_B64:-}" ]; then
+            printf '%s' "${CPANEL_SSH_KEY_B64}" | base64 -d > ~/.ssh/id_deploy
+          else
+            KEY_CONTENT="$(printf '%s' "${CPANEL_SSH_KEY}" | tr -d '\r')"
+            # If secret was pasted as escaped newlines, convert to real newlines.
+            if [[ "${KEY_CONTENT}" == *"\\n"* ]] && [[ "${KEY_CONTENT}" != *$'\n'* ]]; then
+              KEY_CONTENT="$(printf '%b' "${KEY_CONTENT}")"
+            fi
+            # Remove accidental left-padding from copied chat text.
+            printf '%s\n' "${KEY_CONTENT}" | sed 's/^[[:space:]]*//' > ~/.ssh/id_deploy
+          fi
+
           chmod 600 ~/.ssh/id_deploy
-          eval "$(ssh-agent -s)"
+
+          if ! grep -q "BEGIN OPENSSH PRIVATE KEY" ~/.ssh/id_deploy; then
+            echo "Invalid SSH key format in secret."
+            exit 1
+          fi
+
           if [ -n "${CPANEL_SSH_PASSPHRASE}" ]; then
+            eval "$(ssh-agent -s)"
             cat > /tmp/askpass.sh <<'EOF'
           #!/usr/bin/env bash
           echo "${CPANEL_SSH_PASSPHRASE}"
@@ -80,8 +103,6 @@ jobs:
             export DISPLAY=:0
             export SSH_ASKPASS_REQUIRE=force
             setsid -w ssh-add ~/.ssh/id_deploy < /dev/null
-          else
-            ssh-add ~/.ssh/id_deploy
           fi
           ssh-keyscan -p "${CPANEL_PORT}" "${CPANEL_HOST}" >> ~/.ssh/known_hosts
 
