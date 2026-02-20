@@ -168,3 +168,16 @@ What the workflow does:
 2. Uploads deploy bundle to `/home/mahean/main_mahean.com`.
 3. Runs `npm install --include=dev`, triggers restart via `tmp/restart.txt`.
 4. Verifies `https://www.mahean.com/healthz` returns `ok`.
+
+If GitHub Actions is blocked (for example, billing/account lock), deploy manually from Windows:
+
+```powershell
+pwsh -File scripts/deploy-cpanel.ps1 `
+  -Host ms-154.servly.top `
+  -User mahean `
+  -Port 22 `
+  -KeyPath "$HOME/.ssh/id_rsa" `
+  -BuildFirst
+```
+
+You can also pass a different app path with `-AppDir` if needed.
