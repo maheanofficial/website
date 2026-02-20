@@ -18,12 +18,13 @@ jobs:
     permissions:
       contents: read
     env:
-      APP_DIR: /home/mahean/main_mahean.com
-      NODE_VENV_ACTIVATE: /home/mahean/nodevenv/main_mahean.com/20/bin/activate
+      APP_DIR: ${{ secrets.CPANEL_APP_DIR }}
+      NODE_VENV_ACTIVATE: ${{ secrets.CPANEL_NODE_VENV_ACTIVATE }}
       HEALTHCHECK_URL: https://www.mahean.com/healthz
       CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
       CPANEL_PORT: ${{ secrets.CPANEL_PORT || '22' }}
       CPANEL_USER: ${{ secrets.CPANEL_USER }}
+      DEPLOY_BUNDLE: deploy-${{ github.sha }}.tgz
 
     steps:
       - name: Checkout repository
@@ -52,7 +53,7 @@ jobs:
           cp package.json deploy/package.json
           cp package-lock.json deploy/package-lock.json
           cp server.js deploy/server.js
-          tar -czf deploy.tgz -C deploy .
+          tar -czf "${DEPLOY_BUNDLE}" -C deploy .
 
       - name: Configure SSH
         env:
@@ -66,7 +67,7 @@ jobs:
           fi
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${CPANEL_SSH_KEY}" > ~/.ssh/id_deploy
+          printf '%s\n' "${CPANEL_SSH_KEY}" | tr -d '\r' > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           eval "$(ssh-agent -s)"
           if [ -n "${CPANEL_SSH_PASSPHRASE}" ]; then
@@ -77,7 +78,8 @@ jobs:
             chmod 700 /tmp/askpass.sh
             export SSH_ASKPASS=/tmp/askpass.sh
             export DISPLAY=:0
-            setsid ssh-add ~/.ssh/id_deploy < /dev/null
+            export SSH_ASKPASS_REQUIRE=force
+            setsid -w ssh-add ~/.ssh/id_deploy < /dev/null
           else
             ssh-add ~/.ssh/id_deploy
           fi
@@ -86,28 +88,50 @@ jobs:
       - name: Deploy and restart app
         run: |
           set -e
-          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" deploy.tgz "${CPANEL_USER}@${CPANEL_HOST}:/home/mahean/deploy.tgz"
+          REMOTE_BUNDLE="/home/${CPANEL_USER}/${DEPLOY_BUNDLE}"
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -P "${CPANEL_PORT}" "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${CPANEL_HOST}:${REMOTE_BUNDLE}"
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -p "${CPANEL_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" <<EOF
-          set -e
-          cd "${APP_DIR}"
-          tar -xzf /home/mahean/deploy.tgz -C "${APP_DIR}"
-          rm -f /home/mahean/deploy.tgz
-          source "${NODE_VENV_ACTIVATE}"
+          set -euo pipefail
+          APP_DIR_VALUE="${APP_DIR}"
+          if [ -z "\${APP_DIR_VALUE}" ]; then
+            APP_DIR_VALUE="/home/${CPANEL_USER}/main_mahean.com"
+          fi
+          NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
+          if [ -z "\${NODE_VENV_VALUE}" ]; then
+            APP_NAME="\$(basename "\${APP_DIR_VALUE}")"
+            NODE_VENV_VALUE="/home/${CPANEL_USER}/nodevenv/\${APP_NAME}/20/bin/activate"
+          fi
+          mkdir -p "\${APP_DIR_VALUE}"
+          mkdir -p "\${APP_DIR_VALUE}/tmp"
+          if [ ! -f "${REMOTE_BUNDLE}" ]; then
+            echo "Deploy bundle missing: ${REMOTE_BUNDLE}"
+            exit 1
+          fi
+          tar -xzf "${REMOTE_BUNDLE}" -C "\${APP_DIR_VALUE}"
+          rm -f "${REMOTE_BUNDLE}"
+          if [ ! -f "\${NODE_VENV_VALUE}" ]; then
+            echo "Node venv activate script not found: \${NODE_VENV_VALUE}"
+            exit 1
+          fi
+          source "\${NODE_VENV_VALUE}"
+          npm -v
+          node -v
           npm install --include=dev --no-audit --no-fund
-          mkdir -p tmp
-          touch tmp/restart.txt
+          npm run db:init
+          npm run db:fix-encoding || true
+          touch "\${APP_DIR_VALUE}/tmp/restart.txt"
           EOF
 
       - name: Health check
         run: |
           set -e
-          for i in $(seq 1 18); do
+          for i in $(seq 1 30); do
             if curl -fsS "${HEALTHCHECK_URL}" | grep -qi '^ok$'; then
               echo "Health check passed"
               exit 0
             fi
-            echo "Waiting for app to become healthy... (${i}/18)"
-            sleep 5
+            echo "Waiting for app to become healthy... (${i}/30)"
+            sleep 4
           done
           echo "Health check failed"
           exit 1

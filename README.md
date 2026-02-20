@@ -161,12 +161,14 @@ Required repository secrets:
 - `CPANEL_USER` (example: `mahean`)
 - `CPANEL_SSH_KEY` (private key content)
 - `CPANEL_SSH_PASSPHRASE` (optional, only if your SSH key is encrypted)
+- `CPANEL_APP_DIR` (optional, default: `/home/<CPANEL_USER>/main_mahean.com`)
+- `CPANEL_NODE_VENV_ACTIVATE` (optional, default: `/home/<CPANEL_USER>/nodevenv/<app_dir_name>/20/bin/activate`)
 
 What the workflow does:
 
 1. Build app in GitHub Actions (`npm ci`, `npm run build`).
-2. Uploads deploy bundle to `/home/mahean/main_mahean.com`.
-3. Runs `npm install --include=dev`, triggers restart via `tmp/restart.txt`.
+2. Uploads deploy bundle to `/home/<CPANEL_USER>/` and extracts it into app dir.
+3. Runs `npm install --include=dev`, `npm run db:init`, `npm run db:fix-encoding`, then triggers restart via `tmp/restart.txt`.
 4. Verifies `https://www.mahean.com/healthz` returns `ok`.
 
 If GitHub Actions is blocked (for example, billing/account lock), deploy manually from Windows:
