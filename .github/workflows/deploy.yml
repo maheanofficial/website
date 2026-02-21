@@ -175,7 +175,9 @@ jobs:
 
           if [ -n "${NODE_VENV_VALUE}" ] && [ -f "${NODE_VENV_VALUE}" ]; then
             echo "[deploy] using provided node venv: ${NODE_VENV_VALUE}"
+            set +u
             source "${NODE_VENV_VALUE}"
+            set -u
           else
             CANDIDATE_1="${HOME_DIR}/nodevenv/${APP_NAME}/20/bin/activate"
             CANDIDATE_2="${HOME_DIR}/nodevenv/main_mahean.com/20/bin/activate"
@@ -184,7 +186,9 @@ jobs:
               if [ -f "${CANDIDATE}" ]; then
                 NODE_VENV_VALUE="${CANDIDATE}"
                 echo "[deploy] using detected node venv: ${NODE_VENV_VALUE}"
+                set +u
                 source "${NODE_VENV_VALUE}"
+                set -u
                 break
               fi
             done
