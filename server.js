@@ -243,18 +243,6 @@ const handleRequest = async (req, res) => {
         return;
     }
 
-    const numericStoryPartMatch = pathname.match(/^\/stories\/(\d+)\/part\/(\d+)$/);
-    if (numericStoryPartMatch) {
-        const [, id, part] = numericStoryPartMatch;
-        await runHandler(
-            req,
-            res,
-            storyRedirectHandler,
-            `/api/story-redirect?id=${encodeURIComponent(id)}&part=${encodeURIComponent(part)}`
-        );
-        return;
-    }
-
     const numericStoryMatch = pathname.match(/^\/stories\/(\d+)$/);
     if (numericStoryMatch) {
         const [, id] = numericStoryMatch;
