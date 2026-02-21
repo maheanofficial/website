@@ -18,14 +18,14 @@ jobs:
     permissions:
       contents: read
     env:
+      DEPLOY_BUNDLE: deploy-${{ github.sha }}.tgz
       APP_DIR: ${{ secrets.CPANEL_APP_DIR }}
       NODE_VENV_ACTIVATE: ${{ secrets.CPANEL_NODE_VENV_ACTIVATE }}
       HEALTHCHECK_URL: https://www.mahean.com/healthz
       CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-      CPANEL_PORT: ${{ secrets.CPANEL_PORT || '22' }}
+      CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
       CPANEL_USER: ${{ secrets.CPANEL_USER }}
       CPANEL_PASSWORD: ${{ secrets.CPANEL_PASSWORD }}
-      DEPLOY_BUNDLE: deploy-${{ github.sha }}.tgz
 
     steps:
       - name: Checkout repository
@@ -45,7 +45,7 @@ jobs:
 
       - name: Prepare deployment bundle
         run: |
-          set -e
+          set -euo pipefail
           rm -rf deploy
           mkdir -p deploy
           cp -r api deploy/api
@@ -54,7 +54,34 @@ jobs:
           cp package.json deploy/package.json
           cp package-lock.json deploy/package-lock.json
           cp server.js deploy/server.js
+          if [ -d data ]; then
+            cp -r data deploy/data
+          fi
           tar -czf "${DEPLOY_BUNDLE}" -C deploy .
+
+      - name: Validate and normalize deploy config
+        run: |
+          set -euo pipefail
+          if [ -z "${CPANEL_HOST:-}" ] || [ -z "${CPANEL_USER:-}" ]; then
+            echo "Missing required repository secrets: CPANEL_HOST and/or CPANEL_USER"
+            exit 1
+          fi
+
+          host="${CPANEL_HOST#http://}"
+          host="${host#https://}"
+          host="${host%%/*}"
+          if [ -z "${host}" ]; then
+            echo "CPANEL_HOST is invalid."
+            exit 1
+          fi
+
+          port="$(printf '%s' "${CPANEL_PORT:-22}" | tr -cd '0-9')"
+          if [ -z "${port}" ]; then
+            port="22"
+          fi
+
+          echo "CPANEL_HOST_CLEAN=${host}" >> "$GITHUB_ENV"
+          echo "CPANEL_PORT_CLEAN=${port}" >> "$GITHUB_ENV"
 
       - name: Configure SSH
         env:
@@ -63,30 +90,12 @@ jobs:
           CPANEL_SSH_PASSPHRASE: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
         run: |
           set -euo pipefail
-          if [ -z "${CPANEL_HOST}" ] || [ -z "${CPANEL_USER}" ]; then
-            echo "Missing required secrets: CPANEL_HOST, CPANEL_USER"
-            exit 1
-          fi
+          HOST_VALUE="${CPANEL_HOST_CLEAN}"
+          PORT_VALUE="${CPANEL_PORT_CLEAN}"
 
-          HOST_VALUE="${CPANEL_HOST#http://}"
-          HOST_VALUE="${HOST_VALUE#https://}"
-          HOST_VALUE="${HOST_VALUE%%/*}"
-          if [ -z "${HOST_VALUE}" ]; then
-            echo "Invalid CPANEL_HOST secret."
-            exit 1
-          fi
-
-          PORT_VALUE="$(printf '%s' "${CPANEL_PORT}" | tr -cd '0-9')"
-          if [ -z "${PORT_VALUE}" ]; then
-            PORT_VALUE="22"
-          fi
-
-          echo "CPANEL_HOST_CLEAN=${HOST_VALUE}" >> "${GITHUB_ENV}"
-          echo "CPANEL_PORT_CLEAN=${PORT_VALUE}" >> "${GITHUB_ENV}"
-
-          # Password auth fallback (recommended only when key auth is unavailable).
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+
           if ! ssh-keyscan -p "${PORT_VALUE}" "${HOST_VALUE}" >> ~/.ssh/known_hosts; then
             echo "ssh-keyscan failed for ${HOST_VALUE}:${PORT_VALUE}"
             exit 1
@@ -95,7 +104,7 @@ jobs:
           if [ -n "${CPANEL_PASSWORD:-}" ]; then
             sudo apt-get update
             sudo apt-get install -y sshpass
-            echo "Using password-based SSH auth (CPANEL_PASSWORD)."
+            echo "AUTH_MODE=password" >> "$GITHUB_ENV"
             exit 0
           fi
 
@@ -125,102 +134,74 @@ jobs:
 
           if [ -n "${CPANEL_SSH_PASSPHRASE:-}" ]; then
             ssh-keygen -y -P "${CPANEL_SSH_PASSPHRASE}" -f ~/.ssh/id_deploy >/dev/null
-          else
-            ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null
-          fi
-
-          if [ -n "${CPANEL_SSH_PASSPHRASE}" ]; then
             eval "$(ssh-agent -s)"
-            cat > /tmp/askpass.sh <<'EOF'
-          #!/usr/bin/env bash
-          echo "${CPANEL_SSH_PASSPHRASE}"
-          EOF
+            printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$CPANEL_SSH_PASSPHRASE"' > /tmp/askpass.sh
             chmod 700 /tmp/askpass.sh
             export SSH_ASKPASS=/tmp/askpass.sh
             export DISPLAY=:0
             export SSH_ASKPASS_REQUIRE=force
             setsid -w ssh-add ~/.ssh/id_deploy < /dev/null
+          else
+            ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null
           fi
+
+          echo "AUTH_MODE=key" >> "$GITHUB_ENV"
 
       - name: Deploy and restart app
         run: |
           set -euo pipefail
-          HOST_VALUE="${CPANEL_HOST_CLEAN:-${CPANEL_HOST}}"
-          PORT_VALUE="${CPANEL_PORT_CLEAN:-${CPANEL_PORT}}"
+          HOST_VALUE="${CPANEL_HOST_CLEAN}"
+          PORT_VALUE="${CPANEL_PORT_CLEAN}"
+          AUTH_MODE="${AUTH_MODE:-key}"
 
-          if [ -n "${CPANEL_PASSWORD:-}" ]; then
+          remote_script=$(cat <<'EOS'
+          set -euo pipefail
+          HOME_DIR="${HOME:-$(cd ~ && pwd)}"
+          APP_DIR_VALUE="${APP_DIR}"
+          if [ -z "${APP_DIR_VALUE}" ]; then
+            APP_DIR_VALUE="${HOME_DIR}/main_mahean.com"
+          fi
+          NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
+          if [ -z "${NODE_VENV_VALUE}" ]; then
+            APP_NAME="$(basename "${APP_DIR_VALUE}")"
+            NODE_VENV_VALUE="${HOME_DIR}/nodevenv/${APP_NAME}/20/bin/activate"
+          fi
+          mkdir -p "${APP_DIR_VALUE}"
+          mkdir -p "${APP_DIR_VALUE}/tmp"
+          if [ ! -f "${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
+            echo "Deploy bundle missing: ${HOME_DIR}/${DEPLOY_BUNDLE}"
+            exit 1
+          fi
+          tar -xzf "${HOME_DIR}/${DEPLOY_BUNDLE}" -C "${APP_DIR_VALUE}"
+          rm -f "${HOME_DIR}/${DEPLOY_BUNDLE}"
+          if [ ! -f "${NODE_VENV_VALUE}" ]; then
+            echo "Node venv activate script not found: ${NODE_VENV_VALUE}"
+            exit 1
+          fi
+          source "${NODE_VENV_VALUE}"
+          node -v
+          npm -v
+          cd "${APP_DIR_VALUE}"
+          npm install --include=dev --no-audit --no-fund
+          npm run db:init
+          npm run db:fix-encoding || true
+          touch "${APP_DIR_VALUE}/tmp/restart.txt"
+          EOS
+          )
+
+          if [ "${AUTH_MODE}" = "password" ]; then
             export SSHPASS="${CPANEL_PASSWORD}"
             SSH_OPTS="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o BatchMode=no -p ${PORT_VALUE}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok'"
             sshpass -e scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" <<EOF
-          set -euo pipefail
-          HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
-          APP_DIR_VALUE="${APP_DIR}"
-          if [ -z "\${APP_DIR_VALUE}" ]; then
-            APP_DIR_VALUE="\${HOME_DIR}/main_mahean.com"
-          fi
-          NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
-          if [ -z "\${NODE_VENV_VALUE}" ]; then
-            APP_NAME="\$(basename "\${APP_DIR_VALUE}")"
-            NODE_VENV_VALUE="\${HOME_DIR}/nodevenv/\${APP_NAME}/20/bin/activate"
-          fi
-          mkdir -p "\${APP_DIR_VALUE}"
-          mkdir -p "\${APP_DIR_VALUE}/tmp"
-          if [ ! -f "\${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
-            echo "Deploy bundle missing: \${HOME_DIR}/${DEPLOY_BUNDLE}"
-            exit 1
-          fi
-          tar -xzf "\${HOME_DIR}/${DEPLOY_BUNDLE}" -C "\${APP_DIR_VALUE}"
-          rm -f "\${HOME_DIR}/${DEPLOY_BUNDLE}"
-          if [ ! -f "\${NODE_VENV_VALUE}" ]; then
-            echo "Node venv activate script not found: \${NODE_VENV_VALUE}"
-            exit 1
-          fi
-          source "\${NODE_VENV_VALUE}"
-          npm -v
-          node -v
-          npm install --include=dev --no-audit --no-fund
-          npm run db:init
-          npm run db:fix-encoding || true
-          touch "\${APP_DIR_VALUE}/tmp/restart.txt"
-          EOF
+            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" \
+              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           else
             SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 -p ${PORT_VALUE}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo \"[ssh] auth ok as \$(whoami), home=\$HOME, pwd=\$(pwd)\""
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok'"
             scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" <<EOF
-          set -euo pipefail
-          HOME_DIR="\${HOME:-\$(cd ~ && pwd)}"
-          APP_DIR_VALUE="${APP_DIR}"
-          if [ -z "\${APP_DIR_VALUE}" ]; then
-            APP_DIR_VALUE="\${HOME_DIR}/main_mahean.com"
-          fi
-          NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
-          if [ -z "\${NODE_VENV_VALUE}" ]; then
-            APP_NAME="\$(basename "\${APP_DIR_VALUE}")"
-            NODE_VENV_VALUE="\${HOME_DIR}/nodevenv/\${APP_NAME}/20/bin/activate"
-          fi
-          mkdir -p "\${APP_DIR_VALUE}"
-          mkdir -p "\${APP_DIR_VALUE}/tmp"
-          if [ ! -f "\${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
-            echo "Deploy bundle missing: \${HOME_DIR}/${DEPLOY_BUNDLE}"
-            exit 1
-          fi
-          tar -xzf "\${HOME_DIR}/${DEPLOY_BUNDLE}" -C "\${APP_DIR_VALUE}"
-          rm -f "\${HOME_DIR}/${DEPLOY_BUNDLE}"
-          if [ ! -f "\${NODE_VENV_VALUE}" ]; then
-            echo "Node venv activate script not found: \${NODE_VENV_VALUE}"
-            exit 1
-          fi
-          source "\${NODE_VENV_VALUE}"
-          npm -v
-          node -v
-          npm install --include=dev --no-audit --no-fund
-          npm run db:init
-          npm run db:fix-encoding || true
-          touch "\${APP_DIR_VALUE}/tmp/restart.txt"
-          EOF
+            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" \
+              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           fi
 
       - name: Health check
