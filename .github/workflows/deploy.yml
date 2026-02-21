@@ -161,10 +161,9 @@ jobs:
             APP_DIR_VALUE="${HOME_DIR}/main_mahean.com"
           fi
           NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
-          if [ -z "${NODE_VENV_VALUE}" ]; then
-            APP_NAME="$(basename "${APP_DIR_VALUE}")"
-            NODE_VENV_VALUE="${HOME_DIR}/nodevenv/${APP_NAME}/20/bin/activate"
-          fi
+          APP_NAME="$(basename "${APP_DIR_VALUE}")"
+          echo "[deploy] home=${HOME_DIR}"
+          echo "[deploy] app_dir=${APP_DIR_VALUE}"
           mkdir -p "${APP_DIR_VALUE}"
           mkdir -p "${APP_DIR_VALUE}/tmp"
           if [ ! -f "${HOME_DIR}/${DEPLOY_BUNDLE}" ]; then
@@ -173,11 +172,29 @@ jobs:
           fi
           tar -xzf "${HOME_DIR}/${DEPLOY_BUNDLE}" -C "${APP_DIR_VALUE}"
           rm -f "${HOME_DIR}/${DEPLOY_BUNDLE}"
-          if [ ! -f "${NODE_VENV_VALUE}" ]; then
-            echo "Node venv activate script not found: ${NODE_VENV_VALUE}"
+
+          if [ -n "${NODE_VENV_VALUE}" ] && [ -f "${NODE_VENV_VALUE}" ]; then
+            echo "[deploy] using provided node venv: ${NODE_VENV_VALUE}"
+            source "${NODE_VENV_VALUE}"
+          else
+            CANDIDATE_1="${HOME_DIR}/nodevenv/${APP_NAME}/20/bin/activate"
+            CANDIDATE_2="${HOME_DIR}/nodevenv/main_mahean.com/20/bin/activate"
+            CANDIDATE_3="${HOME_DIR}/nodevenv/onboarding-project/20/bin/activate"
+            for CANDIDATE in "${CANDIDATE_1}" "${CANDIDATE_2}" "${CANDIDATE_3}"; do
+              if [ -f "${CANDIDATE}" ]; then
+                NODE_VENV_VALUE="${CANDIDATE}"
+                echo "[deploy] using detected node venv: ${NODE_VENV_VALUE}"
+                source "${NODE_VENV_VALUE}"
+                break
+              fi
+            done
+          fi
+
+          if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+            echo "Node/NPM not available. Set CPANEL_NODE_VENV_ACTIVATE to a valid activate path."
+            echo "Tried: ${NODE_VENV_VALUE:-<empty>}, ${HOME_DIR}/nodevenv/${APP_NAME}/20/bin/activate, ${HOME_DIR}/nodevenv/main_mahean.com/20/bin/activate"
             exit 1
           fi
-          source "${NODE_VENV_VALUE}"
           node -v
           npm -v
           cd "${APP_DIR_VALUE}"
