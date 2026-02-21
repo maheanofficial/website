@@ -199,7 +199,9 @@ jobs:
           npm -v
           cd "${APP_DIR_VALUE}"
           npm install --include=dev --no-audit --no-fund
-          npm run db:init
+          if ! npm run db:init; then
+            echo "[deploy] warning: db:init failed in SSH shell (often missing app env). Continuing..."
+          fi
           npm run db:fix-encoding || true
           touch "${APP_DIR_VALUE}/tmp/restart.txt"
           EOS
