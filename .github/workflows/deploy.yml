@@ -102,12 +102,17 @@ jobs:
           if [ -n "${CPANEL_PASSWORD:-}" ]; then
             sudo apt-get update
             sudo apt-get install -y sshpass
-            echo "AUTH_MODE=password" >> "$GITHUB_ENV"
-            exit 0
+            echo "PASSWORD_FALLBACK=1" >> "$GITHUB_ENV"
+          else
+            echo "PASSWORD_FALLBACK=0" >> "$GITHUB_ENV"
           fi
 
           if [ -z "${CPANEL_SSH_KEY:-}" ] && [ -z "${CPANEL_SSH_KEY_B64:-}" ]; then
-            echo "Missing SSH key secret. Set CPANEL_SSH_KEY (raw key) or CPANEL_SSH_KEY_B64 (base64 key), or set CPANEL_PASSWORD."
+            if [ -n "${CPANEL_PASSWORD:-}" ]; then
+              echo "AUTH_MODE=password" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            echo "Missing auth secret. Set CPANEL_SSH_KEY (or CPANEL_SSH_KEY_B64), or CPANEL_PASSWORD."
             exit 1
           fi
 
@@ -146,6 +151,7 @@ jobs:
           HOST_VALUE="${CPANEL_HOST_CLEAN}"
           PORT_VALUE="${CPANEL_PORT_CLEAN}"
           AUTH_MODE="${AUTH_MODE:-key}"
+          PASSWORD_FALLBACK="${PASSWORD_FALLBACK:-0}"
 
           remote_script=$(cat <<'EOS'
           set -euo pipefail
@@ -182,19 +188,35 @@ jobs:
           EOS
           )
 
-          if [ "${AUTH_MODE}" = "password" ]; then
+          run_password_deploy() {
             export SSHPASS="${CPANEL_PASSWORD}"
-            SSH_OPTS="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=no -p ${PORT_VALUE}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok'"
-            sshpass -e scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
-            sshpass -e ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" \
+            local ssh_opts="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=no -p ${PORT_VALUE}"
+            sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (password)'"
+            sshpass -e scp ${ssh_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
               "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
+          }
+
+          run_key_deploy() {
+            local ssh_opts="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -p ${PORT_VALUE}"
+            ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (key)'"
+            scp ${ssh_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
+              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
+          }
+
+          if [ "${AUTH_MODE}" = "password" ]; then
+            run_password_deploy
           else
-            SSH_OPTS="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -p ${PORT_VALUE}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok'"
-            scp ${SSH_OPTS} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
-            ssh ${SSH_OPTS} "${CPANEL_USER}@${HOST_VALUE}" \
-              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
+            if run_key_deploy; then
+              echo "Deploy via SSH key succeeded."
+            elif [ "${PASSWORD_FALLBACK}" = "1" ]; then
+              echo "SSH key auth failed, retrying with CPANEL_PASSWORD..."
+              run_password_deploy
+            else
+              echo "SSH key auth failed (exit 255). Set CPANEL_SSH_PASSPHRASE if key is encrypted, or add CPANEL_PASSWORD for fallback."
+              exit 1
+            fi
           fi
 
       - name: Health check
