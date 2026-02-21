@@ -51,6 +51,36 @@ const API_HANDLERS = new Map([
     ['/api/story-redirect', storyRedirectHandler]
 ]);
 
+const SPA_EXACT_PATHS = new Set([
+    '/',
+    '/audiobooks',
+    '/stories',
+    '/series',
+    '/authors',
+    '/categories',
+    '/tags',
+    '/login',
+    '/forgot-password',
+    '/update-password',
+    '/signup',
+    '/admin',
+    '/dashboard',
+    '/skills',
+    '/contact',
+    '/privacy',
+    '/terms',
+    '/disclaimer',
+    '/about',
+    '/links'
+]);
+
+const SPA_PREFIX_PATHS = [
+    '/stories/',
+    '/admin/',
+    '/dashboard/',
+    '/author/dashboard/'
+];
+
 const toNormalizedPathname = (pathname) => {
     const decoded = safeDecodeURIComponent(pathname || '/');
     if (decoded !== '/' && decoded.endsWith('/')) {
@@ -219,6 +249,10 @@ const isHtmlNavigation = (req) => {
     return acceptHeader.includes('text/html') || acceptHeader.includes('*/*');
 };
 
+const isKnownSpaRoute = (pathname) =>
+    SPA_EXACT_PATHS.has(pathname)
+    || SPA_PREFIX_PATHS.some((prefix) => pathname.startsWith(prefix));
+
 const handleRequest = async (req, res) => {
     applySecurityHeaders(res);
 
@@ -289,7 +323,7 @@ const handleRequest = async (req, res) => {
     }
 
     const hasExtension = Boolean(path.extname(pathname));
-    if (!hasExtension && isHtmlNavigation(req)) {
+    if (!hasExtension && isHtmlNavigation(req) && isKnownSpaRoute(pathname)) {
         if (await serveFile(req, res, INDEX_HTML_PATH, 200)) {
             return;
         }
