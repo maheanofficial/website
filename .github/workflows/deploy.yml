@@ -191,16 +191,18 @@ jobs:
           run_password_deploy() {
             export SSHPASS="${CPANEL_PASSWORD}"
             local ssh_opts="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=no -p ${PORT_VALUE}"
+            local scp_opts="-o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=no -P ${PORT_VALUE}"
             sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (password)'"
-            sshpass -e scp ${ssh_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            sshpass -e scp ${scp_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
             sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
               "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           }
 
           run_key_deploy() {
             local ssh_opts="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -p ${PORT_VALUE}"
+            local scp_opts="-i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -P ${PORT_VALUE}"
             ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (key)'"
-            scp ${ssh_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
+            scp ${scp_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
             ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
               "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           }
