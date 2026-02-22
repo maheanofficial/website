@@ -1,271 +1,552 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Mic2, X, Check, Settings2 } from 'lucide-react';
 import './AudioPlayer.css';
 
 interface AudioPlayerProps {
     src?: string;
-    text?: string; // Content to read if no audio file
+    text?: string;
     title?: string;
     cover?: string;
 }
 
 type VoiceMode = 'female' | 'male' | 'neutral';
+type TtsProvider = 'neural' | 'browser';
 
-const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerProps) => {
+const TTS_CHUNK_FALLBACK = 1100;
+
+const voiceModeLabels: Record<VoiceMode, string> = {
+    female: 'বাংলা নারী কণ্ঠ',
+    male: 'বাংলা পুরুষ কণ্ঠ',
+    neutral: 'বাংলা নিরপেক্ষ কণ্ঠ'
+};
+
+const neuralVoiceHints: Record<VoiceMode, string> = {
+    female: 'উষ্ণ, অনুভূতিপূর্ণ এবং গল্প বলার টোন',
+    male: 'গভীর, স্থির এবং পরিষ্কার উচ্চারণ',
+    neutral: 'সমতল, ব্যালেন্সড এবং দীর্ঘ গল্পের জন্য উপযুক্ত'
+};
+
+const cleanTextForTTS = (rawText: string) =>
+    String(rawText || '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/^#+\s/gm, '')
+        .replace(/`/g, '')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const splitTextIntoChunks = (content: string, maxChars: number) => {
+    if (!content) return [];
+    if (content.length <= maxChars) return [content];
+
+    const sentenceParts = content
+        .split(/(?<=[।.!?])\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    const chunks: string[] = [];
+    let bucket = '';
+
+    const pushBucket = () => {
+        if (bucket.trim()) chunks.push(bucket.trim());
+        bucket = '';
+    };
+
+    sentenceParts.forEach((sentence) => {
+        if (sentence.length > maxChars) {
+            pushBucket();
+            for (let index = 0; index < sentence.length; index += maxChars) {
+                chunks.push(sentence.slice(index, index + maxChars));
+            }
+            return;
+        }
+
+        const candidate = bucket ? `${bucket} ${sentence}` : sentence;
+        if (candidate.length > maxChars) {
+            pushBucket();
+            bucket = sentence;
+            return;
+        }
+        bucket = candidate;
+    });
+
+    pushBucket();
+    return chunks;
+};
+
+const getModeSettings = (mode: VoiceMode) => {
+    switch (mode) {
+        case 'female':
+            return { rate: 0.92, pitch: 1.04 };
+        case 'male':
+            return { rate: 0.86, pitch: 0.9 };
+        default:
+            return { rate: 0.89, pitch: 0.96 };
+    }
+};
+
+const isBanglaVoice = (voice: SpeechSynthesisVoice) => {
+    const lang = voice.lang.toLowerCase();
+    const name = voice.name.toLowerCase();
+    return lang.startsWith('bn') || name.includes('bangla') || name.includes('bengali');
+};
+
+const getVoiceGender = (voice: SpeechSynthesisVoice): VoiceMode => {
+    const name = voice.name.toLowerCase();
+    const femaleKeywords = ['female', 'tripti', 'tania', 'aditi', 'nabanita'];
+    const maleKeywords = ['male', 'pradeep', 'bashkar', 'suhas', 'hemant'];
+
+    if (femaleKeywords.some((keyword) => name.includes(keyword))) return 'female';
+    if (maleKeywords.some((keyword) => name.includes(keyword))) return 'male';
+    return 'neutral';
+};
+
+const getVoiceDisplayName = (voice: SpeechSynthesisVoice) => {
+    const cleaned = voice.name
+        .replace(/Google|Microsoft|Bangla|Bengali|Bangladesh|India/gi, '')
+        .replace(/[()-]/g, '')
+        .trim();
+    return cleaned || voice.name;
+};
+
+const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerProps) => {
     const audioRef = useRef<HTMLAudioElement>(null);
+    const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
 
-    // TTS State
-    const isTTS = (!src || src.includes('demo-story.mp3')) && !!text;
-    const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+    const isTTS = (!src || src.includes('demo-story.mp3')) && Boolean(text?.trim());
+    const [ttsProvider, setTtsProvider] = useState<TtsProvider>('browser');
+    const [ttsReady, setTtsReady] = useState(false);
+    const [ttsError, setTtsError] = useState('');
+    const [maxChunkChars, setMaxChunkChars] = useState(TTS_CHUNK_FALLBACK);
+    const [isBuffering, setIsBuffering] = useState(false);
+    const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
 
-    // Voice Selection State
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
-    const [voiceMode, setVoiceMode] = useState<VoiceMode>('neutral');
+    const [voiceMode, setVoiceMode] = useState<VoiceMode>('female');
 
-    const isBanglaVoice = (voice: SpeechSynthesisVoice) => {
-        const lang = voice.lang.toLowerCase();
-        const name = voice.name.toLowerCase();
-        return lang.startsWith('bn') || name.includes('bangla') || name.includes('bengali');
+    const chunkListRef = useRef<string[]>([]);
+    const chunkAudioCacheRef = useRef<Map<number, string>>(new Map());
+    const currentChunkIndexRef = useRef(0);
+    const playSessionRef = useRef(0);
+
+    const revokeChunkCache = () => {
+        chunkAudioCacheRef.current.forEach((url) => URL.revokeObjectURL(url));
+        chunkAudioCacheRef.current.clear();
     };
 
-    const getVoiceGender = (voice: SpeechSynthesisVoice): VoiceMode => {
-        const name = voice.name.toLowerCase();
-        const femaleKeywords = ['female', 'tripti', 'tania', 'aditi', 'microsoft', 'google'];
-        const maleKeywords = ['male', 'pradeep', 'bashkar', 'suhas', 'hemant'];
-
-        if (femaleKeywords.some(keyword => name.includes(keyword))) return 'female';
-        if (maleKeywords.some(keyword => name.includes(keyword))) return 'male';
-        return 'neutral';
-    };
-
-    const getVoiceDisplayName = (voice: SpeechSynthesisVoice) => {
-        const cleaned = voice.name
-            .replace(/Google|Microsoft|Bangla|Bengali|Bangladesh|India/gi, '')
-            .replace(/[()-]/g, '')
-            .trim();
-        return cleaned || voice.name;
-    };
-
-    const voiceModeLabels: Record<VoiceMode, string> = {
-        female: 'বাংলা নারী কণ্ঠ',
-        male: 'বাংলা পুরুষ কণ্ঠ',
-        neutral: 'বাংলা উভয় কণ্ঠ'
-    };
-
-    const getModeSettings = (mode: VoiceMode) => {
-        switch (mode) {
-            case 'female':
-                return { rate: 0.9, pitch: 1.05 };
-            case 'male':
-                return { rate: 0.82, pitch: 0.88 };
-            default:
-                return { rate: 0.85, pitch: 0.95 };
-        }
-    };
-
-    // Load Voices
-    useEffect(() => {
-        const loadVoices = () => {
-            const allVoices = window.speechSynthesis.getVoices();
-
-            const candidates = allVoices.filter(isBanglaVoice);
-            const uniqueByName = (list: SpeechSynthesisVoice[]) => {
-                const seen = new Set<string>();
-                return list.filter((voice) => {
-                    if (seen.has(voice.name)) return false;
-                    seen.add(voice.name);
-                    return true;
-                });
-            };
-
-            const femaleCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'female'));
-            const maleCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'male'));
-            const neutralCandidates = uniqueByName(candidates.filter(v => getVoiceGender(v) === 'neutral'));
-
-            const curatedList = uniqueByName([
-                ...femaleCandidates,
-                ...maleCandidates,
-                ...neutralCandidates
-            ]);
-
-            setVoices(curatedList);
-
-            // Auto-select preferred (Default to Female/Primary)
-            if (curatedList.length > 0) {
-                const stillAvailable = selectedVoice && curatedList.some(v => v.name === selectedVoice.name);
-                if (!stillAvailable) {
-                    setSelectedVoice(curatedList[0]);
-                    setVoiceMode(getVoiceGender(curatedList[0]));
-                }
-            }
-        };
-
-        loadVoices();
-
-        // Voice loading is async in some browsers (Chrome)
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-
-        }
-    }, [selectedVoice]);
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (speechRef.current) {
-                window.speechSynthesis.cancel();
-            }
-        };
-    }, []);
-
-    useEffect(() => {
+    const resetNeuralAudioState = () => {
         const audio = audioRef.current;
-        if (!audio || isTTS) return;
-
-        const setAudioData = () => {
-            setDuration(audio.duration);
-        };
-
-        const setAudioTime = () => {
-            setCurrentTime(audio.currentTime);
-        };
-
-        const handleEnded = () => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-        };
-
-        // Add event listeners
-        audio.addEventListener('loadeddata', setAudioData);
-        audio.addEventListener('timeupdate', setAudioTime);
-        audio.addEventListener('ended', handleEnded);
-
-        // Cleanup
-        return () => {
-            audio.removeEventListener('loadeddata', setAudioData);
-            audio.removeEventListener('timeupdate', setAudioTime);
-            audio.removeEventListener('ended', handleEnded);
-        };
-    }, [isTTS]);
-
-    // TTS Logic
-    // Helper to clean Markdown/HTML for TTS
-    const cleanTextForTTS = (rawText: string) => {
-        if (!rawText) return "";
-        return rawText
-            .replace(/\*\*/g, '')   // Remove bold markers
-            .replace(/\*/g, '')     // Remove italic markers
-            .replace(/^#+\s/gm, '') // Remove headers
-            .replace(/`/g, '')      // Remove code ticks
-            .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Keep link text, remove URL
-            .replace(/<[^>]*>?/gm, ''); // Remove any HTML tags if present
+        if (!audio) return;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
     };
 
-    // TTS Logic
-    const initTTS = () => {
-        if (!text) return;
-
-        // Cancel any existing speech
+    const stopBrowserSpeech = () => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
         window.speechSynthesis.cancel();
+        speechRef.current = null;
+    };
+
+    const requestNeuralChunkAudio = async (chunkText: string, mode: VoiceMode) => {
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'speak',
+                text: chunkText,
+                style: mode
+            })
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const message = typeof payload?.error === 'string'
+                ? payload.error
+                : 'Neural voice generation failed.';
+            throw new Error(message);
+        }
+
+        const audioBlob = await response.blob();
+        if (!audioBlob || audioBlob.size === 0) {
+            throw new Error('Neural voice returned empty audio.');
+        }
+        return URL.createObjectURL(audioBlob);
+    };
+
+    const prefetchNeuralChunk = async (chunkIndex: number, sessionId: number, mode: VoiceMode) => {
+        const chunks = chunkListRef.current;
+        if (chunkIndex < 0 || chunkIndex >= chunks.length) return;
+        if (chunkAudioCacheRef.current.has(chunkIndex)) return;
+        if (playSessionRef.current !== sessionId) return;
+
+        try {
+            const objectUrl = await requestNeuralChunkAudio(chunks[chunkIndex], mode);
+            if (playSessionRef.current !== sessionId) {
+                URL.revokeObjectURL(objectUrl);
+                return;
+            }
+            chunkAudioCacheRef.current.set(chunkIndex, objectUrl);
+        } catch (error) {
+            console.warn('Neural prefetch failed', error);
+        }
+    };
+
+    const playNeuralChunk = async (chunkIndex: number, sessionId: number, mode: VoiceMode) => {
+        const audio = audioRef.current;
+        const chunks = chunkListRef.current;
+
+        if (!audio || chunks.length === 0) {
+            setIsPlaying(false);
+            return;
+        }
+
+        if (chunkIndex < 0 || chunkIndex >= chunks.length) {
+            setIsPlaying(false);
+            setChunkProgress({ current: chunks.length, total: chunks.length });
+            return;
+        }
+
+        setIsBuffering(true);
+        setTtsError('');
+
+        try {
+            let objectUrl = chunkAudioCacheRef.current.get(chunkIndex);
+            if (!objectUrl) {
+                objectUrl = await requestNeuralChunkAudio(chunks[chunkIndex], mode);
+                if (playSessionRef.current !== sessionId) {
+                    URL.revokeObjectURL(objectUrl);
+                    return;
+                }
+                chunkAudioCacheRef.current.set(chunkIndex, objectUrl);
+            }
+
+            if (playSessionRef.current !== sessionId) return;
+
+            currentChunkIndexRef.current = chunkIndex;
+            setChunkProgress({ current: chunkIndex + 1, total: chunks.length });
+            audio.src = objectUrl;
+            audio.currentTime = 0;
+            audio.volume = isMuted ? 0 : volume;
+            await audio.play();
+            setIsPlaying(true);
+
+            void prefetchNeuralChunk(chunkIndex + 1, sessionId, mode);
+        } catch (error) {
+            if (playSessionRef.current !== sessionId) return;
+            const message = error instanceof Error ? error.message : 'Neural playback failed.';
+            setTtsError(message);
+            setIsPlaying(false);
+        } finally {
+            if (playSessionRef.current === sessionId) {
+                setIsBuffering(false);
+            }
+        }
+    };
+
+    const playNeuralChunkRef = useRef(playNeuralChunk);
+    playNeuralChunkRef.current = playNeuralChunk;
+
+    const startBrowserSpeech = (modeOverride: VoiceMode = voiceMode, voiceOverride: SpeechSynthesisVoice | null = selectedVoice) => {
+        if (!text) return;
+        if (typeof window === 'undefined' || !window.speechSynthesis) {
+            setTtsError('এই ব্রাউজারে ভয়েস সিন্থেসিস সাপোর্ট নেই।');
+            return;
+        }
 
         const cleanedText = cleanTextForTTS(text);
-        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        if (!cleanedText) {
+            setTtsError('পড়ার মতো টেক্সট পাওয়া যায়নি।');
+            return;
+        }
 
-        // Priority: Selected Voice > bn-BD default
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-            utterance.lang = selectedVoice.lang;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        if (voiceOverride) {
+            utterance.voice = voiceOverride;
+            utterance.lang = voiceOverride.lang;
         } else {
             utterance.lang = 'bn-BD';
         }
 
-        utterance.volume = volume;
-        // Storyteller Mode Settings:
-        const modeSettings = selectedVoice ? getModeSettings('neutral') : getModeSettings(voiceMode);
+        const modeSettings = getModeSettings(modeOverride);
         utterance.rate = modeSettings.rate;
         utterance.pitch = modeSettings.pitch;
+        utterance.volume = isMuted ? 0 : volume;
 
-        utterance.onend = () => {
-            setIsPlaying(false);
-        };
-
+        utterance.onstart = () => setIsPlaying(true);
         utterance.onpause = () => setIsPlaying(false);
         utterance.onresume = () => setIsPlaying(true);
-        utterance.onstart = () => setIsPlaying(true);
-
-        // Error handling
-        utterance.onerror = (e) => {
-            console.error("TTS Error:", e);
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = () => {
             setIsPlaying(false);
+            setTtsError('ব্রাউজার ভয়েসে গল্প পড়া যায়নি।');
         };
 
         speechRef.current = utterance;
         window.speechSynthesis.speak(utterance);
     };
 
+    useEffect(() => {
+        if (!isTTS) {
+            setTtsReady(true);
+            return;
+        }
+
+        let cancelled = false;
+        setTtsReady(false);
+        setTtsError('');
+
+        const loadConfig = async () => {
+            try {
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'config' })
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (cancelled) return;
+
+                const enabled = Boolean(payload?.enabled);
+                setTtsProvider(enabled ? 'neural' : 'browser');
+
+                const configuredMax = Number.parseInt(String(payload?.maxInputChars || ''), 10);
+                if (Number.isFinite(configuredMax) && configuredMax > 200) {
+                    setMaxChunkChars(Math.min(2500, configuredMax));
+                } else {
+                    setMaxChunkChars(TTS_CHUNK_FALLBACK);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn('TTS config load failed', error);
+                    setTtsProvider('browser');
+                    setMaxChunkChars(TTS_CHUNK_FALLBACK);
+                }
+            } finally {
+                if (!cancelled) {
+                    setTtsReady(true);
+                }
+            }
+        };
+
+        void loadConfig();
+        return () => {
+            cancelled = true;
+        };
+    }, [isTTS]);
+
+    useEffect(() => {
+        if (!isTTS || ttsProvider !== 'browser') return;
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+        const loadVoices = () => {
+            const allVoices = window.speechSynthesis.getVoices();
+            const banglaVoices = allVoices.filter(isBanglaVoice);
+            const uniqueVoices = banglaVoices.filter((voice, index, list) =>
+                list.findIndex((entry) => entry.name === voice.name && entry.lang === voice.lang) === index
+            );
+
+            setVoices(uniqueVoices);
+
+            if (uniqueVoices.length === 0) {
+                setSelectedVoice(null);
+                return;
+            }
+
+            const stillAvailable = selectedVoice
+                && uniqueVoices.some((voice) => voice.name === selectedVoice.name && voice.lang === selectedVoice.lang);
+
+            if (!stillAvailable) {
+                setSelectedVoice(uniqueVoices[0]);
+                setVoiceMode(getVoiceGender(uniqueVoices[0]));
+            }
+        };
+
+        loadVoices();
+        window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+
+        return () => {
+            window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+        };
+    }, [isTTS, ttsProvider, selectedVoice]);
+
+    useEffect(() => {
+        if (!isTTS) return;
+
+        const cleaned = cleanTextForTTS(text || '');
+        const chunks = splitTextIntoChunks(cleaned, maxChunkChars);
+
+        chunkListRef.current = chunks;
+        currentChunkIndexRef.current = 0;
+        setChunkProgress({ current: 0, total: chunks.length });
+        playSessionRef.current += 1;
+        setIsPlaying(false);
+        setIsBuffering(false);
+        setTtsError('');
+        revokeChunkCache();
+        resetNeuralAudioState();
+        stopBrowserSpeech();
+    }, [text, maxChunkChars, isTTS]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.volume = isMuted ? 0 : volume;
+    }, [volume, isMuted]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const handleLoadedData = () => {
+            if (isTTS) return;
+            setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+        };
+
+        const handleTimeUpdate = () => {
+            if (isTTS) return;
+            setCurrentTime(audio.currentTime);
+        };
+
+        const handleEnded = () => {
+            if (isTTS && ttsProvider === 'neural') {
+                const nextChunk = currentChunkIndexRef.current + 1;
+                if (nextChunk >= chunkListRef.current.length) {
+                    setIsPlaying(false);
+                    setChunkProgress((prev) => ({ current: prev.total, total: prev.total }));
+                    return;
+                }
+
+                const sessionId = playSessionRef.current;
+                void playNeuralChunkRef.current(nextChunk, sessionId, voiceMode);
+                return;
+            }
+
+            setIsPlaying(false);
+            if (!isTTS) setCurrentTime(0);
+        };
+
+        audio.addEventListener('loadeddata', handleLoadedData);
+        audio.addEventListener('timeupdate', handleTimeUpdate);
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+            audio.removeEventListener('loadeddata', handleLoadedData);
+            audio.removeEventListener('timeupdate', handleTimeUpdate);
+            audio.removeEventListener('ended', handleEnded);
+        };
+    }, [isTTS, ttsProvider, voiceMode]);
+
+    useEffect(() => () => {
+        playSessionRef.current += 1;
+        setShowVoiceModal(false);
+        revokeChunkCache();
+        resetNeuralAudioState();
+        stopBrowserSpeech();
+    }, []);
+
     const togglePlay = () => {
         if (isTTS) {
+            if (!ttsReady) return;
+
+            if (ttsProvider === 'neural') {
+                const audio = audioRef.current;
+                if (!audio) return;
+
+                if (isPlaying) {
+                    audio.pause();
+                    setIsPlaying(false);
+                    return;
+                }
+
+                if (audio.src && audio.paused && audio.currentTime > 0) {
+                    audio.play()
+                        .then(() => setIsPlaying(true))
+                        .catch((error) => {
+                            console.warn('Neural resume failed, restarting chunk', error);
+                            const nextSession = playSessionRef.current + 1;
+                            playSessionRef.current = nextSession;
+                            void playNeuralChunk(currentChunkIndexRef.current, nextSession, voiceMode);
+                        });
+                    return;
+                }
+
+                if (currentChunkIndexRef.current >= chunkListRef.current.length) {
+                    currentChunkIndexRef.current = 0;
+                }
+
+                const nextSession = playSessionRef.current + 1;
+                playSessionRef.current = nextSession;
+                void playNeuralChunk(currentChunkIndexRef.current, nextSession, voiceMode);
+                return;
+            }
+
+            if (typeof window === 'undefined' || !window.speechSynthesis) return;
             if (isPlaying) {
                 window.speechSynthesis.pause();
                 setIsPlaying(false);
-            } else {
-                if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                    setIsPlaying(true);
-                } else {
-                    // Start fresh
-                    initTTS();
-                }
+                return;
             }
-        } else {
-            // HTML5 Audio Logic
-            if (audioRef.current) {
-                if (isPlaying) {
-                    audioRef.current.pause();
-                } else {
-                    audioRef.current.play();
-                }
-                setIsPlaying(!isPlaying);
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                setIsPlaying(true);
+                return;
             }
+            startBrowserSpeech();
+            return;
         }
+
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (isPlaying) {
+            audio.pause();
+            setIsPlaying(false);
+            return;
+        }
+
+        audio.play()
+            .then(() => setIsPlaying(true))
+            .catch((error) => console.warn('Audio play failed', error));
     };
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isTTS) return;
 
-        const time = parseFloat(e.target.value);
-        if (audioRef.current) {
-            audioRef.current.currentTime = time;
-            setCurrentTime(time);
-        }
+        const time = Number.parseFloat(e.target.value);
+        if (!Number.isFinite(time)) return;
+        if (!audioRef.current) return;
+
+        audioRef.current.currentTime = time;
+        setCurrentTime(time);
     };
 
     const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const vol = parseFloat(e.target.value);
-        setVolume(vol);
-        setIsMuted(vol === 0);
-
-        if (isTTS) {
-            // Dynamic TTS volume update varies by browser
-        } else if (audioRef.current) {
-            audioRef.current.volume = vol;
-        }
+        const nextVolume = Number.parseFloat(e.target.value);
+        if (!Number.isFinite(nextVolume)) return;
+        setVolume(nextVolume);
+        setIsMuted(nextVolume <= 0);
     };
 
     const toggleMute = () => {
-        const newMuted = !isMuted;
-        setIsMuted(newMuted);
+        const nextMuted = !isMuted;
+        setIsMuted(nextMuted);
 
-        if (audioRef.current) {
-            audioRef.current.volume = newMuted ? 0 : volume || 1;
-        }
+        if (!audioRef.current) return;
+        audioRef.current.volume = nextMuted ? 0 : volume;
     };
 
     const formatTime = (time: number) => {
@@ -275,67 +556,60 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
     };
 
     const handleVoiceSelect = (voice: SpeechSynthesisVoice) => {
+        const nextMode = getVoiceGender(voice);
         setSelectedVoice(voice);
-        setVoiceMode(getVoiceGender(voice));
-        // If playing, restart with new voice
-        if (isPlaying && isTTS) {
-            window.speechSynthesis.cancel();
-            setTimeout(() => {
-                // Restart with new voice
-                const cleanedText = cleanTextForTTS(text || "");
-                const utterance = new SpeechSynthesisUtterance(cleanedText);
-                utterance.voice = voice;
-                utterance.lang = voice.lang;
-                utterance.volume = volume;
-                const modeSettings = getModeSettings('neutral');
-                utterance.rate = modeSettings.rate;
-                utterance.pitch = modeSettings.pitch;
-
-                utterance.onend = () => setIsPlaying(false);
-                utterance.onpause = () => setIsPlaying(false);
-                utterance.onresume = () => setIsPlaying(true);
-                utterance.onstart = () => setIsPlaying(true);
-
-                speechRef.current = utterance;
-                window.speechSynthesis.speak(utterance);
-                setIsPlaying(true);
-            }, 100);
-        }
+        setVoiceMode(nextMode);
         setShowVoiceModal(false);
+
+        if (!isTTS || !isPlaying) return;
+
+        if (ttsProvider === 'browser') {
+            startBrowserSpeech(nextMode, voice);
+            return;
+        }
+
+        playSessionRef.current += 1;
+        revokeChunkCache();
+        const sessionId = playSessionRef.current;
+        void playNeuralChunk(currentChunkIndexRef.current, sessionId, nextMode);
     };
 
-    const handleFallbackVoiceSelect = (mode: VoiceMode) => {
-        setSelectedVoice(null);
+    const handleStyleSelect = (mode: VoiceMode) => {
         setVoiceMode(mode);
+        setSelectedVoice(null);
+        setShowVoiceModal(false);
 
-        if (isPlaying && isTTS) {
-            window.speechSynthesis.cancel();
-            setTimeout(() => {
-                const cleanedText = cleanTextForTTS(text || "");
-                const utterance = new SpeechSynthesisUtterance(cleanedText);
-                utterance.lang = 'bn-BD';
-                utterance.volume = volume;
-                const modeSettings = getModeSettings(mode);
-                utterance.rate = modeSettings.rate;
-                utterance.pitch = modeSettings.pitch;
+        if (!isTTS || !isPlaying) return;
 
-                utterance.onend = () => setIsPlaying(false);
-                utterance.onpause = () => setIsPlaying(false);
-                utterance.onresume = () => setIsPlaying(true);
-                utterance.onstart = () => setIsPlaying(true);
-
-                speechRef.current = utterance;
-                window.speechSynthesis.speak(utterance);
-                setIsPlaying(true);
-            }, 100);
+        if (ttsProvider === 'browser') {
+            startBrowserSpeech(mode, null);
+            return;
         }
 
-        setShowVoiceModal(false);
+        playSessionRef.current += 1;
+        revokeChunkCache();
+        const sessionId = playSessionRef.current;
+        void playNeuralChunk(currentChunkIndexRef.current, sessionId, mode);
     };
+
+    const providerLabel = ttsProvider === 'neural' ? 'Neural Bangla' : 'Browser Bangla';
+    const shouldShowChunkProgress = isTTS && ttsProvider === 'neural' && chunkProgress.total > 0;
+
+    const statusLabel = (() => {
+        if (!isTTS) return isPlaying ? 'Now Playing...' : 'Paused';
+        if (!ttsReady) return 'কণ্ঠ সেটআপ হচ্ছে...';
+        if (isBuffering) return 'কণ্ঠ প্রস্তুত হচ্ছে...';
+        if (isPlaying) return 'গল্প পড়া চলছে...';
+        return 'শুনতে প্রস্তুত';
+    })();
 
     return (
         <div className="audio-player glass-panel">
-            {!isTTS && <audio ref={audioRef} src={src} preload="metadata" />}
+            <audio
+                ref={audioRef}
+                src={!isTTS ? src : undefined}
+                preload={isTTS ? 'none' : 'metadata'}
+            />
 
             <div className="ap-info">
                 {cover && (
@@ -345,14 +619,17 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                 )}
                 <div className="ap-text">
                     <h4 className="ap-title">{title}</h4>
-                    <span className="ap-status">
-                        {isPlaying ? (isTTS ? 'Reading Story...' : 'Now Playing...') : (isTTS ? 'Ready to Read' : 'Paused')}
-                    </span>
+                    <span className="ap-status">{statusLabel}</span>
+
                     {isTTS && (
-                        <span className="text-[10px] text-amber-400 opacity-80 mt-1 truncate max-w-[180px]">
-                            Voice: {selectedVoice
-                                ? `${voiceModeLabels[getVoiceGender(selectedVoice)]} • ${getVoiceDisplayName(selectedVoice)}`
-                                : `${voiceModeLabels[voiceMode]} • ডিফল্ট`}
+                        <span className="text-[10px] text-amber-400 opacity-80 mt-1 truncate max-w-[220px]">
+                            কণ্ঠ: {voiceModeLabels[voiceMode]} • {providerLabel}
+                        </span>
+                    )}
+
+                    {shouldShowChunkProgress && (
+                        <span className="text-[10px] text-gray-300 opacity-80 mt-1">
+                            অংশ {chunkProgress.current}/{chunkProgress.total}
                         </span>
                     )}
                 </div>
@@ -361,21 +638,29 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
             <div className="ap-controls-container">
                 <div className="ap-main-controls">
                     {!isTTS && (
-                        <button className="ap-btn secondary" onClick={() => {
-                            if (audioRef.current) audioRef.current.currentTime -= 10;
-                        }}>
+                        <button
+                            className="ap-btn secondary"
+                            onClick={() => {
+                                if (!audioRef.current) return;
+                                audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
+                            }}
+                        >
                             <SkipBack size={18} />
                         </button>
                     )}
 
-                    <button className="ap-btn primary play-btn" onClick={togglePlay}>
+                    <button className="ap-btn primary play-btn" onClick={togglePlay} disabled={isTTS && !ttsReady}>
                         {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
                     </button>
 
                     {!isTTS && (
-                        <button className="ap-btn secondary" onClick={() => {
-                            if (audioRef.current) audioRef.current.currentTime += 10;
-                        }}>
+                        <button
+                            className="ap-btn secondary"
+                            onClick={() => {
+                                if (!audioRef.current) return;
+                                audioRef.current.currentTime += 10;
+                            }}
+                        >
                             <SkipForward size={18} />
                         </button>
                     )}
@@ -400,20 +685,25 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                             <div className="flex items-center justify-center gap-2">
                                 <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                                 <span className="text-xs text-gray-200 font-medium tracking-wide opacity-90 uppercase text-center">
-                                    Reading in Progress...
+                                    Story narration in progress
                                 </span>
                             </div>
                         )}
 
-                        {/* Premium Voice Selection Button */}
                         <button
                             className="voice-change-btn group"
-                            onClick={() => setShowVoiceModal(!showVoiceModal)}
-                            title="Change Reading Voice"
+                            onClick={() => setShowVoiceModal((value) => !value)}
+                            title="Change reading voice"
                         >
                             <Settings2 size={13} className="text-white/90 group-hover:rotate-90 transition-transform duration-500" />
-                            <span>Change Narrator Voice</span>
+                            <span>কণ্ঠ পরিবর্তন করুন</span>
                         </button>
+
+                        {ttsError && (
+                            <span className="text-[11px] text-rose-300 text-center max-w-[260px]">
+                                {ttsError}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -433,77 +723,70 @@ const AudioPlayer = ({ src, text, title = "Audio Track", cover }: AudioPlayerPro
                 />
             </div>
 
-            {/* Voice Selection Modal */}
             {showVoiceModal && (
                 <div className="voice-selection-modal">
                     <div className="voice-header">
-                        <span className="voice-title">Select Narrator Voice</span>
+                        <span className="voice-title">গল্প পড়ার কণ্ঠ বাছাই করুন</span>
                         <button className="close-btn" onClick={() => setShowVoiceModal(false)}>
                             <X size={16} />
                         </button>
                     </div>
 
                     <div className="voice-list">
-                        {voices.length > 0 ? (
-                            voices.map((voice, idx) => {
+                        {(['female', 'male', 'neutral'] as VoiceMode[]).map((mode) => (
+                            <button
+                                key={mode}
+                                className={`voice-option ${voiceMode === mode && !selectedVoice ? 'active' : ''}`}
+                                onClick={() => handleStyleSelect(mode)}
+                            >
+                                <div className="flex flex-col items-start">
+                                    <span className="voice-name font-semibold text-sm">{voiceModeLabels[mode]}</span>
+                                    <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300 mt-1">
+                                        {ttsProvider === 'neural' ? neuralVoiceHints[mode] : 'ডিফল্ট সিস্টেম কণ্ঠ'}
+                                    </span>
+                                </div>
+                                {voiceMode === mode && !selectedVoice && <Check size={16} className="text-amber-400" />}
+                            </button>
+                        ))}
+
+                        {ttsProvider === 'browser' && voices.length > 0 && (
+                            voices.map((voice, index) => {
                                 const gender = getVoiceGender(voice);
-                                const label = voiceModeLabels[gender] || `বাংলা কণ্ঠ ${idx + 1}`;
+                                const label = voiceModeLabels[gender] || `বাংলা কণ্ঠ ${index + 1}`;
                                 const subLabel = `${getVoiceDisplayName(voice)} • ${voice.lang.toUpperCase()}`;
+                                const isActive = selectedVoice?.name === voice.name && selectedVoice?.lang === voice.lang;
 
                                 return (
                                     <button
-                                        key={`${voice.name}-${idx}`}
-                                        className={`voice-option ${selectedVoice?.name === voice.name ? 'active' : ''}`}
+                                        key={`${voice.name}-${voice.lang}-${index}`}
+                                        className={`voice-option ${isActive ? 'active' : ''}`}
                                         onClick={() => handleVoiceSelect(voice)}
                                     >
                                         <div className="flex flex-col items-start">
-                                            <span className="voice-name font-semibold text-sm">
-                                                {label}
+                                            <span className="voice-name font-semibold text-sm">{label}</span>
+                                            <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300 mt-1">
+                                                {subLabel}
                                             </span>
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                                <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">
-                                                    {subLabel}
-                                                </span>
-                                            </div>
                                         </div>
-                                        {selectedVoice?.name === voice.name && <Check size={16} className="text-amber-400" />}
+                                        {isActive && <Check size={16} className="text-amber-400" />}
                                     </button>
-                                )
+                                );
                             })
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                {(['female', 'male', 'neutral'] as VoiceMode[]).map((mode) => (
-                                    <button
-                                        key={mode}
-                                        className={`voice-option ${!selectedVoice && voiceMode === mode ? 'active' : ''}`}
-                                        onClick={() => handleFallbackVoiceSelect(mode)}
-                                    >
-                                        <div className="flex flex-col items-start">
-                                            <span className="voice-name font-semibold text-sm">
-                                                {voiceModeLabels[mode]}
-                                            </span>
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                                <span className="voice-lang bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">
-                                                    ডিফল্ট সিস্টেম ভয়েস
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
+                        )}
 
-                                <div className="text-[10px] text-center text-gray-400 mt-2 flex flex-col items-center gap-2">
-                                    <Mic2 size={20} className="opacity-40" />
-                                    <p className="opacity-80 max-w-[220px]">
-                                        বাংলা কণ্ঠ ডিভাইসে না থাকলে ডিফল্ট ভয়েস ব্যবহার হবে। বাংলা ভয়েস যোগ করতে Windows
-                                        Settings → Speech → Voices এ যান।
-                                    </p>
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="text-[10px] text-amber-400 hover:underline"
-                                    >
-                                        Click to Reload Voices
-                                    </button>
-                                </div>
+                        {ttsProvider === 'browser' && voices.length === 0 && (
+                            <div className="text-[10px] text-center text-gray-400 mt-2 flex flex-col items-center gap-2">
+                                <Mic2 size={20} className="opacity-40" />
+                                <p className="opacity-80 max-w-[220px]">
+                                    ডিভাইসে বাংলা ভয়েস না থাকলে default voice ব্যবহার হবে। Windows এ voice যোগ করতে:
+                                    Settings → Speech → Voices.
+                                </p>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="text-[10px] text-amber-400 hover:underline"
+                                >
+                                    ভয়েস রিফ্রেশ করুন
+                                </button>
                             </div>
                         )}
                     </div>

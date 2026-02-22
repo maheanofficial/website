@@ -4,6 +4,7 @@
   ],
   "routes": [
     { "src": "/api/admin-users/?$", "dest": "/api/admin-users.js" },
+    { "src": "/api/tts/?$", "dest": "/api/tts.js" },
     { "src": "/api/cleanup-trash/?$", "dest": "/api/cleanup-trash.js" },
     { "src": "/api/story-redirect/?$", "dest": "/api/story-redirect.js" },
     { "src": "/sitemap.xml", "dest": "/api/sitemap.js" },
