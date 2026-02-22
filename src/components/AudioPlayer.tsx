@@ -13,6 +13,8 @@ type VoiceMode = 'female' | 'male' | 'neutral';
 type TtsProvider = 'neural' | 'browser';
 
 const TTS_CHUNK_FALLBACK = 1100;
+const BROWSER_VOICE_ID_KEY = 'mahean_tts_browser_voice_id';
+const BROWSER_VOICE_MODE_KEY = 'mahean_tts_browser_voice_mode';
 
 const voiceModeLabels: Record<VoiceMode, string> = {
     female: 'বাংলা নারী কণ্ঠ',
@@ -111,6 +113,81 @@ const getVoiceDisplayName = (voice: SpeechSynthesisVoice) => {
     return cleaned || voice.name;
 };
 
+const toVoiceId = (voice: SpeechSynthesisVoice) => `${voice.name}::${voice.lang}`;
+
+const readStoredVoiceId = () => {
+    if (typeof window === 'undefined') return '';
+    try {
+        return localStorage.getItem(BROWSER_VOICE_ID_KEY) || '';
+    } catch {
+        return '';
+    }
+};
+
+const saveVoiceId = (value: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+        if (!value) {
+            localStorage.removeItem(BROWSER_VOICE_ID_KEY);
+            return;
+        }
+        localStorage.setItem(BROWSER_VOICE_ID_KEY, value);
+    } catch {
+        // ignore localStorage errors
+    }
+};
+
+const readStoredVoiceMode = (): VoiceMode | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const value = (localStorage.getItem(BROWSER_VOICE_MODE_KEY) || '').trim().toLowerCase();
+        if (value === 'female' || value === 'male' || value === 'neutral') return value;
+        return null;
+    } catch {
+        return null;
+    }
+};
+
+const saveVoiceMode = (mode: VoiceMode) => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(BROWSER_VOICE_MODE_KEY, mode);
+    } catch {
+        // ignore localStorage errors
+    }
+};
+
+const voiceQualityScore = (voice: SpeechSynthesisVoice, preferredMode: VoiceMode) => {
+    const name = voice.name.toLowerCase();
+    const lang = voice.lang.toLowerCase();
+
+    let score = 0;
+
+    if (lang === 'bn-bd') score += 90;
+    else if (lang === 'bn-in') score += 80;
+    else if (lang.startsWith('bn')) score += 60;
+
+    if (name.includes('natural') || name.includes('neural') || name.includes('online')) score += 45;
+    if (name.includes('wavenet')) score += 35;
+    if (name.includes('microsoft')) score += 12;
+    if (name.includes('google')) score += 10;
+    if (!voice.localService) score += 8;
+
+    const inferredGender = getVoiceGender(voice);
+    if (inferredGender === preferredMode) score += 20;
+    if (preferredMode === 'neutral' && inferredGender === 'neutral') score += 15;
+
+    return score;
+};
+
+const pickPreferredVoice = (voiceList: SpeechSynthesisVoice[], preferredMode: VoiceMode) => {
+    if (!voiceList.length) return null;
+    const sorted = [...voiceList].sort((a, b) =>
+        voiceQualityScore(b, preferredMode) - voiceQualityScore(a, preferredMode)
+    );
+    return sorted[0] || null;
+};
+
 const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerProps) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -132,7 +209,7 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
     const [showVoiceModal, setShowVoiceModal] = useState(false);
-    const [voiceMode, setVoiceMode] = useState<VoiceMode>('female');
+    const [voiceMode, setVoiceMode] = useState<VoiceMode>(() => readStoredVoiceMode() || 'female');
 
     const chunkListRef = useRef<string[]>([]);
     const chunkAudioCacheRef = useRef<Map<number, string>>(new Map());
@@ -265,7 +342,10 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
             return;
         }
 
-        const cleanedText = cleanTextForTTS(text);
+        const cleanedText = cleanTextForTTS(text)
+            .replace(/([,;:])/g, '$1 ')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
         if (!cleanedText) {
             setTtsError('পড়ার মতো টেক্সট পাওয়া যায়নি।');
             return;
@@ -273,9 +353,12 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
 
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(cleanedText);
-        if (voiceOverride) {
-            utterance.voice = voiceOverride;
-            utterance.lang = voiceOverride.lang;
+        const effectiveVoice = voiceOverride || selectedVoice || pickPreferredVoice(voices, modeOverride);
+        if (effectiveVoice) {
+            utterance.voice = effectiveVoice;
+            utterance.lang = effectiveVoice.lang;
+            setSelectedVoice(effectiveVoice);
+            saveVoiceId(toVoiceId(effectiveVoice));
         } else {
             utterance.lang = 'bn-BD';
         }
@@ -358,20 +441,26 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
             const uniqueVoices = banglaVoices.filter((voice, index, list) =>
                 list.findIndex((entry) => entry.name === voice.name && entry.lang === voice.lang) === index
             );
-
-            setVoices(uniqueVoices);
+            const rankedVoices = [...uniqueVoices].sort((a, b) =>
+                voiceQualityScore(b, voiceMode) - voiceQualityScore(a, voiceMode)
+            );
+            setVoices(rankedVoices);
 
             if (uniqueVoices.length === 0) {
                 setSelectedVoice(null);
                 return;
             }
 
-            const stillAvailable = selectedVoice
-                && uniqueVoices.some((voice) => voice.name === selectedVoice.name && voice.lang === selectedVoice.lang);
+            const selectedId = selectedVoice ? toVoiceId(selectedVoice) : '';
+            const savedVoiceId = readStoredVoiceId();
 
-            if (!stillAvailable) {
-                setSelectedVoice(uniqueVoices[0]);
-                setVoiceMode(getVoiceGender(uniqueVoices[0]));
+            const savedVoice = rankedVoices.find((voice) => toVoiceId(voice) === savedVoiceId) || null;
+            const stillSelected = rankedVoices.find((voice) => toVoiceId(voice) === selectedId) || null;
+            const preferredVoice = pickPreferredVoice(rankedVoices, voiceMode);
+
+            const effectiveVoice = stillSelected || savedVoice || preferredVoice;
+            if (effectiveVoice) {
+                setSelectedVoice(effectiveVoice);
             }
         };
 
@@ -381,7 +470,7 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
         return () => {
             window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
         };
-    }, [isTTS, ttsProvider, selectedVoice]);
+    }, [isTTS, ttsProvider, selectedVoice, voiceMode]);
 
     useEffect(() => {
         if (!isTTS) return;
@@ -406,6 +495,15 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
         if (!audio) return;
         audio.volume = isMuted ? 0 : volume;
     }, [volume, isMuted]);
+
+    useEffect(() => {
+        saveVoiceMode(voiceMode);
+    }, [voiceMode]);
+
+    useEffect(() => {
+        if (!selectedVoice) return;
+        saveVoiceId(toVoiceId(selectedVoice));
+    }, [selectedVoice]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -559,6 +657,8 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
         const nextMode = getVoiceGender(voice);
         setSelectedVoice(voice);
         setVoiceMode(nextMode);
+        saveVoiceMode(nextMode);
+        saveVoiceId(toVoiceId(voice));
         setShowVoiceModal(false);
 
         if (!isTTS || !isPlaying) return;
@@ -577,6 +677,8 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
     const handleStyleSelect = (mode: VoiceMode) => {
         setVoiceMode(mode);
         setSelectedVoice(null);
+        saveVoiceMode(mode);
+        saveVoiceId('');
         setShowVoiceModal(false);
 
         if (!isTTS || !isPlaying) return;
@@ -778,8 +880,8 @@ const AudioPlayer = ({ src, text, title = 'Audio Track', cover }: AudioPlayerPro
                             <div className="text-[10px] text-center text-gray-400 mt-2 flex flex-col items-center gap-2">
                                 <Mic2 size={20} className="opacity-40" />
                                 <p className="opacity-80 max-w-[220px]">
-                                    ডিভাইসে বাংলা ভয়েস না থাকলে default voice ব্যবহার হবে। Windows এ voice যোগ করতে:
-                                    Settings → Speech → Voices.
+                                    ডিভাইসে বাংলা ভয়েস না থাকলে default voice ব্যবহার হবে। Edge/Windows এ উচ্চমানের free
+                                    voice পেতে: Settings → Speech → Voices থেকে Bengali pack যোগ করুন।
                                 </p>
                                 <button
                                     onClick={() => window.location.reload()}
