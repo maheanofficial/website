@@ -4,14 +4,16 @@ import {
     listRows,
     updateRows,
     upsertRows
-} from './_json-table-store.js';
+} from './_table-store.js';
 import { readUsers } from './_users-store.js';
 import {
     consumeRateLimit,
     getClientIp,
+    isTrustedOrigin,
     json,
     readJsonBody
 } from './_request-utils.js';
+import { readSessionClaimsFromRequest } from './_auth-session.js';
 
 const DB_BODY_LIMIT_BYTES = 4 * 1024 * 1024;
 const GLOBAL_WINDOW_MS = 60_000;
@@ -21,14 +23,76 @@ const WRITE_MAX_REQUESTS = 160;
 
 const WRITE_ACTIONS = new Set(['insert', 'upsert', 'update', 'delete']);
 const ALLOWED_ACTIONS = new Set(['select', ...WRITE_ACTIONS]);
-const MODERATOR_WRITABLE_TABLES = new Set([
-    'stories',
-    'activity_logs',
-    'login_history',
-    'analytics_daily'
+const BLOCKED_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const TABLE_ACCESS = new Map([
+    ['stories', {
+        publicRead: true,
+        publicWrite: new Set(),
+        moderatorWrite: true,
+        moderatorDelete: true
+    }],
+    ['authors', {
+        publicRead: true,
+        publicWrite: new Set(),
+        moderatorWrite: true,
+        moderatorDelete: true
+    }],
+    ['categories', {
+        publicRead: true,
+        publicWrite: new Set(),
+        moderatorWrite: true,
+        moderatorDelete: true
+    }],
+    ['activity_logs', {
+        publicRead: false,
+        publicWrite: new Set(),
+        moderatorWrite: true,
+        moderatorDelete: false
+    }],
+    ['login_history', {
+        publicRead: false,
+        publicWrite: new Set(['insert']),
+        moderatorWrite: true,
+        moderatorDelete: false
+    }],
+    ['analytics_daily', {
+        publicRead: false,
+        publicWrite: new Set(['insert', 'upsert']),
+        moderatorWrite: true,
+        moderatorDelete: false
+    }],
+    ['trash', {
+        publicRead: false,
+        publicWrite: new Set(),
+        moderatorWrite: true,
+        moderatorDelete: true
+    }]
 ]);
 
 const toString = (value) => String(value || '').trim();
+
+const sanitizeJsonValue = (value, depth = 0) => {
+    if (depth > 40) {
+        return null;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((entry) => sanitizeJsonValue(entry, depth + 1));
+    }
+
+    if (value && typeof value === 'object') {
+        const out = {};
+        Object.entries(value).forEach(([key, nested]) => {
+            if (!key || BLOCKED_OBJECT_KEYS.has(key)) {
+                return;
+            }
+            out[key] = sanitizeJsonValue(nested, depth + 1);
+        });
+        return out;
+    }
+
+    return value;
+};
 
 const normalizeFilters = (value) => {
     if (!Array.isArray(value)) return [];
@@ -36,7 +100,7 @@ const normalizeFilters = (value) => {
         .map((entry) => ({
             op: toString(entry?.op).toLowerCase(),
             column: toString(entry?.column),
-            value: entry?.value
+            value: sanitizeJsonValue(entry?.value)
         }))
         .filter((entry) => entry.op && entry.column);
 };
@@ -73,13 +137,10 @@ const selectColumns = (rows, columns) => {
     });
 };
 
-const readActorId = (req, body) => {
-    const headerActor = typeof req.headers?.['x-actor-id'] === 'string'
-        ? req.headers['x-actor-id'].trim()
-        : '';
-    if (headerActor) return headerActor;
-    return typeof body?.actorId === 'string' ? body.actorId.trim() : '';
-};
+const sanitizeRowsInput = (value) =>
+    maybeArray(value)
+        .map((entry) => sanitizeJsonValue(entry))
+        .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry));
 
 const applyRateLimit = (res, key, max, windowMs) => {
     const result = consumeRateLimit(key, max, windowMs);
@@ -91,13 +152,69 @@ const applyRateLimit = (res, key, max, windowMs) => {
     return false;
 };
 
-const assertWriteAccess = async (req, body, action, table) => {
-    if (!WRITE_ACTIONS.has(action)) {
-        return { ok: true };
+const resolveActorFromSession = async (req) => {
+    const claims = readSessionClaimsFromRequest(req);
+    if (!claims?.userId) {
+        return null;
     }
 
-    const actorId = readActorId(req, body);
-    if (!actorId) {
+    const users = await readUsers();
+    const actor = users.find((user) => user.id === claims.userId);
+    if (!actor) {
+        return null;
+    }
+
+    return {
+        id: actor.id,
+        role: actor.role === 'admin' ? 'admin' : 'moderator'
+    };
+};
+
+const assertAccess = async (req, action, table) => {
+    const policy = TABLE_ACCESS.get(table);
+    if (!policy) {
+        return {
+            ok: false,
+            statusCode: 403,
+            code: 'FORBIDDEN_TABLE',
+            message: 'Table is not allowed.'
+        };
+    }
+
+    const isWrite = WRITE_ACTIONS.has(action);
+    if (isWrite && !isTrustedOrigin(req)) {
+        return {
+            ok: false,
+            statusCode: 403,
+            code: 'CSRF_BLOCKED',
+            message: 'Cross-site request blocked.'
+        };
+    }
+
+    if (action === 'select') {
+        if (policy.publicRead) {
+            return { ok: true, actor: null };
+        }
+
+        const actor = await resolveActorFromSession(req);
+        if (!actor) {
+            return {
+                ok: false,
+                statusCode: 401,
+                code: 'AUTH_REQUIRED',
+                message: 'Authentication is required for this table.'
+            };
+        }
+
+        return { ok: true, actor };
+    }
+
+    if (policy.publicWrite.has(action)) {
+        return { ok: true, actor: null };
+    }
+
+    const actor = await resolveActorFromSession(req);
+    if (!actor) {
         return {
             ok: false,
             statusCode: 401,
@@ -106,23 +223,11 @@ const assertWriteAccess = async (req, body, action, table) => {
         };
     }
 
-    const users = await readUsers();
-    const actor = users.find((user) => user.id === actorId);
-    if (!actor) {
-        return {
-            ok: false,
-            statusCode: 401,
-            code: 'INVALID_ACTOR',
-            message: 'Invalid actorId.'
-        };
+    if (actor.role === 'admin') {
+        return { ok: true, actor };
     }
 
-    const role = actor.role === 'admin' ? 'admin' : 'moderator';
-    if (role === 'admin') {
-        return { ok: true };
-    }
-
-    if (!MODERATOR_WRITABLE_TABLES.has(table)) {
+    if (!policy.moderatorWrite) {
         return {
             ok: false,
             statusCode: 403,
@@ -131,7 +236,7 @@ const assertWriteAccess = async (req, body, action, table) => {
         };
     }
 
-    if (action === 'delete' && table !== 'stories') {
+    if (action === 'delete' && !policy.moderatorDelete) {
         return {
             ok: false,
             statusCode: 403,
@@ -140,7 +245,7 @@ const assertWriteAccess = async (req, body, action, table) => {
         };
     }
 
-    return { ok: true };
+    return { ok: true, actor };
 };
 
 export default async function handler(req, res) {
@@ -191,7 +296,7 @@ export default async function handler(req, res) {
         return;
     }
 
-    const accessCheck = await assertWriteAccess(req, body, action, table);
+    const accessCheck = await assertAccess(req, action, table);
     if (!accessCheck.ok) {
         json(res, accessCheck.statusCode, {
             error: {
@@ -211,21 +316,24 @@ export default async function handler(req, res) {
         }
 
         if (action === 'insert') {
-            const values = maybeArray(body.values || []);
+            const values = sanitizeRowsInput(body.values || []);
             const inserted = await insertRows(table, values);
             json(res, 200, { data: selectColumns(inserted, columns), error: null });
             return;
         }
 
         if (action === 'upsert') {
-            const values = maybeArray(body.values || []);
+            const values = sanitizeRowsInput(body.values || []);
             const changed = await upsertRows(table, values, body.onConflict || 'id');
             json(res, 200, { data: changed, error: null });
             return;
         }
 
         if (action === 'update') {
-            const patch = body.values && typeof body.values === 'object' ? body.values : {};
+            const patchValue = sanitizeJsonValue(body.values);
+            const patch = patchValue && typeof patchValue === 'object' && !Array.isArray(patchValue)
+                ? patchValue
+                : {};
             const updated = await updateRows(table, patch, filters);
             json(res, 200, { data: updated, error: null });
             return;

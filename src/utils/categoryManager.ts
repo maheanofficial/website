@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { repairMojibakeText } from './textRepair';
 
 export interface Category {
     id: string;
@@ -21,17 +22,17 @@ type CategoryRow = {
 
 const mapRowToCategory = (row: CategoryRow): Category => ({
     id: row.id,
-    name: row.name,
-    slug: row.slug ?? undefined,
-    description: row.description ?? undefined,
+    name: repairMojibakeText(row.name ?? ''),
+    slug: repairMojibakeText(row.slug ?? '') || undefined,
+    description: repairMojibakeText(row.description ?? '') || undefined,
     image: row.image ?? undefined
 });
 
 const mapCategoryToRow = (category: Category) => ({
     id: category.id,
-    name: category.name,
-    slug: category.slug ?? null,
-    description: category.description ?? null,
+    name: repairMojibakeText(category.name),
+    slug: repairMojibakeText(category.slug ?? '') || null,
+    description: repairMojibakeText(category.description ?? '') || null,
     image: category.image ?? null
 });
 

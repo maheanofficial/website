@@ -11,19 +11,38 @@ import {
 import {
     consumeRateLimit,
     getClientIp,
+    isTrustedOrigin,
     json,
     readJsonBody
 } from './_request-utils.js';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import {
+    clearSessionCookie,
+    issuePasswordResetToken,
+    issueSessionForUser,
+    readPasswordResetClaims,
+    readSessionClaimsFromRequest,
+    resetTokenTtlSec,
+    sessionTtlSec
+} from './_auth-session.js';
 
 const AUTH_BODY_LIMIT_BYTES = 128 * 1024;
 const GLOBAL_WINDOW_MS = 60_000;
 const GLOBAL_MAX_REQUESTS = 180;
 const SENSITIVE_WINDOW_MS = 5 * 60_000;
 const SENSITIVE_MAX_REQUESTS = 40;
+const LOGIN_ATTEMPT_WINDOW_MS = 10 * 60_000;
+const LOGIN_ATTEMPT_MAX_REQUESTS = 20;
 const OAUTH_TIMEOUT_MS = 15_000;
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_ENDPOINT = 'https://openidconnect.googleapis.com/v1/userinfo';
+const PASSWORD_MIN_LENGTH = 10;
+const RESET_TOKEN_RESPONSE_FLAG = pickFirstEnv('ALLOW_RESET_TOKEN_RESPONSE').toLowerCase();
+const ALLOW_RESET_TOKEN_RESPONSE = RESET_TOKEN_RESPONSE_FLAG
+    ? RESET_TOKEN_RESPONSE_FLAG === 'true'
+    : process.env.NODE_ENV !== 'production';
+const USED_RESET_TOKEN_MAX = 2000;
+const USED_RESET_TOKENS = new Map();
 
 const pickFirstEnv = (...keys) => {
     for (const key of keys) {
@@ -45,6 +64,17 @@ const emailLooksValid = (value) => {
     if (!trimmed) return false;
     const parts = trimmed.split('@');
     return parts.length === 2 && parts[1].includes('.');
+};
+
+const passwordStrengthError = (value) => {
+    const password = String(value || '');
+    if (password.length < PASSWORD_MIN_LENGTH) {
+        return `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+        return 'Password must include uppercase, lowercase, and number.';
+    }
+    return '';
 };
 
 const normalizeRole = (value) => (value === 'admin' ? 'admin' : 'moderator');
@@ -110,6 +140,53 @@ const applyRateLimit = (res, key, max, windowMs) => {
     return false;
 };
 
+const resolveSessionUser = (req, users) => {
+    const claims = readSessionClaimsFromRequest(req);
+    if (!claims) return null;
+
+    const user = users.find((entry) => entry.id === claims.userId);
+    if (!user) return null;
+
+    return {
+        claims,
+        user
+    };
+};
+
+const toResetTokenFingerprint = (token) =>
+    createHash('sha256').update(String(token || ''), 'utf8').digest('hex');
+
+const cleanupUsedResetTokens = (now = Date.now()) => {
+    for (const [fingerprint, expiresAtMs] of USED_RESET_TOKENS.entries()) {
+        if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now) {
+            USED_RESET_TOKENS.delete(fingerprint);
+        }
+    }
+
+    if (USED_RESET_TOKENS.size <= USED_RESET_TOKEN_MAX) {
+        return;
+    }
+
+    const entries = [...USED_RESET_TOKENS.entries()]
+        .sort((left, right) => left[1] - right[1]);
+    const removeCount = USED_RESET_TOKENS.size - USED_RESET_TOKEN_MAX;
+    entries.slice(0, removeCount).forEach(([fingerprint]) => {
+        USED_RESET_TOKENS.delete(fingerprint);
+    });
+};
+
+const isResetTokenAlreadyUsed = (token) => {
+    cleanupUsedResetTokens();
+    return USED_RESET_TOKENS.has(toResetTokenFingerprint(token));
+};
+
+const markResetTokenAsUsed = (token, expiresAtSec) => {
+    const nowMs = Date.now();
+    const expiresAtMs = Math.max(nowMs, Number(expiresAtSec) * 1000);
+    USED_RESET_TOKENS.set(toResetTokenFingerprint(token), expiresAtMs);
+    cleanupUsedResetTokens(nowMs);
+};
+
 const findUserById = (users, userId) =>
     users.find((user) => user.id === userId) || null;
 
@@ -117,6 +194,11 @@ export default async function handler(req, res) {
     const method = (req.method || 'GET').toUpperCase();
     if (method !== 'POST') {
         json(res, 405, { error: 'Method not allowed.' });
+        return;
+    }
+
+    if (!isTrustedOrigin(req)) {
+        json(res, 403, { error: 'Cross-site request blocked.' });
         return;
     }
 
@@ -146,7 +228,9 @@ export default async function handler(req, res) {
         'update-password',
         'request-password-reset',
         'delete-user',
-        'google-oauth-exchange'
+        'google-oauth-exchange',
+        'update-profile',
+        'logout'
     ]).has(action);
 
     if (
@@ -163,6 +247,14 @@ export default async function handler(req, res) {
             json(res, 400, { error: 'Identifier and password are required.' });
             return;
         }
+        if (!applyRateLimit(
+            res,
+            `auth:login:${clientIp}:${identifier}`,
+            LOGIN_ATTEMPT_MAX_REQUESTS,
+            LOGIN_ATTEMPT_WINDOW_MS
+        )) {
+            return;
+        }
 
         const users = await readUsers();
         const user = findUserByIdentifier(users, identifier);
@@ -171,7 +263,13 @@ export default async function handler(req, res) {
             return;
         }
 
-        json(res, 200, { user: toPublicUser(user) });
+        const session = issueSessionForUser(res, req, user);
+        json(res, 200, {
+            user: toPublicUser(user),
+            sessionToken: session.token,
+            sessionExpiresAt: session.expiresAt,
+            sessionTtlSec
+        });
         return;
     }
 
@@ -302,7 +400,13 @@ export default async function handler(req, res) {
             const index = users.findIndex((entry) => entry.id === existing.id);
             users[index] = nextUser;
             await writeUsers(users);
-            json(res, 200, { user: toPublicUser(nextUser) });
+            const session = issueSessionForUser(res, req, nextUser);
+            json(res, 200, {
+                user: toPublicUser(nextUser),
+                sessionToken: session.token,
+                sessionExpiresAt: session.expiresAt,
+                sessionTtlSec
+            });
             return;
         }
 
@@ -318,7 +422,13 @@ export default async function handler(req, res) {
 
         users.push(newUser);
         await writeUsers(users);
-        json(res, 200, { user: toPublicUser(newUser) });
+        const session = issueSessionForUser(res, req, newUser);
+        json(res, 200, {
+            user: toPublicUser(newUser),
+            sessionToken: session.token,
+            sessionExpiresAt: session.expiresAt,
+            sessionTtlSec
+        });
         return;
     }
 
@@ -331,8 +441,9 @@ export default async function handler(req, res) {
             json(res, 400, { error: 'A valid email is required.' });
             return;
         }
-        if (password.length < 6) {
-            json(res, 400, { error: 'Password must be at least 6 characters.' });
+        const passwordError = passwordStrengthError(password);
+        if (passwordError) {
+            json(res, 400, { error: passwordError });
             return;
         }
 
@@ -353,55 +464,122 @@ export default async function handler(req, res) {
 
         users.push(user);
         await writeUsers(users);
-        json(res, 201, { user: toPublicUser(user) });
+        const session = issueSessionForUser(res, req, user);
+        json(res, 201, {
+            user: toPublicUser(user),
+            sessionToken: session.token,
+            sessionExpiresAt: session.expiresAt,
+            sessionTtlSec
+        });
         return;
     }
 
     if (action === 'update-password') {
-        const userId = String(body.userId || '').trim();
         const newPassword = String(body.newPassword || '');
         const currentPassword = String(body.currentPassword || '');
-        if (!userId || !newPassword) {
-            json(res, 400, { error: 'userId and newPassword are required.' });
+        const resetToken = String(body.resetToken || '').trim();
+        if (!newPassword) {
+            json(res, 400, { error: 'newPassword is required.' });
             return;
         }
-        if (newPassword.length < 6) {
-            json(res, 400, { error: 'Password must be at least 6 characters.' });
+
+        const passwordError = passwordStrengthError(newPassword);
+        if (passwordError) {
+            json(res, 400, { error: passwordError });
+            return;
+        }
+        if (resetToken && isResetTokenAlreadyUsed(resetToken)) {
+            json(res, 400, { error: 'This password reset token has already been used.' });
             return;
         }
 
         const users = await readUsers();
-        const index = users.findIndex((entry) => entry.id === userId);
+        const sessionContext = resolveSessionUser(req, users);
+        const resetClaims = resetToken ? readPasswordResetClaims(resetToken) : null;
+
+        let targetUserId = '';
+        let requireCurrentPassword = false;
+
+        if (resetClaims?.userId) {
+            targetUserId = resetClaims.userId;
+        } else if (sessionContext?.user?.id) {
+            targetUserId = sessionContext.user.id;
+            requireCurrentPassword = true;
+        } else {
+            json(res, 401, {
+                error: 'Authentication is required. Provide a valid session or resetToken.'
+            });
+            return;
+        }
+
+        const index = users.findIndex((entry) => entry.id === targetUserId);
         if (index < 0) {
             json(res, 404, { error: 'User not found.' });
             return;
         }
 
         const target = users[index];
-        if (currentPassword && !verifyUserPassword(target, currentPassword)) {
+        if (requireCurrentPassword && !currentPassword) {
+            json(res, 400, { error: 'Current password is required.' });
+            return;
+        }
+        if (requireCurrentPassword && !verifyUserPassword(target, currentPassword)) {
             json(res, 400, { error: 'Current password is incorrect.' });
             return;
         }
 
         users[index] = setUserPassword(target, newPassword);
         await writeUsers(users);
+
+        if (resetClaims?.userId && resetToken) {
+            markResetTokenAsUsed(resetToken, resetClaims.expiresAt);
+        }
+
+        if (sessionContext?.user?.id === target.id) {
+            const session = issueSessionForUser(res, req, users[index]);
+            json(res, 200, {
+                success: true,
+                sessionToken: session.token,
+                sessionExpiresAt: session.expiresAt,
+                sessionTtlSec
+            });
+            return;
+        }
+
         json(res, 200, { success: true });
         return;
     }
 
     if (action === 'update-profile') {
-        const userId = String(body.userId || '').trim();
         const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : '';
         const photoURL = typeof body.photoURL === 'string' ? body.photoURL.trim() : '';
         const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
         const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
-        if (!userId) {
-            json(res, 400, { error: 'userId is required.' });
+
+        const users = await readUsers();
+        const sessionContext = resolveSessionUser(req, users);
+        if (!sessionContext?.user) {
+            json(res, 401, { error: 'Authentication is required.' });
             return;
         }
 
-        const users = await readUsers();
-        const index = users.findIndex((user) => user.id === userId);
+        const requestedUserId = String(body.userId || '').trim();
+        const actorRole = normalizeRole(sessionContext.user.role);
+        const targetUserId = requestedUserId && actorRole === 'admin'
+            ? requestedUserId
+            : sessionContext.user.id;
+
+        if (requestedUserId && requestedUserId !== sessionContext.user.id && actorRole !== 'admin') {
+            json(res, 403, { error: 'Not allowed to update another user profile.' });
+            return;
+        }
+
+        if (email && !emailLooksValid(email)) {
+            json(res, 400, { error: 'A valid email is required.' });
+            return;
+        }
+
+        const index = users.findIndex((user) => user.id === targetUserId);
         if (index < 0) {
             json(res, 404, { error: 'User not found.' });
             return;
@@ -443,26 +621,35 @@ export default async function handler(req, res) {
 
         const users = await readUsers();
         const user = findUserByIdentifier(users, identifier);
-        if (!user) {
-            json(res, 404, { error: 'No account found for this identifier.' });
+        const response = {
+            success: true,
+            message: 'If an account exists, a password reset action has been initiated.'
+        };
+
+        if (user && ALLOW_RESET_TOKEN_RESPONSE) {
+            const resetToken = issuePasswordResetToken(user.id);
+            json(res, 200, {
+                ...response,
+                resetToken,
+                resetTokenTtlSec
+            });
             return;
         }
 
-        // Shared hosting without email provider: return userId token-style response.
-        json(res, 200, { success: true, resetUserId: user.id });
+        json(res, 200, response);
         return;
     }
 
     if (action === 'delete-user') {
-        const actorId = String(body.actorId || '').trim();
         const userId = String(body.userId || '').trim();
-        if (!actorId || !userId) {
-            json(res, 400, { error: 'actorId and userId are required.' });
+        if (!userId) {
+            json(res, 400, { error: 'userId is required.' });
             return;
         }
 
         const users = await readUsers();
-        const actor = findUserById(users, actorId);
+        const sessionContext = resolveSessionUser(req, users);
+        const actor = sessionContext?.user || null;
         if (!actor || normalizeRole(actor.role) !== 'admin') {
             json(res, 403, { error: 'Only admin can delete users.' });
             return;
@@ -483,6 +670,12 @@ export default async function handler(req, res) {
         }
 
         await writeUsers(users.filter((user) => user.id !== userId));
+        json(res, 200, { success: true });
+        return;
+    }
+
+    if (action === 'logout') {
+        clearSessionCookie(res, req);
         json(res, 200, { success: true });
         return;
     }

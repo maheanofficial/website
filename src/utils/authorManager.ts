@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { repairMojibakeText } from './textRepair';
 
 export interface Author {
     id: string;
@@ -35,13 +36,13 @@ const normalizeKey = (value?: string | null) => (value ?? '').trim().toLowerCase
 
 const normalizeAuthor = (author: Author): Author => ({
     id: author.id.trim(),
-    name: author.name.trim(),
-    bio: author.bio?.trim() || undefined,
+    name: repairMojibakeText(author.name).trim(),
+    bio: repairMojibakeText(author.bio || '').trim() || undefined,
     avatar: author.avatar?.trim() || undefined,
-    username: author.username?.trim() || undefined,
+    username: repairMojibakeText(author.username || '').trim() || undefined,
     links: toArray<{ name: string; url: string }>(author.links)
         .map((link) => ({
-            name: typeof link?.name === 'string' ? link.name.trim() : '',
+            name: typeof link?.name === 'string' ? repairMojibakeText(link.name).trim() : '',
             url: typeof link?.url === 'string' ? link.url.trim() : ''
         }))
         .filter((link) => Boolean(link.name || link.url))
@@ -123,10 +124,10 @@ const sortAuthors = (authors: Author[]) =>
 const mapRowToAuthor = (row: AuthorRow): Author =>
     normalizeAuthor({
         id: row.id,
-        name: row.name,
-        bio: row.bio ?? undefined,
+        name: repairMojibakeText(row.name ?? ''),
+        bio: repairMojibakeText(row.bio ?? '') || undefined,
         avatar: row.avatar ?? undefined,
-        username: row.username ?? undefined,
+        username: repairMojibakeText(row.username ?? '') || undefined,
         links: toArray<{ name: string; url: string }>(row.links)
     });
 

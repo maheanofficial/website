@@ -22,8 +22,8 @@ const UpdatePasswordPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (password.length < 6) {
-            setError('পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।');
+        if (password.length < 10) {
+            setError('Password must be at least 10 characters.');
             return;
         }
 

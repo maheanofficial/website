@@ -1,3 +1,5 @@
+import { buildServerAuthHeaders } from './serverAuth';
+
 const normalizeFolder = (value?: string) =>
     (value || 'uploads')
         .trim()
@@ -17,33 +19,28 @@ export type ImageStorageUploadOptions = {
     folder?: string;
 };
 
-const readActorId = () => {
-    if (typeof window === 'undefined') return '';
-    try {
-        const raw = localStorage.getItem('mahean_current_user');
-        if (!raw) return '';
-        const parsed = JSON.parse(raw) as { id?: string };
-        return typeof parsed?.id === 'string' ? parsed.id : '';
-    } catch {
-        return '';
-    }
+type UploadImagePayload = {
+    folder: string;
+    dataUrl: string;
 };
 
 export const uploadImageToStorage = async (file: File, options: ImageStorageUploadOptions = {}) => {
     const folder = normalizeFolder(options.folder);
     const dataUrl = await readFileAsDataUrl(file);
-    const actorId = readActorId();
 
+    return uploadDataUrlToStorage(dataUrl, { folder });
+};
+
+const uploadDataUrlPayload = async ({ folder, dataUrl }: UploadImagePayload) => {
     const response = await fetch('/api/upload-image', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-actor-id': actorId
-        },
+        credentials: 'same-origin',
+        headers: buildServerAuthHeaders({
+            'Content-Type': 'application/json'
+        }),
         body: JSON.stringify({
             folder,
-            dataUrl,
-            actorId
+            dataUrl
         })
     });
 
@@ -58,4 +55,14 @@ export const uploadImageToStorage = async (file: File, options: ImageStorageUplo
         path: payload.url,
         url: payload.url
     };
+};
+
+type UploadDataUrlOptions = ImageStorageUploadOptions;
+
+export const uploadDataUrlToStorage = async (dataUrl: string, options: UploadDataUrlOptions = {}) => {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+        throw new Error('Invalid image data format.');
+    }
+    const folder = normalizeFolder(options.folder);
+    return uploadDataUrlPayload({ folder, dataUrl });
 };

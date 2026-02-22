@@ -329,9 +329,9 @@ const PasswordPanel = () => {
         event.preventDefault();
         if (isSaving) return;
 
-        if (newPassword.length < 6) {
+        if (newPassword.length < 10) {
             setStatusType('error');
-            setStatus('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে');
+            setStatus('Password must be at least 10 characters.');
             return;
         }
 

@@ -7,9 +7,11 @@ import { readUsers } from './_users-store.js';
 import {
     consumeRateLimit,
     getClientIp,
+    isTrustedOrigin,
     json,
     readJsonBody
 } from './_request-utils.js';
+import { readSessionClaimsFromRequest } from './_auth-session.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,12 +62,64 @@ const parseDataUrl = (value) => {
     };
 };
 
-const readActorId = (req, body) => {
-    const headerActor = typeof req.headers?.['x-actor-id'] === 'string'
-        ? req.headers['x-actor-id'].trim()
-        : '';
-    if (headerActor) return headerActor;
-    return typeof body?.actorId === 'string' ? body.actorId.trim() : '';
+const detectMimeFromBytes = (bytes) => {
+    if (!bytes || bytes.length < 12) return '';
+
+    // JPEG
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+        return 'image/jpeg';
+    }
+    // PNG
+    if (
+        bytes[0] === 0x89
+        && bytes[1] === 0x50
+        && bytes[2] === 0x4e
+        && bytes[3] === 0x47
+        && bytes[4] === 0x0d
+        && bytes[5] === 0x0a
+        && bytes[6] === 0x1a
+        && bytes[7] === 0x0a
+    ) {
+        return 'image/png';
+    }
+    // GIF
+    if (
+        bytes[0] === 0x47
+        && bytes[1] === 0x49
+        && bytes[2] === 0x46
+        && bytes[3] === 0x38
+        && (bytes[4] === 0x39 || bytes[4] === 0x37)
+        && bytes[5] === 0x61
+    ) {
+        return 'image/gif';
+    }
+    // WEBP (RIFF....WEBP)
+    if (
+        bytes[0] === 0x52
+        && bytes[1] === 0x49
+        && bytes[2] === 0x46
+        && bytes[3] === 0x46
+        && bytes[8] === 0x57
+        && bytes[9] === 0x45
+        && bytes[10] === 0x42
+        && bytes[11] === 0x50
+    ) {
+        return 'image/webp';
+    }
+    // AVIF (ftyp...avif/avis)
+    if (
+        bytes[4] === 0x66
+        && bytes[5] === 0x74
+        && bytes[6] === 0x79
+        && bytes[7] === 0x70
+    ) {
+        const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+        if (brand === 'avif' || brand === 'avis') {
+            return 'image/avif';
+        }
+    }
+
+    return '';
 };
 
 const applyRateLimit = (res, key, max, windowMs) => {
@@ -78,25 +132,30 @@ const applyRateLimit = (res, key, max, windowMs) => {
     return false;
 };
 
-const assertUploader = async (req, body) => {
-    const actorId = readActorId(req, body);
-    if (!actorId) {
-        return { ok: false, statusCode: 401, message: 'actorId is required.' };
+const assertUploader = async (req) => {
+    const claims = readSessionClaimsFromRequest(req);
+    if (!claims?.userId) {
+        return { ok: false, statusCode: 401, message: 'Authentication is required.' };
     }
 
     const users = await readUsers();
-    const actor = users.find((user) => user.id === actorId);
+    const actor = users.find((user) => user.id === claims.userId);
     if (!actor) {
-        return { ok: false, statusCode: 401, message: 'Invalid actor.' };
+        return { ok: false, statusCode: 401, message: 'Invalid session actor.' };
     }
 
-    return { ok: true };
+    return { ok: true, actor };
 };
 
 export default async function handler(req, res) {
     const method = (req.method || 'GET').toUpperCase();
     if (method !== 'POST') {
         json(res, 405, { error: 'Method not allowed.' });
+        return;
+    }
+
+    if (!isTrustedOrigin(req)) {
+        json(res, 403, { error: 'Cross-site request blocked.' });
         return;
     }
 
@@ -117,9 +176,13 @@ export default async function handler(req, res) {
         return;
     }
 
-    const auth = await assertUploader(req, body);
+    const auth = await assertUploader(req);
     if (!auth.ok) {
         json(res, auth.statusCode, { error: auth.message });
+        return;
+    }
+
+    if (!applyRateLimit(res, `upload-image:user:${auth.actor.id}`, UPLOAD_MAX_REQUESTS, UPLOAD_WINDOW_MS)) {
         return;
     }
 
@@ -144,6 +207,13 @@ export default async function handler(req, res) {
 
     if (!bytes.length || bytes.length > MAX_IMAGE_BYTES) {
         json(res, 400, { error: 'Image size must be between 1 byte and 3 MB.' });
+        return;
+    }
+
+    const detectedMime = detectMimeFromBytes(bytes);
+    const normalizedRequestedMime = dataUrl.mime === 'image/jpg' ? 'image/jpeg' : dataUrl.mime;
+    if (!detectedMime || detectedMime !== normalizedRequestedMime) {
+        json(res, 400, { error: 'Image MIME type mismatch detected.' });
         return;
     }
 

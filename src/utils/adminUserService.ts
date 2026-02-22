@@ -1,3 +1,5 @@
+import { buildServerAuthHeaders } from './serverAuth';
+
 export type ManagedUserRole = 'admin' | 'moderator';
 
 export interface ManagedUser {
@@ -9,30 +11,14 @@ export interface ManagedUser {
     providers: string[];
 }
 
-const readCurrentUserId = () => {
-    if (typeof window === 'undefined') return '';
-    try {
-        const raw = localStorage.getItem('mahean_current_user');
-        if (!raw) return '';
-        const parsed = JSON.parse(raw) as { id?: string };
-        return typeof parsed?.id === 'string' ? parsed.id : '';
-    } catch {
-        return '';
-    }
-};
-
-const requestAdminUsersApi = async (method: 'GET' | 'POST' | 'DELETE', body?: Record<string, unknown>) => {
-    const actorId = readCurrentUserId();
+const requestAdminUsersApi = async (method: 'GET' | 'POST' | 'DELETE' | 'PATCH', body?: Record<string, unknown>) => {
     const response = await fetch('/api/admin-users', {
         method,
-        headers: {
-            'Content-Type': 'application/json',
-            'x-actor-id': actorId
-        },
-        body: method === 'GET' ? undefined : JSON.stringify({
-            ...(body || {}),
-            actorId
-        })
+        credentials: 'same-origin',
+        headers: buildServerAuthHeaders({
+            'Content-Type': 'application/json'
+        }),
+        body: method === 'GET' ? undefined : JSON.stringify(body || {})
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -65,4 +51,9 @@ export const createManagedUser = async (payload: {
 
 export const deleteManagedUser = async (userId: string) => {
     await requestAdminUsersApi('DELETE', { userId });
+};
+
+export const updateManagedUserRole = async (userId: string, role: ManagedUserRole) => {
+    const response = await requestAdminUsersApi('PATCH', { userId, role });
+    return response.user as ManagedUser;
 };

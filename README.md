@@ -101,18 +101,47 @@ Notes:
 
 ## cPanel Data Mode (No Supabase)
 
-This project now runs in **cPanel local server mode**:
+This project now runs in **cPanel local server mode** with two backend options:
 
-- App data is stored server-side in `data/*.json` through `/api/db`.
-- Auth/users are stored in `data/users.json` through `/api/auth` and `/api/admin-users`.
+- `DB_BACKEND=json` (legacy/local): data in `data/*.json` and `data/users.json`.
+- `DB_BACKEND=mysql` (recommended): data in cPanel MySQL/phpMyAdmin tables.
+
+API layer is unchanged:
+
+- App data via `/api/db`.
+- Auth/users via `/api/auth` and `/api/admin-users`.
 - Image uploads are stored in `dist/uploads/...` through `/api/upload-image`.
 - `data/` runtime files are intentionally not tracked in git.
 
 ### Required cPanel env vars
 
+- `DB_BACKEND=mysql`
+- `MYSQL_HOST`
+- `MYSQL_PORT` (usually `3306`)
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `MYSQL_DATABASE`
+- `MYSQL_TABLE_PREFIX` (optional, default: `app_table`)
+- `MYSQL_USERS_TABLE` (optional, default: `app_users`)
 - `PRIMARY_ADMIN_EMAIL` (optional, default: `mahean4bd@gmail.com`)
 - `PRIMARY_ADMIN_PASSWORD` (**required in production**, use a strong unique value)
+- `AUTH_SESSION_SECRET` (**required in production**, long random secret)
+- `AUTH_SECURE_COOKIES=true` (recommended in production)
+- `ALLOW_RESET_TOKEN_RESPONSE=false` (recommended in production)
+- `ALLOWED_ORIGINS=https://www.mahean.com,https://mahean.com` (recommended)
+- `CRON_SECRET` (recommended if cleanup endpoint is used)
 - `VITE_ALLOW_LOCAL_AUTH_FALLBACK=false` (recommended in production)
+
+### JSON -> phpMyAdmin migration (one-time)
+
+1. Keep your current JSON files in `data/` (`table-*.json`, `users.json`).
+2. Set MySQL env vars in cPanel Node.js app and set `DB_BACKEND=mysql`.
+3. In cPanel Terminal (inside app root) run:
+   - `npm run db:init`
+   - `npm run db:migrate:mysql -- --source ./data --truncate`
+   - `touch tmp/restart.txt`
+4. Verify login/admin/stories on live site.
+5. After verification, you can keep JSON files as backup or archive them.
 
 ### Google Login setup (cPanel)
 
@@ -134,9 +163,11 @@ This project now runs in **cPanel local server mode**:
 ### Security hardening already included
 
 - Passwords are stored as scrypt hashes (auto-migrates old plain-text records on first read).
-- `/api/db` write operations require authenticated actor (`actorId`) and role checks.
-- `/api/upload-image` requires authenticated actor and applies rate limits + MIME restrictions.
-- Auth/admin/db/upload APIs now have request-size limits and IP-based rate limiting.
+- Auth now uses signed server-side session tokens (cookie + bearer support) instead of trusting client `actorId`.
+- `/api/db` now enforces table allowlists and role-based permissions for read/write access.
+- `/api/upload-image` requires authenticated session, applies rate limits, and validates MIME by file signature.
+- Password reset now uses short-lived signed reset tokens (with optional response disable in production).
+- Auth/admin/db/upload APIs now have request-size limits, cross-site origin checks, and IP-based rate limiting.
 - Node server now sets security headers and static asset ETag/Last-Modified caching.
 
 ### First deploy checklist
@@ -170,8 +201,10 @@ What the workflow does:
 
 1. Build app in GitHub Actions (`npm ci`, `npm run build`).
 2. Uploads deploy bundle to `/home/<CPANEL_USER>/` and extracts it into app dir.
-3. Runs `npm install --include=dev`, `npm run db:init`, `npm run db:fix-encoding`, then triggers restart via `tmp/restart.txt`.
+3. Runs `npm install --include=dev`, `npm run db:init`, optional `npm run db:fix-encoding`, then triggers restart via `tmp/restart.txt`.
 4. Verifies `https://www.mahean.com/healthz` returns `ok`.
+
+Note: workflow does **not** auto-run JSON->MySQL migration on every deploy. Run migration once manually when switching backend.
 
 If GitHub Actions is blocked (for example, billing/account lock), deploy manually from Windows:
 

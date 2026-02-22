@@ -1,3 +1,5 @@
+import { buildServerAuthHeaders, readServerAccessToken } from '../utils/serverAuth';
+
 type SupabaseErrorLike = {
     message: string;
     code?: string;
@@ -28,6 +30,8 @@ type QueryState = {
 
 type SessionLike = {
     user: SupabaseUser;
+    access_token?: string;
+    expires_at?: number;
 };
 
 type SupabaseUserIdentity = {
@@ -45,7 +49,7 @@ type SupabaseUser = {
 };
 
 const SESSION_KEY = 'mahean_server_auth_session';
-const RESET_USER_KEY = 'mahean_password_reset_user';
+const RESET_TOKEN_KEY = 'mahean_password_reset_token';
 const OAUTH_STATE_KEY = 'mahean_google_oauth_state';
 const OAUTH_REDIRECT_KEY = 'mahean_google_oauth_redirect';
 const OAUTH_CALLBACK_QUERY_KEYS = [
@@ -76,26 +80,6 @@ const readSession = (): SessionLike | null => {
     }
 };
 
-const readLegacyActorId = (): string => {
-    if (typeof window === 'undefined') return '';
-    try {
-        const raw = localStorage.getItem('mahean_current_user');
-        if (!raw) return '';
-        const parsed = JSON.parse(raw) as { id?: string };
-        return typeof parsed?.id === 'string' ? parsed.id : '';
-    } catch {
-        return '';
-    }
-};
-
-const readActorId = (): string => {
-    const session = readSession();
-    if (session?.user?.id) {
-        return session.user.id;
-    }
-    return readLegacyActorId();
-};
-
 const writeSession = (session: SessionLike | null) => {
     if (typeof window === 'undefined') return;
     if (!session) {
@@ -103,6 +87,22 @@ const writeSession = (session: SessionLike | null) => {
         return;
     }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+};
+
+const buildSession = (
+    user: SupabaseUser,
+    payload?: { sessionToken?: unknown; sessionExpiresAt?: unknown }
+): SessionLike => {
+    const tokenFromPayload = typeof payload?.sessionToken === 'string'
+        ? payload.sessionToken.trim()
+        : '';
+    const token = tokenFromPayload || readServerAccessToken();
+    const expiresAt = Number(payload?.sessionExpiresAt);
+    return {
+        user,
+        access_token: token || undefined,
+        expires_at: Number.isFinite(expiresAt) ? expiresAt : undefined
+    };
 };
 
 const notifyAuth = (event: string, session: SessionLike | null) => {
@@ -158,11 +158,14 @@ const requestJson = async (url: string, payload: unknown): Promise<{ data: any; 
     }
 
     try {
+        const headers = buildServerAuthHeaders({
+            'Content-Type': 'application/json'
+        });
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            credentials: 'same-origin',
+            headers,
             body: JSON.stringify(payload)
         });
         const parsed = await response.json().catch(() => ({}));
@@ -192,15 +195,6 @@ const baseQueryState = (table: string): QueryState => ({
 });
 
 const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
-    const isWriteAction = state.action !== 'select';
-    const actorId = isWriteAction ? readActorId() : '';
-    if (isWriteAction && !actorId) {
-        return {
-            data: state.single ? null : [],
-            error: toError('Sign in required to modify data.', 'AUTH_REQUIRED')
-        };
-    }
-
     const payload = {
         table: state.table,
         action: state.action,
@@ -209,8 +203,7 @@ const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
         orderBy: state.orderBy,
         single: state.single,
         values: state.values,
-        onConflict: state.onConflict,
-        actorId: actorId || undefined
+        onConflict: state.onConflict
     };
     const { data, error } = await requestJson('/api/db', payload);
     if (error) {
@@ -395,7 +388,10 @@ const exchangeGoogleCodeForSession = async (code: string, redirectUri: string) =
     }
 
     const user = mapServerUserToSupabaseUser(data.user);
-    const session = { user };
+    const session = buildSession(user, {
+        sessionToken: data?.sessionToken,
+        sessionExpiresAt: data?.sessionExpiresAt
+    });
     writeSession(session);
     notifyAuth('SIGNED_IN', session);
     return {
@@ -481,6 +477,11 @@ const auth = {
         return { data: { provider: 'google' }, error: null };
     },
     async signOut() {
+        try {
+            await requestJson('/api/auth', { action: 'logout' });
+        } catch {
+            // Ignore sign-out API errors; local cleanup still proceeds.
+        }
         writeSession(null);
         notifyAuth('SIGNED_OUT', null);
         return { error: null };
@@ -507,8 +508,10 @@ const auth = {
         if (error) {
             return { data: null, error };
         }
-        if (typeof data?.resetUserId === 'string' && data.resetUserId) {
-            localStorage.setItem(RESET_USER_KEY, data.resetUserId);
+        if (typeof data?.resetToken === 'string' && data.resetToken) {
+            localStorage.setItem(RESET_TOKEN_KEY, data.resetToken);
+        } else {
+            localStorage.removeItem(RESET_TOKEN_KEY);
         }
         return { data: { success: true }, error: null };
     },
@@ -522,7 +525,10 @@ const auth = {
             return { data: null, error };
         }
         const user = mapServerUserToSupabaseUser(data?.user);
-        const session = { user };
+        const session = buildSession(user, {
+            sessionToken: data?.sessionToken,
+            sessionExpiresAt: data?.sessionExpiresAt
+        });
         writeSession(session);
         notifyAuth('SIGNED_IN', session);
         return {
@@ -544,7 +550,10 @@ const auth = {
             return { data: null, error };
         }
         const user = mapServerUserToSupabaseUser(data?.user);
-        const session = { user };
+        const session = buildSession(user, {
+            sessionToken: data?.sessionToken,
+            sessionExpiresAt: data?.sessionExpiresAt
+        });
         writeSession(session);
         notifyAuth('SIGNED_IN', session);
         return {
@@ -555,7 +564,7 @@ const auth = {
             error: null
         };
     },
-    async updateUser(payload: { password?: string }) {
+    async updateUser(payload: { password?: string; currentPassword?: string | null }) {
         const session = readSession();
         if (!session?.user?.id) {
             return { data: null, error: toError('No active session.', 'NO_SESSION') };
@@ -563,14 +572,21 @@ const auth = {
         if (!payload.password) {
             return { data: null, error: toError('Password is required.', 'INVALID_PASSWORD') };
         }
-        const { error } = await requestJson('/api/auth', {
+        const { data, error } = await requestJson('/api/auth', {
             action: 'update-password',
-            userId: session.user.id,
-            newPassword: payload.password
+            newPassword: payload.password,
+            currentPassword: payload.currentPassword || undefined
         });
         if (error) {
             return { data: null, error };
         }
+
+        const nextSession = buildSession(session.user, {
+            sessionToken: data?.sessionToken,
+            sessionExpiresAt: data?.sessionExpiresAt
+        });
+        writeSession(nextSession);
+
         return { data: { user: session.user }, error: null };
     }
 };

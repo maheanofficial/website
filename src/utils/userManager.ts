@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { buildServerAuthHeaders } from './serverAuth';
 
 export type UserRole = 'admin' | 'moderator';
 
@@ -216,7 +217,8 @@ export const updateUserProfile = (userId: string, updates: Partial<User>): User 
     if (typeof window !== 'undefined') {
         fetch('/api/auth', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            headers: buildServerAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 action: 'update-profile',
                 userId,

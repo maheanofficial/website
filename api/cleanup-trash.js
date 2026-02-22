@@ -9,6 +9,9 @@ const pickFirstEnv = (...keys) => {
 };
 
 const CRON_SECRET = pickFirstEnv('CRON_SECRET');
+const ALLOW_UNAUTHORIZED_FALLBACK = String(pickFirstEnv('ALLOW_UNAUTHORIZED_CLEANUP'))
+    .trim()
+    .toLowerCase() === 'true';
 
 const json = (res, statusCode, payload) => {
     res.statusCode = statusCode;
@@ -18,7 +21,9 @@ const json = (res, statusCode, payload) => {
 };
 
 const isAuthorized = (req) => {
-    if (!CRON_SECRET) return true;
+    if (!CRON_SECRET) {
+        return process.env.NODE_ENV !== 'production' && ALLOW_UNAUTHORIZED_FALLBACK;
+    }
     const header = typeof req.headers?.authorization === 'string'
         ? req.headers.authorization.trim()
         : '';

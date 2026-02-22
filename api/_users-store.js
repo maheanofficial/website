@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { dbConfigError, isMysqlEnabled } from './_db-config.js';
+import { readUsersFromMysql, writeUsersToMysql } from './_mysql-users-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,9 +26,17 @@ const PRIMARY_ADMIN_EMAIL = (
     || 'mahean4bd@gmail.com'
 ).toLowerCase();
 
+const CONFIGURED_PRIMARY_ADMIN_PASSWORD = pickFirstEnv('PRIMARY_ADMIN_PASSWORD');
 const PRIMARY_ADMIN_PASSWORD =
-    pickFirstEnv('PRIMARY_ADMIN_PASSWORD')
-    || 'mahean123';
+    CONFIGURED_PRIMARY_ADMIN_PASSWORD
+    || randomBytes(24).toString('hex');
+
+if (!CONFIGURED_PRIMARY_ADMIN_PASSWORD) {
+    console.warn(
+        '[security] PRIMARY_ADMIN_PASSWORD is not set. Existing admin passwords keep working, '
+        + 'but new bootstrap admin initialization will use an auto-generated secret.'
+    );
+}
 
 const normalizeRole = (value) => (value === 'admin' ? 'admin' : 'moderator');
 const normalizeProvider = (value) => {
@@ -167,7 +177,7 @@ const ensureStore = async () => {
     }
 };
 
-export const readUsers = async () => {
+const readUsersFromJson = async () => {
     await ensureStore();
     const raw = await fs.readFile(USERS_FILE, 'utf8');
     let parsed = {};
@@ -185,9 +195,40 @@ export const readUsers = async () => {
     return users;
 };
 
-export const writeUsers = async (users) => {
+const writeUsersToJson = async (users) => {
     const normalized = prepareUsersForStore(users);
     await fs.writeFile(USERS_FILE, JSON.stringify({ users: normalized }, null, 2), 'utf8');
+};
+
+export const readUsers = async () => {
+    if (dbConfigError) {
+        throw new Error(dbConfigError);
+    }
+
+    if (!isMysqlEnabled) {
+        return readUsersFromJson();
+    }
+
+    const sourceUsers = await readUsersFromMysql();
+    const normalizedUsers = prepareUsersForStore(sourceUsers);
+    if (JSON.stringify(normalizedUsers) !== JSON.stringify(sourceUsers)) {
+        await writeUsersToMysql(normalizedUsers);
+    }
+    return normalizedUsers;
+};
+
+export const writeUsers = async (users) => {
+    if (dbConfigError) {
+        throw new Error(dbConfigError);
+    }
+
+    const normalized = prepareUsersForStore(users);
+    if (isMysqlEnabled) {
+        await writeUsersToMysql(normalized);
+        return;
+    }
+
+    await writeUsersToJson(normalized);
 };
 
 export const toPublicUser = (user) => ({
@@ -220,7 +261,7 @@ export const createUserRecord = (payload) =>
         username: payload.username || payload.email,
         email: payload.email || payload.username,
         password: ensurePasswordHash(payload.password),
-        role: payload.role,
+        role: normalizeRole(payload.role),
         createdAt: new Date().toISOString(),
         displayName: payload.displayName,
         photoURL: payload.photoURL,

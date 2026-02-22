@@ -1,6 +1,10 @@
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 const RATE_BUCKETS = new Map();
 const MAX_BUCKETS_BEFORE_CLEANUP = 4000;
+const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim().toLowerCase())
+    .filter(Boolean);
 
 const normalizeIp = (value) => {
     const raw = String(value || '').trim();
@@ -18,6 +22,36 @@ const normalizeIp = (value) => {
     return first.replace(/:\d+$/, '');
 };
 
+const firstHeaderValue = (value) =>
+    typeof value === 'string'
+        ? value.split(',')[0].trim()
+        : '';
+
+const safeUrlOrigin = (value) => {
+    try {
+        const parsed = new URL(String(value || ''));
+        return parsed.origin.toLowerCase();
+    } catch {
+        return '';
+    }
+};
+
+const requestHost = (req) => firstHeaderValue(req.headers?.host).toLowerCase();
+
+const requestProto = (req) => {
+    const forwarded = firstHeaderValue(req.headers?.['x-forwarded-proto']).toLowerCase();
+    if (forwarded === 'https' || forwarded === 'http') {
+        return forwarded;
+    }
+    return req.socket?.encrypted ? 'https' : 'http';
+};
+
+const requestOrigin = (req) => {
+    const host = requestHost(req);
+    if (!host) return '';
+    return `${requestProto(req)}://${host}`;
+};
+
 export const getClientIp = (req) => {
     const fromCf = normalizeIp(req.headers?.['cf-connecting-ip']);
     if (fromCf) return fromCf;
@@ -30,6 +64,31 @@ export const getClientIp = (req) => {
 
     const fromSocket = normalizeIp(req.socket?.remoteAddress);
     return fromSocket || 'unknown';
+};
+
+export const isTrustedOrigin = (req) => {
+    const allowed = new Set(ALLOWED_ORIGINS);
+    const serverOrigin = requestOrigin(req);
+    if (serverOrigin) {
+        allowed.add(serverOrigin.toLowerCase());
+    }
+
+    if (allowed.size === 0) {
+        return true;
+    }
+
+    const originHeader = safeUrlOrigin(req.headers?.origin);
+    if (originHeader) {
+        return allowed.has(originHeader);
+    }
+
+    const refererOrigin = safeUrlOrigin(req.headers?.referer);
+    if (refererOrigin) {
+        return allowed.has(refererOrigin);
+    }
+
+    // Non-browser clients may not send Origin/Referer.
+    return true;
 };
 
 export const json = (res, statusCode, payload, headers = {}) => {

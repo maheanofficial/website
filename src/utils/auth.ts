@@ -1,4 +1,5 @@
 import { supabase, restoreSessionFromUrl } from '../lib/supabase';
+import { buildServerAuthHeaders } from './serverAuth';
 import {
     loginUser,
     registerUser,
@@ -43,6 +44,7 @@ type SupabaseUser = {
 
 const authEventTarget = typeof window !== 'undefined' ? new EventTarget() : null;
 const OAUTH_PROVIDER_KEY = 'mahean_oauth_provider';
+const SERVER_RESET_TOKEN_KEY = 'mahean_password_reset_token';
 const DEFAULT_SELF_SERVICE_ROLE: LocalUser['role'] = 'moderator';
 const PRIMARY_ADMIN_EMAIL = (
     (import.meta.env.VITE_PRIMARY_ADMIN_EMAIL as string | undefined)
@@ -488,7 +490,10 @@ export const updateCurrentUserPassword = async (currentPassword: string | null, 
         try {
             const { data, error } = await supabase.auth.getSession();
             if (!error && data?.session) {
-                const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+                const { error: updateError } = await supabase.auth.updateUser({
+                    password: newPassword,
+                    currentPassword
+                });
                 if (!updateError) {
                     return { success: true };
                 }
@@ -526,20 +531,21 @@ export const updateCurrentUserPassword = async (currentPassword: string | null, 
 export const applyPasswordReset = async (newPassword: string) => {
     let lastServerErrorMessage = 'Password reset failed.';
     if (typeof window !== 'undefined') {
-        const resetUserId = localStorage.getItem('mahean_password_reset_user');
-        if (resetUserId) {
+        const resetToken = localStorage.getItem(SERVER_RESET_TOKEN_KEY);
+        if (resetToken) {
             try {
                 const response = await fetch('/api/auth', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    headers: buildServerAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
                         action: 'update-password',
-                        userId: resetUserId,
+                        resetToken,
                         newPassword
                     })
                 });
                 if (response.ok) {
-                    localStorage.removeItem('mahean_password_reset_user');
+                    localStorage.removeItem(SERVER_RESET_TOKEN_KEY);
                     return { success: true };
                 }
                 const payload = await response.json().catch(() => ({}));
@@ -562,6 +568,7 @@ export const applyPasswordReset = async (newPassword: string) => {
             if (!error && data?.session) {
                 const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
                 if (!updateError) {
+                    localStorage.removeItem(SERVER_RESET_TOKEN_KEY);
                     return { success: true };
                 }
                 console.warn('Supabase password reset failed', updateError);
@@ -586,4 +593,9 @@ export const applyPasswordReset = async (newPassword: string) => {
     return { success: true };
 };
 
-export const hasPendingPasswordReset = () => Boolean(getPasswordResetUserId());
+export const hasPendingPasswordReset = () => {
+    if (typeof window !== 'undefined' && localStorage.getItem(SERVER_RESET_TOKEN_KEY)) {
+        return true;
+    }
+    return Boolean(getPasswordResetUserId());
+};

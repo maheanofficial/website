@@ -6,6 +6,7 @@ import { getAllStories, saveStory, deleteStory, type Story, type StoryPart } fro
 import { getCategories, saveCategory, type Category } from '../../utils/categoryManager';
 import { getAllAuthors, saveAuthor, type Author } from '../../utils/authorManager';
 import { slugify } from '../../utils/slugify';
+import { uploadDataUrlToStorage } from '../../utils/imageStorage';
 import ImageUploader from './ImageUploader';
 import type { User } from '../../utils/userManager';
 
@@ -350,10 +351,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         try {
             const dataUrl = await generateStoryCardCover();
             if (dataUrl) {
-                setCoverImage(dataUrl);
+                const uploaded = await uploadDataUrlToStorage(dataUrl, { folder: 'stories/covers' });
+                setCoverImage(uploaded.url);
             }
         } catch (error) {
             console.warn('Cover generation failed.', error);
+            const message = error instanceof Error ? error.message : 'Failed to generate thumbnail.';
+            alert(message);
         } finally {
             setIsGeneratingCover(false);
         }

@@ -4,6 +4,7 @@ import {
     createManagedUser,
     deleteManagedUser,
     listManagedUsers,
+    updateManagedUserRole,
     type ManagedUser,
     type ManagedUserRole
 } from '../../utils/adminUserService';
@@ -27,19 +28,30 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
     const [displayName, setDisplayName] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<ManagedUserRole>('moderator');
+    const [roleDrafts, setRoleDrafts] = useState<Record<string, ManagedUserRole>>({});
     const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const isAdmin = currentUser?.role === 'admin';
+    const currentUserEmail = String(currentUser?.email || currentUser?.username || '')
+        .trim()
+        .toLowerCase();
+    const isPrimaryAdminUser = currentUserEmail === PRIMARY_ADMIN_EMAIL;
 
     const loadUsers = async () => {
         setIsLoading(true);
         try {
             const data = await listManagedUsers();
             setUsers(data);
+            setRoleDrafts(
+                Object.fromEntries(
+                    data.map((user) => [user.id, user.role])
+                ) as Record<string, ManagedUserRole>
+            );
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to load users from server.';
             setStatus({ type: 'error', message });
             setUsers([]);
+            setRoleDrafts({});
         } finally {
             setIsLoading(false);
         }
@@ -61,6 +73,10 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
             setStatus({ type: 'error', message: 'Email is required.' });
             return;
         }
+        if (role === 'admin' && !isPrimaryAdminUser) {
+            setStatus({ type: 'error', message: 'Only primary admin can create admin users.' });
+            return;
+        }
 
         try {
             await createManagedUser({
@@ -78,6 +94,27 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to create user.';
             setStatus({ type: 'error', message });
+        }
+    };
+
+    const handleRoleUpdate = async (user: ManagedUser) => {
+        const nextRole = roleDrafts[user.id] || user.role;
+        if (nextRole === user.role) {
+            return;
+        }
+
+        setStatus(null);
+        try {
+            await updateManagedUserRole(user.id, nextRole);
+            setStatus({ type: 'success', message: 'User role updated successfully.' });
+            await loadUsers();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update user role.';
+            setStatus({ type: 'error', message });
+            setRoleDrafts((prev) => ({
+                ...prev,
+                [user.id]: user.role
+            }));
         }
     };
 
@@ -127,6 +164,9 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
                             const isSelfAccount = user.id === currentUser?.id;
                             const isSystemAdmin = normalizedEmail === 'admin@local';
                             const isPrimaryAdmin = normalizedEmail === PRIMARY_ADMIN_EMAIL;
+                            const roleLocked = isPrimaryAdmin
+                                || isSelfAccount
+                                || (!isPrimaryAdminUser && user.role === 'admin');
                             const deleteDisabled = isSelfAccount || isSystemAdmin || isPrimaryAdmin;
                             const deleteTitle = isPrimaryAdmin
                                 ? 'Primary admin cannot be deleted'
@@ -143,7 +183,30 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
                                         <span className="item-meta">{user.email}</span>
                                     </div>
                                     <div className="admin-user-actions">
-                                        <span className="admin-user-role">{user.role}</span>
+                                        <select
+                                            className="form-select admin-user-role"
+                                            value={roleDrafts[user.id] || user.role}
+                                            disabled={roleLocked}
+                                            onChange={(event) => {
+                                                const nextRole = event.target.value as ManagedUserRole;
+                                                setRoleDrafts((prev) => ({
+                                                    ...prev,
+                                                    [user.id]: nextRole
+                                                }));
+                                            }}
+                                        >
+                                            <option value="moderator">moderator</option>
+                                            <option value="admin" disabled={!isPrimaryAdminUser}>admin</option>
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="admin-user-delete-btn"
+                                            disabled={roleLocked || (roleDrafts[user.id] || user.role) === user.role}
+                                            onClick={() => handleRoleUpdate(user)}
+                                            title={roleLocked ? 'Role change is restricted for this account' : 'Update role'}
+                                        >
+                                            Save Role
+                                        </button>
                                         <button
                                             type="button"
                                             className="admin-user-delete-btn"
@@ -203,7 +266,7 @@ const AdminUsers = ({ currentUser }: AdminUsersProps) => {
                                 className="form-select"
                             >
                                 <option value="moderator">Moderator</option>
-                                <option value="admin">Admin</option>
+                                <option value="admin" disabled={!isPrimaryAdminUser}>Admin</option>
                             </select>
                         </div>
                         <button type="submit" className="btn btn-primary w-full">

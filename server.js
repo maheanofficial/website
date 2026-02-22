@@ -104,7 +104,23 @@ const sendText = (res, statusCode, body, contentType = 'text/plain; charset=utf-
     res.end(body);
 };
 
-const applySecurityHeaders = (res) => {
+const firstHeaderValue = (value) =>
+    typeof value === 'string'
+        ? value.split(',')[0].trim()
+        : '';
+
+const requestIsSecure = (req) => {
+    const forwardedProto = firstHeaderValue(req.headers?.['x-forwarded-proto']).toLowerCase();
+    if (forwardedProto === 'https') {
+        return true;
+    }
+    if (forwardedProto === 'http') {
+        return false;
+    }
+    return Boolean(req.socket?.encrypted);
+};
+
+const applySecurityHeaders = (req, res) => {
     if (res.headersSent) return;
     if (!res.hasHeader('X-Content-Type-Options')) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -118,11 +134,20 @@ const applySecurityHeaders = (res) => {
     if (!res.hasHeader('Permissions-Policy')) {
         res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     }
-    if (!res.hasHeader('Strict-Transport-Security')) {
+    if (!res.hasHeader('Strict-Transport-Security') && requestIsSecure(req)) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
     if (!res.hasHeader('Cross-Origin-Resource-Policy')) {
         res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    }
+    if (!res.hasHeader('Cross-Origin-Opener-Policy')) {
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    }
+    if (!res.hasHeader('X-DNS-Prefetch-Control')) {
+        res.setHeader('X-DNS-Prefetch-Control', 'off');
+    }
+    if (!res.hasHeader('X-Permitted-Cross-Domain-Policies')) {
+        res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
     }
 };
 
@@ -254,7 +279,7 @@ const isKnownSpaRoute = (pathname) =>
     || SPA_PREFIX_PATHS.some((prefix) => pathname.startsWith(prefix));
 
 const handleRequest = async (req, res) => {
-    applySecurityHeaders(res);
+    applySecurityHeaders(req, res);
 
     const baseUrl = `http://${req.headers.host || 'localhost'}`;
     const parsed = new URL(req.url || '/', baseUrl);
@@ -340,7 +365,7 @@ const server = http.createServer((req, res) => {
     handleRequest(req, res).catch((error) => {
         console.error('Request handling failed:', error);
         if (!res.headersSent) {
-            applySecurityHeaders(res);
+            applySecurityHeaders(req, res);
             sendText(res, 500, 'Internal Server Error');
             return;
         }

@@ -18,14 +18,6 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const readFileAsDataUrl = (file: File) =>
-        new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error('Failed to read image file.'));
-            reader.readAsDataURL(file);
-        });
-
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -40,14 +32,9 @@ const ImageUploadWidget = ({ label, icon, value, onChange, placeholder = "Image"
             const uploaded = await uploadImageToStorage(file, { folder });
             onChange(uploaded.url);
         } catch (error) {
-            console.warn('Server image upload failed; falling back to base64.', error);
-            try {
-                const base64 = await readFileAsDataUrl(file);
-                onChange(base64);
-            } catch (fallbackError) {
-                console.warn('Base64 fallback failed', fallbackError);
-                alert('Image upload failed. Please try again.');
-            }
+            console.warn('Server image upload failed.', error);
+            const message = error instanceof Error ? error.message : 'Image upload failed. Please try again.';
+            alert(message);
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) {
