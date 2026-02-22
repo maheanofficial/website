@@ -37,10 +37,6 @@ const OAUTH_TIMEOUT_MS = 15_000;
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_ENDPOINT = 'https://openidconnect.googleapis.com/v1/userinfo';
 const PASSWORD_MIN_LENGTH = 10;
-const RESET_TOKEN_RESPONSE_FLAG = pickFirstEnv('ALLOW_RESET_TOKEN_RESPONSE').toLowerCase();
-const ALLOW_RESET_TOKEN_RESPONSE = RESET_TOKEN_RESPONSE_FLAG
-    ? RESET_TOKEN_RESPONSE_FLAG === 'true'
-    : process.env.NODE_ENV !== 'production';
 const USED_RESET_TOKEN_MAX = 2000;
 const USED_RESET_TOKENS = new Map();
 
@@ -58,6 +54,10 @@ const GOOGLE_CLIENT_ID = pickFirstEnv('GOOGLE_OAUTH_CLIENT_ID', 'VITE_GOOGLE_CLI
 const GOOGLE_CLIENT_SECRET = pickFirstEnv('GOOGLE_OAUTH_CLIENT_SECRET');
 const GOOGLE_FIXED_REDIRECT_URI = pickFirstEnv('GOOGLE_OAUTH_REDIRECT_URI');
 const GOOGLE_ALLOWED_REDIRECT_ORIGIN = pickFirstEnv('GOOGLE_OAUTH_ALLOWED_REDIRECT_ORIGIN').toLowerCase();
+const RESET_TOKEN_RESPONSE_FLAG = pickFirstEnv('ALLOW_RESET_TOKEN_RESPONSE').toLowerCase();
+const ALLOW_RESET_TOKEN_RESPONSE = RESET_TOKEN_RESPONSE_FLAG
+    ? RESET_TOKEN_RESPONSE_FLAG === 'true'
+    : process.env.NODE_ENV !== 'production';
 
 const emailLooksValid = (value) => {
     const trimmed = String(value || '').trim();
