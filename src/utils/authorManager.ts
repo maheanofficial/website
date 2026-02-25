@@ -309,7 +309,7 @@ export const getAllAuthors = async (): Promise<Author[]> => {
 
         if (error) throw error;
 
-        const authors = (data || []).map(mapRowToAuthor);
+        const authors = ((data || []) as AuthorRow[]).map(mapRowToAuthor);
 
         if (authors.length === 0 && localAuthors.length > 0 && !hasAttemptedRemoteBackfill) {
             hasAttemptedRemoteBackfill = true;

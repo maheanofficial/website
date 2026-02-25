@@ -5,7 +5,7 @@ type SupabaseErrorLike = {
     code?: string;
 };
 
-type QueryResult<T = unknown> = {
+type QueryResult<T = unknown[]> = {
     data: T | null;
     error: SupabaseErrorLike | null;
 };
@@ -26,6 +26,26 @@ type QueryState = {
     single: boolean;
     values: unknown;
     onConflict: string;
+};
+
+type JsonObject = Record<string, unknown>;
+
+type QueryBuilder = {
+    select(columns?: string): QueryBuilder;
+    eq(column: string, value: unknown): QueryBuilder;
+    neq(column: string, value: unknown): QueryBuilder;
+    lt(column: string, value: unknown): QueryBuilder;
+    order(column: string, options?: { ascending?: boolean }): QueryBuilder;
+    limit(count?: number): QueryBuilder;
+    maybeSingle(): QueryBuilder;
+    insert(values: unknown): QueryBuilder;
+    upsert(values: unknown, options?: { onConflict?: string }): QueryBuilder;
+    update(values: unknown): QueryBuilder;
+    delete(): QueryBuilder;
+    then<TResult1 = QueryResult<unknown[]>, TResult2 = never>(
+        onfulfilled?: ((value: QueryResult<unknown[]>) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+    ): PromiseLike<TResult1 | TResult2>;
 };
 
 type SessionLike = {
@@ -66,6 +86,8 @@ const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const authListeners = new Set<(event: string, session: SessionLike | null) => void>();
 
 const toError = (message: string, code = 'REQUEST_FAILED'): SupabaseErrorLike => ({ message, code });
+const isRecord = (value: unknown): value is JsonObject =>
+    typeof value === 'object' && value !== null;
 
 const readSession = (): SessionLike | null => {
     if (typeof window === 'undefined') return null;
@@ -122,37 +144,43 @@ const normalizeProvider = (value: unknown) => {
     return '';
 };
 
-const mapServerUserToSupabaseUser = (user: any): SupabaseUser => {
-    const rawProviders = Array.isArray(user?.providers) ? user.providers : [];
+const mapServerUserToSupabaseUser = (user: unknown): SupabaseUser => {
+    const candidate = isRecord(user) ? user : {};
+    const rawProviders = Array.isArray(candidate.providers) ? candidate.providers : [];
     const providers = rawProviders
         .map((entry: unknown) => normalizeProvider(entry))
         .filter((entry: string): entry is 'google' | 'email' => entry === 'google' || entry === 'email');
     const uniqueProviders: Array<'google' | 'email'> = Array.from(new Set(providers));
     const effectiveProviders: Array<'google' | 'email'> = uniqueProviders.length ? uniqueProviders : ['email'];
     const primaryProvider = effectiveProviders.includes('google') ? 'google' : 'email';
+    const email = typeof candidate.email === 'string' ? candidate.email : undefined;
+    const displayName = typeof candidate.displayName === 'string'
+        ? candidate.displayName
+        : undefined;
+    const photoUrl = typeof candidate.photoURL === 'string' ? candidate.photoURL : undefined;
 
     return {
-        id: String(user?.id || ''),
-        email: typeof user?.email === 'string' ? user.email : undefined,
-        created_at: typeof user?.createdAt === 'string' ? user.createdAt : new Date().toISOString(),
+        id: String(candidate.id || ''),
+        email,
+        created_at: typeof candidate.createdAt === 'string' ? candidate.createdAt : new Date().toISOString(),
         app_metadata: {
-            role: user?.role === 'admin' ? 'admin' : 'moderator',
+            role: candidate.role === 'admin' ? 'admin' : 'moderator',
             provider: primaryProvider
         },
         user_metadata: {
-            full_name: user?.displayName || user?.email || 'User',
-            avatar_url: user?.photoURL || undefined
+            full_name: displayName || email || 'User',
+            avatar_url: photoUrl || undefined
         },
         identities: effectiveProviders.map((provider) => ({
             provider,
             identity_data: {
-                email: user?.email
+                email
             }
         }))
     };
 };
 
-const requestJson = async (url: string, payload: unknown): Promise<{ data: any; error: SupabaseErrorLike | null }> => {
+const requestJson = async (url: string, payload: unknown): Promise<{ data: JsonObject | null; error: SupabaseErrorLike | null }> => {
     if (typeof window === 'undefined') {
         return { data: null, error: toError('Browser API not available.', 'NO_BROWSER') };
     }
@@ -168,11 +196,15 @@ const requestJson = async (url: string, payload: unknown): Promise<{ data: any; 
             headers,
             body: JSON.stringify(payload)
         });
-        const parsed = await response.json().catch(() => ({}));
+        const parsedResponse: unknown = await response.json().catch(() => ({}));
+        const parsed = isRecord(parsedResponse) ? parsedResponse : {};
         if (!response.ok) {
-            const message = typeof parsed?.error === 'string'
-                ? parsed.error
-                : (parsed?.error?.message || `Request failed with ${response.status}`);
+            const parsedError = parsed.error;
+            const message = typeof parsedError === 'string'
+                ? parsedError
+                : isRecord(parsedError) && typeof parsedError.message === 'string'
+                    ? parsedError.message
+                    : `Request failed with ${response.status}`;
             return { data: null, error: toError(message, 'HTTP_ERROR') };
         }
         return { data: parsed, error: null };
@@ -194,7 +226,7 @@ const baseQueryState = (table: string): QueryState => ({
     onConflict: 'id'
 });
 
-const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
+const executeQuery = async (state: QueryState): Promise<QueryResult<unknown[]>> => {
     const payload = {
         table: state.table,
         action: state.action,
@@ -209,9 +241,13 @@ const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
     if (error) {
         return { data: state.single ? null : [], error };
     }
-    const resultData = data?.data ?? (state.single ? null : []);
-    const resultError = data?.error
-        ? toError(data.error.message || 'Database error.', data.error.code || 'DB_ERROR')
+    const resultData = (data?.data ?? (state.single ? null : [])) as unknown[] | null;
+    const queryError = isRecord(data?.error) ? data.error : null;
+    const resultError = queryError
+        ? toError(
+            typeof queryError.message === 'string' ? queryError.message : 'Database error.',
+            typeof queryError.code === 'string' ? queryError.code : 'DB_ERROR'
+        )
         : null;
     return {
         data: resultData,
@@ -222,7 +258,7 @@ const executeQuery = async (state: QueryState): Promise<QueryResult<any>> => {
 const createQueryBuilder = (table: string) => {
     const state = baseQueryState(table);
 
-    const builder: any = {
+    const builder: QueryBuilder = {
         select(columns = '*') {
             if (state.action === 'delete') {
                 state.returnColumns = String(columns || '*');
@@ -251,7 +287,8 @@ const createQueryBuilder = (table: string) => {
             };
             return builder;
         },
-        limit() {
+        limit(count?: number) {
+            void count;
             return builder;
         },
         maybeSingle() {
@@ -278,7 +315,7 @@ const createQueryBuilder = (table: string) => {
             state.action = 'delete';
             return builder;
         },
-        then(resolve: (value: QueryResult<any>) => unknown, reject?: (reason: unknown) => unknown) {
+        then(resolve, reject) {
             return executeQuery(state).then(resolve, reject);
         }
     };
@@ -500,7 +537,8 @@ const auth = {
             }
         };
     },
-    async resetPasswordForEmail(email: string) {
+    async resetPasswordForEmail(email: string, options?: { redirectTo?: string }) {
+        void options;
         const { data, error } = await requestJson('/api/auth', {
             action: 'request-password-reset',
             identifier: email
@@ -611,7 +649,7 @@ const storage = {
     }
 };
 
-export const supabase: any = {
+export const supabase = {
     from: (table: string) => createQueryBuilder(table),
     auth,
     storage
@@ -656,7 +694,7 @@ export const restoreSessionFromUrl = async () => {
         `${window.location.origin}${window.location.pathname}`
     ].map((value) => toOAuthRedirectUrl(value)).filter(Boolean)));
 
-    let data: any = null;
+    let data: { session?: { user?: unknown } } | null = null;
     let error: SupabaseErrorLike | null = null;
 
     for (const redirectUri of redirectCandidates) {

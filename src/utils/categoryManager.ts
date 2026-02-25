@@ -57,7 +57,7 @@ export const getAllCategories = async (): Promise<Category[]> => {
 
         if (error) throw error;
 
-        const categories = (data || []).map(mapRowToCategory);
+        const categories = ((data || []) as CategoryRow[]).map(mapRowToCategory);
         storeCategories(categories);
         return categories;
     } catch (error) {

@@ -64,7 +64,7 @@ export const getActivityLogs = async (): Promise<ActivityLogItem[]> => {
 
         if (error) throw error;
 
-        const logs = (data || []).map(mapRowToLog);
+        const logs = ((data || []) as ActivityLogRow[]).map(mapRowToLog);
         storeActivityLogs(logs);
         return logs;
     } catch (error) {

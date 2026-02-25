@@ -1,7 +1,7 @@
-const MOJIBAKE_PATTERN = /(?:Ã Â¦|Ã Â§|Ãƒ|Ã‚|Ã¢â‚¬|Ã¢â‚¬â„¢|Ã¢â‚¬Å“|Ã¢â‚¬ï¿½|à¦|à§|â€|â€™|â€œ|â€�)/;
+const MOJIBAKE_PATTERN = /(?:\u00C3|\u00C2|\u00E2\u20AC|\u00EF\u00BF\u00BD|\uFFFD)/;
 
 const scoreMojibake = (value: string) =>
-    (String(value).match(/(?:Ã Â¦|Ã Â§|Ãƒ|Ã‚|Ã¢â‚¬|Ã¢â‚¬â„¢|Ã¢â‚¬Å“|Ã¢â‚¬ï¿½|à¦|à§|â€|â€™|â€œ|â€�|ï¿½|�)/g) || []).length;
+    (String(value).match(/(?:\u00C3|\u00C2|\u00E2\u20AC|\u00EF\u00BF\u00BD|\uFFFD)/g) || []).length;
 
 const scoreBangla = (value: string) =>
     (String(value).match(/[\u0980-\u09FF]/g) || []).length;

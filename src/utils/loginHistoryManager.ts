@@ -91,7 +91,7 @@ export const getLoginLogs = async (): Promise<LoginLog[]> => {
 
         if (error) throw error;
 
-        const logs = (data || []).map(mapRowToLoginLog);
+        const logs = ((data || []) as LoginHistoryRow[]).map(mapRowToLoginLog);
         storeLoginLogs(logs);
         return logs;
     } catch (error) {

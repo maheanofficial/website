@@ -19,19 +19,32 @@ const AdminAuthors = () => {
     const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const refreshAuthors = useCallback(async () => {
+    const loadAuthors = useCallback(async () => {
         const loadId = latestLoadIdRef.current + 1;
         latestLoadIdRef.current = loadId;
         const data = await getAllAuthors();
+        return { data, loadId };
+    }, []);
+
+    const refreshAuthors = useCallback(async () => {
+        const { data, loadId } = await loadAuthors();
         // Ignore stale responses to prevent older loads from overwriting recent saves.
         if (latestLoadIdRef.current === loadId) {
             setAuthors(data);
         }
-    }, []);
+    }, [loadAuthors]);
 
     useEffect(() => {
-        void refreshAuthors();
-    }, [refreshAuthors]);
+        let isActive = true;
+        void loadAuthors().then(({ data, loadId }) => {
+            if (isActive && latestLoadIdRef.current === loadId) {
+                setAuthors(data);
+            }
+        });
+        return () => {
+            isActive = false;
+        };
+    }, [loadAuthors]);
 
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
     const filteredAuthors = normalizedSearchTerm

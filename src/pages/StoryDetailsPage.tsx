@@ -37,6 +37,13 @@ const StoryDetailsPage = () => {
             parts: [{ id: '1', title: 'পর্ব ১', content: entry.content }]
         };
     };
+    const resetStoryCacheAndReload = () => {
+        localStorage.removeItem('mahean_stories');
+        Object.keys(sessionStorage)
+            .filter((key) => key.startsWith('viewed_story_'))
+            .forEach((key) => sessionStorage.removeItem(key));
+        window.location.reload();
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -59,8 +66,9 @@ const StoryDetailsPage = () => {
             const hasViewedInSession = sessionStorage.getItem(viewKey);
 
             if (!hasViewedInSession) {
-                await incrementViews(normalized.id);
+                // Lock immediately to avoid duplicate increments in StrictMode/dev re-renders.
                 sessionStorage.setItem(viewKey, 'true');
+                await incrementViews(normalized.id);
                 // Re-fetch to get the updated count in UI
                 const updatedStories = await getStories();
                 const refreshedStory = updatedStories.find(s => s.id === normalized.id);
@@ -173,10 +181,7 @@ const StoryDetailsPage = () => {
                 <h2 className="text-2xl text-white mb-4">গল্পটি লোড করতে সমস্যা হচ্ছে!</h2>
                 <p className="text-gray-400 mb-6">গল্পের ডেটা খুঁজে পাওয়া যায়নি।</p>
                 <button
-                    onClick={() => {
-                        localStorage.clear();
-                        window.location.reload();
-                    }}
+                    onClick={resetStoryCacheAndReload}
                     className="btn btn-primary bg-red-600 hover:bg-red-700"
                 >
                     Reset & Reload

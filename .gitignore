@@ -28,3 +28,11 @@ dist-ssr
 # Runtime JSON storage (server-side data on cPanel)
 data/*.json
 !data/.gitkeep
+
+# Local deployment artifacts / secrets
+cpanel_key
+cpanel_key_lf
+cpanel-fullsite-cpanel-db.zip
+cpanel-nosupabase-deploy.zip
+onboarding-project-cpanel-upload.zip
+onboarding-project-cpanel-upload-v2.zip

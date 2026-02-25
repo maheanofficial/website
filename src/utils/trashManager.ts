@@ -179,7 +179,7 @@ export const getTrashItems = async (): Promise<TrashItem[]> => {
 
         if (error) throw error;
 
-        const items = (data || []).map(mapRowToTrashItem);
+        const items = ((data || []) as TrashRow[]).map(mapRowToTrashItem);
         storeTrashItems(items);
         return items;
     } catch (error) {
@@ -247,7 +247,7 @@ export const restoreFromTrash = async (trashId: string): Promise<TrashItem | nul
             .select('*');
         if (error) throw error;
         if (data && data.length > 0) {
-            return mapRowToTrashItem(data[0]);
+            return mapRowToTrashItem(data[0] as TrashRow);
         }
     } catch (error) {
         console.warn('Supabase trash restore failed', error);

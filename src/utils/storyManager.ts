@@ -588,7 +588,7 @@ export const getStories = async (): Promise<Story[]> => {
 
         if (error) throw error;
 
-        const stories = (data || []).map(mapRowToStory);
+        const stories = ((data || []) as StoryRow[]).map(mapRowToStory);
         const mergedStories = sortStoriesByDate(mergeStories(stories, localStories));
         storeStories(mergedStories);
         // Show only published stories; legacy public statuses are normalized to published.
@@ -611,7 +611,7 @@ export const getAllStories = async (): Promise<Story[]> => {
 
         if (error) throw error;
 
-        const stories = (data || []).map(mapRowToStory);
+        const stories = ((data || []) as StoryRow[]).map(mapRowToStory);
         const mergedStories = sortStoriesByDate(mergeStories(stories, localStories));
         storeStories(mergedStories);
         return mergedStories;
@@ -633,7 +633,7 @@ export const getStoryById = async (id: string): Promise<Story | null> => {
         if (error) throw error;
 
         if (data) {
-            return mapRowToStory(data);
+            return mapRowToStory(data as unknown as StoryRow);
         }
     } catch (error) {
         console.warn('Supabase story lookup failed', error);
@@ -768,21 +768,67 @@ export const restoreStory = async (story: Story) => {
     await logActivity('restore', 'story', `Restored story: ${story.title}`);
 };
 
+const normalizeViewCount = (value: unknown) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+        return 0;
+    }
+    return Math.floor(numeric);
+};
+
+const incrementViewsWithRetry = async (id: string, maxAttempts = 5): Promise<number | null> => {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const { data: currentRow, error: readError } = await supabase
+            .from(STORY_TABLE)
+            .select('views')
+            .eq('id', id)
+            .maybeSingle();
+        if (readError) throw readError;
+
+        const currentViews = normalizeViewCount((currentRow as StoryRow | null)?.views);
+        const nextViews = currentViews + 1;
+
+        const { error: updateError } = await supabase
+            .from(STORY_TABLE)
+            .update({ views: nextViews, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .eq('views', currentViews);
+        if (updateError) throw updateError;
+
+        const { data: verifiedRow, error: verifyError } = await supabase
+            .from(STORY_TABLE)
+            .select('views')
+            .eq('id', id)
+            .maybeSingle();
+        if (verifyError) throw verifyError;
+
+        const verifiedViews = normalizeViewCount((verifiedRow as StoryRow | null)?.views);
+        if (verifiedViews >= nextViews) {
+            return verifiedViews;
+        }
+    }
+
+    return null;
+};
+
 export const incrementViews = async (id: string) => {
     const stories = getRawStories();
     const story = stories.find(s => s.id === id);
-    if (story) {
-        story.views = (story.views || 0) + 1;
-        storeStories(stories);
+    if (!story) {
+        return;
+    }
 
-        try {
-            const { error } = await supabase
-                .from(STORY_TABLE)
-                .update({ views: story.views, updated_at: new Date().toISOString() })
-                .eq('id', id);
-            if (error) throw error;
-        } catch (error) {
-            console.warn('Supabase story views update failed', error);
+    const optimisticViews = normalizeViewCount(story.views) + 1;
+    story.views = optimisticViews;
+    storeStories(stories);
+
+    try {
+        const syncedViews = await incrementViewsWithRetry(id);
+        if (typeof syncedViews === 'number' && syncedViews !== story.views) {
+            story.views = syncedViews;
+            storeStories(stories);
         }
+    } catch (error) {
+        console.warn('Supabase story views update failed', error);
     }
 };
