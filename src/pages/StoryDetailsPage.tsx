@@ -5,6 +5,7 @@ import { getStories, incrementViews, type Story, type StoryPart } from '../utils
 import { getAuthorByName, type Author } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
@@ -33,6 +34,28 @@ const StoryDetailsPage = () => {
         const parsed = Number.parseInt(value || '', 10);
         if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
+    };
+    const normalizePartKey = (value?: string) => slugify((value || '').trim());
+    const getPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const custom = normalizePartKey(part?.slug);
+        return custom || String(partIndex + 1);
+    };
+    const resolvePartIndexFromParam = (parts: StoryPart[], value?: string) => {
+        if (!parts.length) return 0;
+
+        const rawValue = (value || '').trim();
+        const normalizedKey = normalizePartKey(rawValue);
+        if (normalizedKey) {
+            const matchedIndex = parts.findIndex((part, index) => getPartSegment(part, index) === normalizedKey);
+            if (matchedIndex >= 0) return matchedIndex;
+        }
+
+        const requestedPartNumber = parseRequestedPartNumber(rawValue);
+        if (requestedPartNumber !== null) {
+            return clamp(requestedPartNumber - 1, 0, parts.length - 1);
+        }
+
+        return 0;
     };
     const getReadableParts = (entry: Story): StoryPart[] => {
         const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
@@ -114,14 +137,14 @@ const StoryDetailsPage = () => {
         const baseSegment = storySlug || storyId || id;
         if (!baseSegment) return;
 
-        const totalParts = Math.max(1, story.parts?.length || 0);
-        const requestedPart = parseRequestedPartNumber(partNumber);
-        const safePart = clamp(requestedPart ?? 1, 1, totalParts);
-
-        const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`;
+        const parts = story.parts || [];
+        const safePartIndex = resolvePartIndexFromParam(parts, partNumber);
+        const desiredPartSegment = getPartSegment(parts[safePartIndex], safePartIndex);
+        const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(desiredPartSegment)}`;
         const currentSegment = (id || '').trim();
         const shouldReplaceSegment = currentSegment !== baseSegment;
-        const shouldReplacePart = requestedPart === null || requestedPart !== safePart;
+        const requestedPartSegment = normalizePartKey(partNumber);
+        const shouldReplacePart = !requestedPartSegment || requestedPartSegment !== desiredPartSegment;
         if (shouldReplaceSegment || shouldReplacePart) {
             navigate(desiredPath, { replace: true });
         }
@@ -129,11 +152,13 @@ const StoryDetailsPage = () => {
 
     const goToPart = (nextPartNumber: number) => {
         if (!story) return;
-        const totalParts = Math.max(1, story.parts?.length || 0);
-        const safePart = clamp(nextPartNumber, 1, totalParts);
+        const parts = story.parts || [];
+        const totalParts = Math.max(1, parts.length || 0);
+        const safePartIndex = clamp(nextPartNumber, 1, totalParts) - 1;
+        const partSegment = getPartSegment(parts[safePartIndex], safePartIndex);
         const baseSegment = (story.slug || String(story.id || '')).trim() || id;
         if (!baseSegment) return;
-        navigate(`/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`);
+        navigate(`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(partSegment)}`);
     };
 
     useEffect(() => {
@@ -216,8 +241,9 @@ const StoryDetailsPage = () => {
 
     const parts = story.parts ?? [];
     const totalParts = Math.max(1, parts.length);
-    const activePartNumber = clamp(parseRequestedPartNumber(partNumber) ?? 1, 1, totalParts);
-    const currentPart = parts[activePartNumber - 1] || parts[0];
+    const activePartIndex = resolvePartIndexFromParam(parts, partNumber);
+    const activePartNumber = activePartIndex + 1;
+    const currentPart = parts[activePartIndex] || parts[0];
 
     if (!currentPart) {
         return null;
@@ -227,7 +253,8 @@ const StoryDetailsPage = () => {
     const prevPartNumber = activePartNumber > 1 ? activePartNumber - 1 : null;
     // Author Details
     const baseSegment = story.slug || story.id;
-    const storyPath = `/stories/${encodeURIComponent(baseSegment)}/part/${activePartNumber}`;
+    const activePartSegment = getPartSegment(currentPart, activePartIndex);
+    const storyPath = `/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(activePartSegment)}`;
     const canonicalUrl = `${SITE_URL}${storyPath}`;
     const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const articleImage = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;

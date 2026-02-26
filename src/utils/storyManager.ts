@@ -4,6 +4,7 @@ import { slugify } from './slugify';
 export interface StoryPart {
     id?: string;
     title: string;
+    slug?: string;
     content: string;
 }
 
@@ -167,8 +168,9 @@ const toStoryParts = (value: unknown): StoryPart[] => {
             const title = repairMojibakeText(typeof entry.title === 'string' ? entry.title : '');
             const content = repairMojibakeText(typeof entry.content === 'string' ? entry.content : '');
             const id = typeof entry.id === 'string' ? entry.id : undefined;
+            const slug = typeof entry.slug === 'string' ? repairMojibakeText(entry.slug).trim() : '';
             if (!title && !content) return null;
-            return { id, title, content };
+            return { id, title, slug: slug || undefined, content };
         })
         .filter(Boolean) as StoryPart[];
 };
@@ -182,6 +184,7 @@ const buildLegacyStoryMeta = (story: Story): LegacyStoryMeta => {
             ? [{
                 id: storyParts[0].id,
                 title: storyParts[0].title.trim(),
+                slug: storyParts[0].slug?.trim() || undefined,
                 // Avoid duplicating long story content in excerpt meta for single-part stories.
                 content: ''
             }]

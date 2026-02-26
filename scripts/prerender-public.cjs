@@ -513,8 +513,9 @@ const normalizeStoryParts = (story) => {
       if (!part || typeof part !== 'object') return null;
       const title = typeof part.title === 'string' ? part.title : '';
       const content = typeof part.content === 'string' ? part.content : '';
+      const slug = typeof part.slug === 'string' ? part.slug : '';
       if (!title.trim() && !content.trim()) return null;
-      return { title: title.trim(), content: content.trim() };
+      return { title: title.trim(), slug: slug.trim(), content: content.trim() };
     })
     .filter(Boolean);
 
@@ -524,6 +525,11 @@ const normalizeStoryParts = (story) => {
   const excerpt = normalizeExcerpt(story?.excerpt);
   const fallback = content || excerpt || '';
   return [{ title: '', content: String(fallback).trim() }];
+};
+
+const toStoryPartSegment = (part, index) => {
+  const custom = slugify(typeof part?.slug === 'string' ? part.slug : '');
+  return custom || String(index + 1);
 };
 
 const fetchStoryRows = async () => {
@@ -561,7 +567,7 @@ const toStoryPartSeos = (story) => {
   const parts = normalizeStoryParts(story);
   return parts.map((part, index) => {
     const partTitle = part.title || buildFallbackPartTitle(index);
-    const pathValue = `/stories/${encodeURIComponent(segment)}/part/${index + 1}`;
+    const pathValue = `/stories/${encodeURIComponent(segment)}/part/${encodeURIComponent(toStoryPartSegment(part, index))}`;
     const canonicalUrl = `${SITE_URL}${pathValue}`;
 
     const description =

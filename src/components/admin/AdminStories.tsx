@@ -59,6 +59,8 @@ const getNextPartNumber = (existingParts: StoryPart[]) => {
     return Math.max(existingParts.length, highestFromTitles) + 1;
 };
 
+const normalizePartSlug = (value: string) => slugify(value || '');
+
 const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => {
     const [stories, setStories] = useState<Story[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit'>('list');
@@ -94,7 +96,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [newAuthorBio, setNewAuthorBio] = useState('');
     const [newAuthorAvatar, setNewAuthorAvatar] = useState('');
     const [coverImage, setCoverImage] = useState('');
-    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: buildPartTitle(1), content: '' }]);
+    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
     const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
     const loadData = useCallback(async () => {
@@ -135,7 +137,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewAuthorBio('');
         setNewAuthorAvatar('');
         setCoverImage('');
-        setParts([{ id: '1', title: buildPartTitle(1), content: '' }]);
+        setParts([{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
     }, [authors, defaultStatus]);
 
     // Update viewMode if initialViewMode changes (e.g. navigation)
@@ -170,7 +172,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewCategoryName('');
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || story.image || '');
-        setParts(story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), content: '' }]);
+        setParts(story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
         setStatus(story.status || defaultStatus);
 
         const matchedAuthor = authors.find(author => author.id === story.authorId)
@@ -475,7 +477,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const addPart = () => {
         setParts(prev => {
             const nextPartNumber = getNextPartNumber(prev);
-            return [...prev, { id: `${Date.now()}-${nextPartNumber}`, title: buildPartTitle(nextPartNumber), content: '' }];
+            return [...prev, { id: `${Date.now()}-${nextPartNumber}`, title: buildPartTitle(nextPartNumber), slug: '', content: '' }];
         });
     };
 
@@ -486,7 +488,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const updatePart = (
         id: string | undefined,
         index: number,
-        field: 'title' | 'content',
+        field: 'title' | 'slug' | 'content',
         value: string
     ) => {
         setParts((prev) =>
@@ -545,10 +547,21 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const normalizedCategory = normalizeText(category);
         const normalizedTags = dedupeAndSort(tags);
         const storyId = editingId || Date.now().toString();
+        const customPartSlugs = parts
+            .map((part) => normalizePartSlug(part.slug || ''))
+            .filter(Boolean);
+        const duplicatePartSlug = customPartSlugs.find((slugValue, index) =>
+            customPartSlugs.indexOf(slugValue) !== index
+        );
+        if (duplicatePartSlug) {
+            alert(`Duplicate part URL found: "${duplicatePartSlug}". Please use unique URL per part.`);
+            return;
+        }
         const normalizedParts = parts.map((part, index) => ({
             ...part,
             id: part.id || `${Date.now()}-${index + 1}`,
             title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
+            slug: normalizePartSlug(part.slug || '') || undefined,
             content: part.content ?? ''
         }));
         const baseSlug = slug.trim() ? slug : title;
@@ -989,15 +1002,27 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 return (
                                 <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
-                                        <div className="part-title-wrap" title={'\u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u09a8\u09be\u09ae \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8 \u0995\u09b0\u09a4\u09c7 \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8'}>
-                                            <Edit size={14} className="part-title-icon" />
-                                            <input
-                                                type="text"
-                                                value={part.title}
-                                                onChange={e => updatePart(part.id, index, 'title', e.target.value)}
-                                                className="part-title-input"
-                                                placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
-                                            />
+                                        <div className="part-header-main">
+                                            <div className="part-title-wrap" title={'\u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u09a8\u09be\u09ae \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8 \u0995\u09b0\u09a4\u09c7 \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8'}>
+                                                <Edit size={14} className="part-title-icon" />
+                                                <input
+                                                    type="text"
+                                                    value={part.title}
+                                                    onChange={e => updatePart(part.id, index, 'title', e.target.value)}
+                                                    className="part-title-input"
+                                                    placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
+                                                />
+                                            </div>
+                                            <div className="part-url-wrap" title="Custom part URL segment (optional)">
+                                                <span className="part-url-prefix">/part/</span>
+                                                <input
+                                                    type="text"
+                                                    value={part.slug || ''}
+                                                    onChange={e => updatePart(part.id, index, 'slug', e.target.value)}
+                                                    className="part-url-input"
+                                                    placeholder={`${index + 1}`}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="part-actions">

@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, ChevronRight, Play } from 'lucide-react';
 import { getStories, type Story, type StoryPart } from '../utils/storyManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
@@ -48,6 +49,10 @@ const StoryPartsPage = () => {
         if (!compact) return 'এই পর্বের কনটেন্ট পড়তে ক্লিক করুন।';
         if (compact.length <= 140) return compact;
         return `${compact.slice(0, 140)}...`;
+    };
+    const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const normalizedCustomSlug = slugify(normalizeDisplayText(part?.slug));
+        return normalizedCustomSlug || String(partIndex + 1);
     };
 
     useEffect(() => {
@@ -121,7 +126,7 @@ const StoryPartsPage = () => {
             '@type': 'ListItem',
             position: index + 1,
             name: getPartLabel(part, index),
-            url: `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}/part/${index + 1}`
+            url: `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(part, index))}`
         }))
     };
 
@@ -160,7 +165,7 @@ const StoryPartsPage = () => {
                             {displayStoryAuthor} | {formatLongDate(story.date)}
                         </p>
                         <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
-                        <Link to={`/stories/${encodeURIComponent(baseSegment)}/part/1`} className="story-parts-start-btn">
+                        <Link to={`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
                             <Play size={16} />
                             <span>প্রথম পর্ব থেকে শুরু করুন</span>
                         </Link>
@@ -179,7 +184,7 @@ const StoryPartsPage = () => {
                             return (
                                 <Link
                                     key={part.id || `${story.id}-part-picker-${index + 1}`}
-                                    to={`/stories/${encodeURIComponent(baseSegment)}/part/${index + 1}`}
+                                    to={`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(part, index))}`}
                                     className="story-part-list-item"
                                 >
                                     <div className="story-part-list-left">
