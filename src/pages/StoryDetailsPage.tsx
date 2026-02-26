@@ -23,15 +23,20 @@ const StoryDetailsPage = () => {
     const [readingProgress, setReadingProgress] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
 
+    const decodeBanglaUnicodeEscapes = (value: string) =>
+        value.replace(/\\u09([0-9a-fA-F]{2})/g, (_, code: string) =>
+            String.fromCharCode(Number.parseInt(`09${code}`, 16))
+        );
+    const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
     const parseRequestedPartNumber = (value?: string) => {
         const parsed = Number.parseInt(value || '', 10);
         if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
     };
-    const buildFallbackPartLabel = (partIndex: number) => `\u09aa\u09b0\u09cd\u09ac ${toBanglaNumber(partIndex + 1)}`;
+    const buildFallbackPartLabel = (partIndex: number) => `পর্ব ${toBanglaNumber(partIndex + 1)}`;
     const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
-        const trimmedTitle = part?.title?.trim();
+        const trimmedTitle = normalizeDisplayText(part?.title);
         if (trimmedTitle) return trimmedTitle;
         return buildFallbackPartLabel(partIndex);
     };
@@ -39,7 +44,7 @@ const StoryDetailsPage = () => {
         if (entry.parts && entry.parts.length > 0) return entry;
         return {
             ...entry,
-            parts: [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: entry.content }]
+            parts: [{ id: '1', title: 'পর্ব 01', content: entry.content }]
         };
     };
     const resetStoryCacheAndReload = () => {
@@ -397,7 +402,7 @@ const StoryDetailsPage = () => {
                             onClick={() => setShowPartsList(!showPartsList)}
                         >
                             <BookOpen className="icon-sm" />
-                            <span>সব পর্ব</span>
+                            <span>{showPartsList ? 'পর্ব লিস্ট লুকান' : 'সব পর্ব'}</span>
                             <ChevronDown className={`icon-sm transition-transform ${showPartsList ? 'rotate-180' : ''}`} />
                         </button>
                     </div>

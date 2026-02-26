@@ -14,24 +14,29 @@ const StoryPartsPage = () => {
     const navigate = useNavigate();
     const [story, setStory] = useState<Story | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const decodeBanglaUnicodeEscapes = (value: string) =>
+        value.replace(/\\u09([0-9a-fA-F]{2})/g, (_, code: string) =>
+            String.fromCharCode(Number.parseInt(`09${code}`, 16))
+        );
+    const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
 
     const normalizeStory = (entry: Story): Story => {
         if (entry.parts && entry.parts.length > 0) return entry;
         return {
             ...entry,
-            parts: [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: entry.content }]
+            parts: [{ id: '1', title: 'পর্ব 01', content: entry.content }]
         };
     };
 
-    const buildFallbackPartLabel = (partIndex: number) => `\u09aa\u09b0\u09cd\u09ac ${toBanglaNumber(partIndex + 1)}`;
+    const buildFallbackPartLabel = (partIndex: number) => `পর্ব ${toBanglaNumber(partIndex + 1)}`;
     const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
-        const trimmedTitle = part?.title?.trim();
+        const trimmedTitle = normalizeDisplayText(part?.title);
         if (trimmedTitle) return trimmedTitle;
         return buildFallbackPartLabel(partIndex);
     };
     const getPartPreview = (part: StoryPart | undefined) => {
-        const compact = (part?.content || '').replace(/\s+/g, ' ').trim();
-        if (!compact) return '\u098f\u0987 \u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u0995\u09a8\u09cd\u099f\u09c7\u09a8\u09cd\u099f \u09aa\u09a1\u09bc\u09a4\u09c7 \u0995\u09cd\u09b2\u09bf\u0995 \u0995\u09b0\u09c1\u09a8\u0964';
+        const compact = normalizeDisplayText(part?.content).replace(/\s+/g, ' ').trim();
+        if (!compact) return 'এই পর্বের কনটেন্ট পড়তে ক্লিক করুন।';
         if (compact.length <= 140) return compact;
         return `${compact.slice(0, 140)}...`;
     };
@@ -69,11 +74,15 @@ const StoryPartsPage = () => {
         navigate(`/stories/${encodeURIComponent(canonicalSegment)}`, { replace: true });
     }, [story, id, navigate]);
 
+    const displayStoryTitle = normalizeDisplayText(story?.title);
+    const displayStoryAuthor = normalizeDisplayText(story?.author) || 'অজানা লেখক';
+    const displayStoryExcerpt = normalizeDisplayText(story?.excerpt);
+
     if (isLoading) {
         return (
             <div className="container py-20 text-center">
-                <h2 className="text-2xl text-white mb-4">\u0997\u09b2\u09cd\u09aa\u09c7\u09b0 \u09aa\u09b0\u09cd\u09ac\u0997\u09c1\u09b2\u09cb \u09b2\u09cb\u09a1 \u09b9\u099a\u09cd\u099b\u09c7...</h2>
-                <p className="text-gray-400">\u0985\u09a8\u09c1\u0997\u09cd\u09b0\u09b9 \u0995\u09b0\u09c7 \u0985\u09aa\u09c7\u0995\u09cd\u09b7\u09be \u0995\u09b0\u09c1\u09a8\u0964</p>
+                <h2 className="text-2xl text-white mb-4">গল্পের পর্বগুলো লোড হচ্ছে...</h2>
+                <p className="text-gray-400">অনুগ্রহ করে অপেক্ষা করুন।</p>
             </div>
         );
     }
@@ -81,10 +90,10 @@ const StoryPartsPage = () => {
     if (!story) {
         return (
             <div className="container py-20 text-center">
-                <h2 className="text-2xl text-white mb-4">\u0997\u09b2\u09cd\u09aa\u099f\u09bf \u0996\u09c1\u0981\u099c\u09c7 \u09aa\u09be\u0993\u09df\u09be \u09af\u09be\u09df\u09a8\u09bf</h2>
-                <p className="text-gray-400 mb-6">\u09a6\u09df\u09be \u0995\u09b0\u09c7 \u0985\u09a8\u09cd\u09af \u0997\u09b2\u09cd\u09aa \u09a5\u09c7\u0995\u09c7 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964</p>
+                <h2 className="text-2xl text-white mb-4">গল্পটি খুঁজে পাওয়া যায়নি</h2>
+                <p className="text-gray-400 mb-6">দয়া করে অন্য গল্প থেকে চেষ্টা করুন।</p>
                 <Link to="/stories" className="text-blue-400 hover:underline">
-                    \u09b8\u09ac \u0997\u09b2\u09cd\u09aa\u09c7 \u09ab\u09bf\u09b0\u09c7 \u09af\u09be\u09a8
+                    সব গল্পে ফিরে যান
                 </Link>
             </div>
         );
@@ -98,7 +107,7 @@ const StoryPartsPage = () => {
     const listSchema = {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: `${story.title} - \u09b8\u09ac \u09aa\u09b0\u09cd\u09ac`,
+        name: `${displayStoryTitle} - সব পর্ব`,
         itemListElement: parts.map((part, index) => ({
             '@type': 'ListItem',
             position: index + 1,
@@ -107,8 +116,8 @@ const StoryPartsPage = () => {
         }))
     };
 
-    const seoTitle = `${story.title} - \u09b8\u09ac \u09aa\u09b0\u09cd\u09ac`;
-    const seoDescription = `${story.title} \u0997\u09b2\u09cd\u09aa\u09c7\u09b0 \u09b8\u09ac \u09aa\u09b0\u09cd\u09ac \u098f\u0995\u09b8\u09be\u09a5\u09c7 \u09a6\u09c7\u0996\u09c1\u09a8 \u098f\u09ac\u0982 \u09af\u09c7 \u09aa\u09b0\u09cd\u09ac \u09a5\u09c7\u0995\u09c7 \u099a\u09be\u09a8, \u09b8\u09c7\u0996\u09be\u09a8 \u09a5\u09c7\u0995\u09c7 \u09aa\u09a1\u09bc\u09be \u09b6\u09c1\u09b0\u09c1 \u0995\u09b0\u09c1\u09a8\u0964`;
+    const seoTitle = `${displayStoryTitle} - সব পর্ব`;
+    const seoDescription = `${displayStoryTitle} গল্পের সব পর্ব একসাথে দেখুন এবং যে পর্ব থেকে চান, সেখান থেকে পড়া শুরু করুন।`;
 
     return (
         <article className="story-parts-page fade-in-up">
@@ -125,7 +134,7 @@ const StoryPartsPage = () => {
             <div className="container">
                 <button onClick={() => navigate(-1)} className="story-parts-back">
                     <ArrowLeft className="icon" />
-                    <span>\u09ab\u09bf\u09b0\u09c7 \u09af\u09be\u09a8</span>
+                    <span>ফিরে যান</span>
                 </button>
 
                 <section className="story-parts-hero">
@@ -135,24 +144,24 @@ const StoryPartsPage = () => {
                     <div className="story-parts-meta">
                         <div className="story-parts-badge">
                             <BookOpen size={16} />
-                            <span>{toBanglaNumber(totalParts)} \u099f\u09bf \u09aa\u09b0\u09cd\u09ac</span>
+                            <span>{toBanglaNumber(totalParts)} টি পর্ব</span>
                         </div>
-                        <h1 className="story-parts-title">{story.title}</h1>
+                        <h1 className="story-parts-title">{displayStoryTitle}</h1>
                         <p className="story-parts-subtitle">
-                            {story.author || '\u0985\u099c\u09be\u09a8\u09be \u09b2\u09c7\u0996\u0995'} | {formatLongDate(story.date)}
+                            {displayStoryAuthor} | {formatLongDate(story.date)}
                         </p>
-                        <p className="story-parts-excerpt">{story.excerpt || getPartPreview(parts[0])}</p>
+                        <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
                         <Link to={`/stories/${encodeURIComponent(baseSegment)}/part/1`} className="story-parts-start-btn">
                             <Play size={16} />
-                            <span>\u09aa\u09cd\u09b0\u09a5\u09ae \u09aa\u09b0\u09cd\u09ac \u09a5\u09c7\u0995\u09c7 \u09b6\u09c1\u09b0\u09c1 \u0995\u09b0\u09c1\u09a8</span>
+                            <span>প্রথম পর্ব থেকে শুরু করুন</span>
                         </Link>
                     </div>
                 </section>
 
                 <section className="story-parts-list-section">
                     <div className="story-parts-list-header">
-                        <h2>\u09aa\u09b0\u09cd\u09ac \u09ac\u09be\u099b\u09be\u0987 \u0995\u09b0\u09c1\u09a8</h2>
-                        <span>{toBanglaNumber(totalParts)} \u099f\u09bf \u09aa\u09b0\u09cd\u09ac \u0989\u09aa\u09b2\u09ac\u09cd\u09a7</span>
+                        <h2>পর্ব বাছাই করুন</h2>
+                        <span>{toBanglaNumber(totalParts)} টি পর্ব উপলব্ধ</span>
                     </div>
 
                     <div className="story-parts-list-grid">
