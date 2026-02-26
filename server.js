@@ -304,26 +304,6 @@ const handleRequest = async (req, res) => {
         return;
     }
 
-    const numericStoryMatch = pathname.match(/^\/stories\/(\d+)$/);
-    if (numericStoryMatch) {
-        const [, id] = numericStoryMatch;
-        await runHandler(
-            req,
-            res,
-            storyRedirectHandler,
-            `/api/story-redirect?id=${encodeURIComponent(id)}&part=1`
-        );
-        return;
-    }
-
-    const slugStoryMatch = pathname.match(/^\/stories\/([^/]+)$/);
-    if (slugStoryMatch && !/^\d+$/.test(slugStoryMatch[1])) {
-        res.statusCode = 301;
-        res.setHeader('Location', `/stories/${slugStoryMatch[1]}/part/1`);
-        res.end();
-        return;
-    }
-
     if (method !== 'GET' && method !== 'HEAD') {
         sendText(res, 405, 'Method Not Allowed');
         return;

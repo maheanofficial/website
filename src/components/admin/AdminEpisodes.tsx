@@ -39,7 +39,7 @@ const AdminEpisodes = ({ user }: AdminEpisodesProps) => {
     };
 
     const handleView = (story: Story) => {
-        const url = `/stories/${story.slug || story.id}/part/1`;
+        const url = `/stories/${story.slug || story.id}`;
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 

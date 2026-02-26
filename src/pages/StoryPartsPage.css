@@ -1,0 +1,212 @@
+.story-parts-page {
+    min-height: 100vh;
+    background: #020202;
+    padding-top: var(--header-space);
+    padding-bottom: calc(var(--spacing-xl) + var(--sab));
+}
+
+.story-parts-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.story-parts-back:hover {
+    color: #f59e0b;
+}
+
+.story-parts-hero {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 20px;
+    background: linear-gradient(130deg, rgba(245, 158, 11, 0.12), rgba(15, 15, 15, 0.88));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
+.story-parts-cover {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.story-parts-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.story-parts-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.story-parts-badge {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #ffd6a3;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 999px;
+    padding: 5px 11px;
+}
+
+.story-parts-title {
+    font-size: clamp(1.45rem, 2.4vw, 2.25rem);
+    color: #fff7ed;
+    line-height: 1.25;
+    margin: 0;
+}
+
+.story-parts-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.93rem;
+}
+
+.story-parts-excerpt {
+    margin: 0;
+    color: #f3f4f6;
+    line-height: 1.7;
+}
+
+.story-parts-start-btn {
+    width: fit-content;
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f59e0b;
+    color: #111827;
+    text-decoration: none;
+    font-weight: 800;
+    border-radius: 999px;
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.story-parts-start-btn:hover {
+    background: #fbbf24;
+}
+
+.story-parts-list-section {
+    background: #080808;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.story-parts-list-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.story-parts-list-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #fff;
+}
+
+.story-parts-list-header span {
+    font-size: 0.86rem;
+    color: var(--text-tertiary);
+}
+
+.story-parts-list-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.story-part-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.story-part-list-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(245, 158, 11, 0.55);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.story-part-list-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.story-part-number {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #ffd6a3;
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.story-part-copy {
+    min-width: 0;
+}
+
+.story-part-copy h3 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: #fff;
+}
+
+.story-part-copy p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.story-part-go-icon {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    color: #f59e0b;
+}
+
+@media (max-width: 900px) {
+    .story-parts-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .story-parts-start-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

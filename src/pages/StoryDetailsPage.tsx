@@ -20,7 +20,7 @@ const StoryDetailsPage = () => {
     const [story, setStory] = useState<Story | null>(null);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [showPartsList, setShowPartsList] = useState(false);
+    const [showPartsList, setShowPartsList] = useState(true);
     const [readingProgress, setReadingProgress] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -412,7 +412,6 @@ const StoryDetailsPage = () => {
                                         key={part.id || `${story.id}-part-${idx + 1}`}
                                         onClick={() => {
                                             goToPart(idx + 1);
-                                            setShowPartsList(false);
                                         }}
                                         className={`part-grid-item ${idx + 1 === activePartNumber ? 'active' : ''}`}
                                         title={label}

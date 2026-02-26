@@ -172,7 +172,7 @@ export default function StoriesPage() {
             "itemListElement": sortedStories.slice(0, 10).map((story, index) => ({
                 "@type": "ListItem",
                 "position": index + 1,
-                "url": `${SITE_URL}/stories/${story.slug || story.id}/part/1`,
+                "url": `${SITE_URL}/stories/${story.slug || story.id}`,
                 "name": story.title
             }))
         }

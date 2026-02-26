@@ -14,6 +14,7 @@ import AudiobooksPage from './pages/AudiobooksPage'
 import SkillsPage from './pages/SkillsPage'
 import ContactPage from './pages/ContactPage'
 import StoriesPage from './pages/StoriesPage'
+import StoryPartsPage from './pages/StoryPartsPage'
 import StoryDetailsPage from './pages/StoryDetailsPage'
 import SubmitStoryPage from './pages/SubmitStoryPage'
 import SignupPage from './pages/SignupPage'
@@ -80,7 +81,7 @@ function App() {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/stories/:id/part/:partNumber" element={<StoryDetailsPage />} />
-            <Route path="/stories/:id" element={<StoryDetailsPage />} />
+            <Route path="/stories/:id" element={<StoryPartsPage />} />
             <Route path="/login" element={<SubmitStoryPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />

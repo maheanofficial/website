@@ -23,7 +23,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
             style={{ animationDelay: `${index * 0.1}s` }}
         >
             {/* Typographic Cover Area (The "Black Box") */}
-            <Link to={`/stories/${story.slug || story.id}/part/1`} className="story-card-cover-link">
+            <Link to={`/stories/${story.slug || story.id}`} className="story-card-cover-link">
                 <div className="story-card-poster">
                     {/* GolpoKotha Badge (Top Right of Poster) */}
                     <div className="golpo-corner-badge">
@@ -41,7 +41,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
             {/* Helper Content Area */}
             <div className="story-card-content">
                 {/* Title (Repeated) */}
-                <Link to={`/stories/${story.slug || story.id}/part/1`} className="story-card-title-link">
+                <Link to={`/stories/${story.slug || story.id}`} className="story-card-title-link">
                     <h3 className="card-title-small">{story.title}</h3>
                 </Link>
 
