@@ -9,7 +9,6 @@ import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
-import AudioPlayer from '../components/AudioPlayer';
 import './StoryDetailsPage.css';
 
 const StoryDetailsPage = () => {
@@ -426,17 +425,6 @@ const StoryDetailsPage = () => {
 
                 {/* Top Ad */}
                 <AdComponent slot="story-top-ad" format="horizontal" />
-
-                {/* Audio Player (If available) - For now showing placeholder if no audio prop */}
-                {/* Audio Player (If available) - For now showing placeholder if no audio prop */}
-                <div className="mb-8">
-                    <AudioPlayer
-                        src="" // Empty src triggers TTS mode if text is provided
-                        text={currentPart.content}
-                        title={`${story.title} - ${partLabel}`}
-                        cover={story.cover_image || story.image}
-                    />
-                </div>
 
                 {/* Story Content */}
                 <div className="story-content-container" ref={contentRef}>

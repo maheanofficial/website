@@ -10,7 +10,6 @@ import cleanupTrashHandler from './api/cleanup-trash.js';
 import dbHandler from './api/db.js';
 import sitemapHandler from './api/sitemap.js';
 import storyRedirectHandler from './api/story-redirect.js';
-import ttsHandler from './api/tts.js';
 import uploadImageHandler from './api/upload-image.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,7 +47,6 @@ const API_HANDLERS = new Map([
     ['/api/auth', authHandler],
     ['/api/cleanup-trash', cleanupTrashHandler],
     ['/api/db', dbHandler],
-    ['/api/tts', ttsHandler],
     ['/api/upload-image', uploadImageHandler],
     ['/api/story-redirect', storyRedirectHandler]
 ]);
