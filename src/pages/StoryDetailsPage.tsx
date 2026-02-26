@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen } from 'lucide-react';
 import { getStories, incrementViews, type Story, type StoryPart } from '../utils/storyManager';
@@ -14,7 +14,6 @@ import './StoryDetailsPage.css';
 const StoryDetailsPage = () => {
     // Routes can be /stories/:id/part/:partNumber or /stories/:slug/part/:partNumber
     const navigate = useNavigate();
-    const location = useLocation();
     const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
     const [story, setStory] = useState<Story | null>(null);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
@@ -30,9 +29,20 @@ const StoryDetailsPage = () => {
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
     const parseRequestedPartNumber = (value?: string) => {
+        if (!/^\d+$/.test((value || '').trim())) return null;
         const parsed = Number.parseInt(value || '', 10);
         if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
+    };
+    const getReadableParts = (entry: Story): StoryPart[] => {
+        const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
+        const meaningfulParts = sourceParts.filter((part) => normalizeDisplayText(part?.content).length > 0);
+        if (meaningfulParts.length > 0) return meaningfulParts;
+        return [{
+            id: sourceParts[0]?.id || '1',
+            title: sourceParts[0]?.title || '\u09aa\u09b0\u09cd\u09ac 01',
+            content: entry.content || ''
+        }];
     };
     const buildFallbackPartLabel = (partIndex: number) => `পর্ব ${toBanglaNumber(partIndex + 1)}`;
     const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
@@ -41,10 +51,9 @@ const StoryDetailsPage = () => {
         return buildFallbackPartLabel(partIndex);
     };
     const normalizeStory = (entry: Story): Story => {
-        if (entry.parts && entry.parts.length > 0) return entry;
         return {
             ...entry,
-            parts: [{ id: '1', title: 'পর্ব 01', content: entry.content }]
+            parts: getReadableParts(entry)
         };
     };
     const resetStoryCacheAndReload = () => {
@@ -106,14 +115,17 @@ const StoryDetailsPage = () => {
         if (!baseSegment) return;
 
         const totalParts = Math.max(1, story.parts?.length || 0);
-        const requestedPart = parseRequestedPartNumber(partNumber) ?? 1;
-        const safePart = clamp(requestedPart, 1, totalParts);
+        const requestedPart = parseRequestedPartNumber(partNumber);
+        const safePart = clamp(requestedPart ?? 1, 1, totalParts);
 
         const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${safePart}`;
-        if (decodeURI(location.pathname) !== decodeURI(desiredPath)) {
+        const currentSegment = (id || '').trim();
+        const shouldReplaceSegment = currentSegment !== baseSegment;
+        const shouldReplacePart = requestedPart === null || requestedPart !== safePart;
+        if (shouldReplaceSegment || shouldReplacePart) {
             navigate(desiredPath, { replace: true });
         }
-    }, [story, id, partNumber, location.pathname, navigate]);
+    }, [story, id, partNumber, navigate]);
 
     const goToPart = (nextPartNumber: number) => {
         if (!story) return;

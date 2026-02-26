@@ -19,12 +19,21 @@ const StoryPartsPage = () => {
             String.fromCharCode(Number.parseInt(`09${code}`, 16))
         );
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
+    const getReadableParts = (entry: Story): StoryPart[] => {
+        const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
+        const meaningfulParts = sourceParts.filter((part) => normalizeDisplayText(part?.content).length > 0);
+        if (meaningfulParts.length > 0) return meaningfulParts;
+        return [{
+            id: sourceParts[0]?.id || '1',
+            title: sourceParts[0]?.title || '\u09aa\u09b0\u09cd\u09ac 01',
+            content: entry.content || ''
+        }];
+    };
 
     const normalizeStory = (entry: Story): Story => {
-        if (entry.parts && entry.parts.length > 0) return entry;
         return {
             ...entry,
-            parts: [{ id: '1', title: 'পর্ব 01', content: entry.content }]
+            parts: getReadableParts(entry)
         };
     };
 
