@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen } from 'lucide-react';
-import { getStories, incrementViews, type Story } from '../utils/storyManager';
+import { getStories, incrementViews, type Story, type StoryPart } from '../utils/storyManager';
 import { getAuthorByName, type Author } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
@@ -30,11 +30,17 @@ const StoryDetailsPage = () => {
         if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
     };
+    const buildFallbackPartLabel = (partIndex: number) => `\u09aa\u09b0\u09cd\u09ac ${toBanglaNumber(partIndex + 1)}`;
+    const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
+        const trimmedTitle = part?.title?.trim();
+        if (trimmedTitle) return trimmedTitle;
+        return buildFallbackPartLabel(partIndex);
+    };
     const normalizeStory = (entry: Story): Story => {
         if (entry.parts && entry.parts.length > 0) return entry;
         return {
             ...entry,
-            parts: [{ id: '1', title: 'পর্ব ১', content: entry.content }]
+            parts: [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: entry.content }]
         };
     };
     const resetStoryCacheAndReload = () => {
@@ -232,9 +238,7 @@ const StoryDetailsPage = () => {
         return { __html: formattedText };
     };
 
-    const partLabel = currentPart.title?.trim()
-        ? currentPart.title.trim()
-        : `পর্ব ${toBanglaNumber(activePartNumber)}`;
+    const partLabel = getPartLabel(currentPart, activePartNumber - 1);
     const seoTitle = `${story.title} - ${partLabel}`;
 
     // SEO Schema
@@ -385,7 +389,7 @@ const StoryDetailsPage = () => {
                 <div className="parts-navigation-box">
                     <div className="parts-header">
                         <h2 className="current-part-title">
-                            {currentPart.title || `পর্ব ${toBanglaNumber(activePartNumber)}`}
+                            {partLabel}
                             <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)})</span>
                         </h2>
 
@@ -401,18 +405,22 @@ const StoryDetailsPage = () => {
 
                     {showPartsList && (
                         <div className="parts-dropdown-grid">
-                            {parts.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => {
-                                        goToPart(idx + 1);
-                                        setShowPartsList(false);
-                                    }}
-                                    className={`part-grid-item ${idx + 1 === activePartNumber ? 'active' : ''}`}
-                                >
-                                    {idx + 1}
-                                </button>
-                            ))}
+                            {parts.map((part, idx) => {
+                                const label = getPartLabel(part, idx);
+                                return (
+                                    <button
+                                        key={part.id || `${story.id}-part-${idx + 1}`}
+                                        onClick={() => {
+                                            goToPart(idx + 1);
+                                            setShowPartsList(false);
+                                        }}
+                                        className={`part-grid-item ${idx + 1 === activePartNumber ? 'active' : ''}`}
+                                        title={label}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -426,7 +434,7 @@ const StoryDetailsPage = () => {
                     <AudioPlayer
                         src="" // Empty src triggers TTS mode if text is provided
                         text={currentPart.content}
-                        title={`${story.title} - পর্ব ${toBanglaNumber(activePartNumber)}`}
+                        title={`${story.title} - ${partLabel}`}
                         cover={story.cover_image || story.image}
                     />
                 </div>

@@ -316,7 +316,7 @@ const mapRowToStory = (row: StoryRow): Story => {
     const rowTags = toStringArray(row.tags);
     const rowParts = toStoryParts(row.parts);
     const fallbackParts = content
-        ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
+        ? [{ id: `${row.id}-part-1`, title: '\u09aa\u09b0\u09cd\u09ac 01', content }]
         : [];
     const legacyMeta = parsedExcerpt.meta;
     const rawLegacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];

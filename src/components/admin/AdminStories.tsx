@@ -170,7 +170,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewCategoryName('');
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || story.image || '');
-        setParts(story.parts || [{ id: '1', title: buildPartTitle(1), content: '' }]);
+        setParts(story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), content: '' }]);
         setStatus(story.status || defaultStatus);
 
         const matchedAuthor = authors.find(author => author.id === story.authorId)
