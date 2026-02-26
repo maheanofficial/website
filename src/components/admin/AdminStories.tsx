@@ -24,6 +24,41 @@ const dedupeAndSort = (values: string[]) => Array.from(
     new Set(values.map(normalizeText).filter(Boolean))
 ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
+const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
+    '\u09e6': '0',
+    '\u09e7': '1',
+    '\u09e8': '2',
+    '\u09e9': '3',
+    '\u09ea': '4',
+    '\u09eb': '5',
+    '\u09ec': '6',
+    '\u09ed': '7',
+    '\u09ee': '8',
+    '\u09ef': '9'
+};
+
+const buildPartTitle = (partNumber: number) => {
+    const padded = String(partNumber).padStart(2, '0');
+    return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+};
+
+const extractPartNumber = (title: string) => {
+    const normalizedDigits = title.replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+    const matches = normalizedDigits.match(/\d+/g);
+    if (!matches?.length) return null;
+    const parsed = Number.parseInt(matches[matches.length - 1], 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return null;
+    return parsed;
+};
+
+const getNextPartNumber = (existingParts: StoryPart[]) => {
+    const highestFromTitles = existingParts.reduce((highest, part) => {
+        const detectedNumber = extractPartNumber(part.title || '');
+        return detectedNumber ? Math.max(highest, detectedNumber) : highest;
+    }, 0);
+    return Math.max(existingParts.length, highestFromTitles) + 1;
+};
+
 const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => {
     const [stories, setStories] = useState<Story[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'create' | 'edit'>('list');
@@ -59,7 +94,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [newAuthorBio, setNewAuthorBio] = useState('');
     const [newAuthorAvatar, setNewAuthorAvatar] = useState('');
     const [coverImage, setCoverImage] = useState('');
-    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+    const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: buildPartTitle(1), content: '' }]);
     const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
     const loadData = useCallback(async () => {
@@ -100,7 +135,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewAuthorBio('');
         setNewAuthorAvatar('');
         setCoverImage('');
-        setParts([{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+        setParts([{ id: '1', title: buildPartTitle(1), content: '' }]);
     }, [authors, defaultStatus]);
 
     // Update viewMode if initialViewMode changes (e.g. navigation)
@@ -135,7 +170,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewCategoryName('');
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || story.image || '');
-        setParts(story.parts || [{ id: '1', title: '\u09aa\u09b0\u09cd\u09ac 01', content: '' }]);
+        setParts(story.parts || [{ id: '1', title: buildPartTitle(1), content: '' }]);
         setStatus(story.status || defaultStatus);
 
         const matchedAuthor = authors.find(author => author.id === story.authorId)
@@ -439,15 +474,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
     const addPart = () => {
         setParts(prev => {
-            const nextIndex = prev.length + 1;
-            const padded = String(nextIndex).padStart(2, '0');
-            return [...prev, { id: `${Date.now()}-${nextIndex}`, title: `\u09aa\u09b0\u09cd\u09ac ${padded}`, content: '' }];
+            const nextPartNumber = getNextPartNumber(prev);
+            return [...prev, { id: `${Date.now()}-${nextPartNumber}`, title: buildPartTitle(nextPartNumber), content: '' }];
         });
     };
 
     const buildDefaultPartTitle = (index: number) => {
-        const padded = String(index + 1).padStart(2, '0');
-        return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+        return buildPartTitle(index + 1);
     };
 
     const updatePart = (
