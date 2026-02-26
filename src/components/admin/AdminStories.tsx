@@ -984,7 +984,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 <h3 className="text-lg font-semibold text-white">{'\u09aa\u09b0\u09cd\u09ac\u09b8\u09ae\u09c2\u09b9'}</h3>
                             </div>
 
-                            {parts.map((part, index) => (
+                            {parts.map((part, index) => {
+                                const partEditorLabel = part.title?.trim() || buildDefaultPartTitle(index);
+                                return (
                                 <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
                                         <div className="part-title-wrap" title={'\u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u09a8\u09be\u09ae \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8 \u0995\u09b0\u09a4\u09c7 \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8'}>
@@ -1025,10 +1027,10 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                         onChange={e => updatePart(part.id, index, 'content', e.target.value)}
                                         rows={6}
                                         className="form-textarea-flat resize-none"
-                                        placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')} \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8....`}
+                                        placeholder={`${partEditorLabel} \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8....`}
                                     />
                                 </div>
-                            ))}
+                            )})}
                             <div className="flex justify-end mt-3">
                                 <button type="button" className="btn-secondary" onClick={addPart}>
                                     {'\u09a8\u09a4\u09c1\u09a8 \u09aa\u09b0\u09cd\u09ac \u09af\u09cb\u0997 \u0995\u09b0\u09c1\u09a8'}
