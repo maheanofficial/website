@@ -484,11 +484,15 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const buildDefaultPartTitle = (index: number) => {
         return buildPartTitle(index + 1);
     };
+    const buildPartSlugFromTitle = (rawTitle: string, index: number) => {
+        const normalizedTitle = rawTitle?.trim() ? rawTitle.trim() : buildDefaultPartTitle(index);
+        return normalizePartSlug(normalizedTitle) || String(index + 1);
+    };
 
     const updatePart = (
         id: string | undefined,
         index: number,
-        field: 'title' | 'slug' | 'content',
+        field: 'title' | 'content',
         value: string
     ) => {
         setParts((prev) =>
@@ -550,23 +554,21 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const normalizedCategory = normalizeText(category);
         const normalizedTags = dedupeAndSort(tags);
         const storyId = editingId || Date.now().toString();
-        const customPartSlugs = parts
-            .map((part) => normalizePartSlug(part.slug || ''))
-            .filter(Boolean);
-        const duplicatePartSlug = customPartSlugs.find((slugValue, index) =>
-            customPartSlugs.indexOf(slugValue) !== index
-        );
-        if (duplicatePartSlug) {
-            alert(`Duplicate part URL found: "${duplicatePartSlug}". Please use unique URL per part.`);
-            return;
-        }
-        const normalizedParts = parts.map((part, index) => ({
-            ...part,
-            id: part.id || `${Date.now()}-${index + 1}`,
-            title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
-            slug: normalizePartSlug(part.slug || '') || undefined,
-            content: part.content ?? ''
-        }));
+        const partSlugUseCount = new Map<string, number>();
+        const normalizedParts = parts.map((part, index) => {
+            const baseSlug = buildPartSlugFromTitle(part.title || '', index);
+            const nextUseCount = (partSlugUseCount.get(baseSlug) || 0) + 1;
+            partSlugUseCount.set(baseSlug, nextUseCount);
+            const uniqueSlug = nextUseCount === 1 ? baseSlug : `${baseSlug}-${nextUseCount}`;
+
+            return {
+                ...part,
+                id: part.id || `${Date.now()}-${index + 1}`,
+                title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
+                slug: uniqueSlug,
+                content: part.content ?? ''
+            };
+        });
         const baseSlug = slug.trim() ? slug : title;
         let normalizedSlug = slugify(baseSlug);
         if (!normalizedSlug) {
@@ -1002,6 +1004,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
                             {parts.map((part, index) => {
                                 const partEditorLabel = part.title?.trim() || buildDefaultPartTitle(index);
+                                const partUrlPreview = buildPartSlugFromTitle(part.title || '', index);
                                 return (
                                 <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
@@ -1016,14 +1019,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                                     placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
                                                 />
                                             </div>
-                                            <div className="part-url-wrap" title="Custom part URL segment (optional)">
+                                            <div className="part-url-wrap" title="Part URL auto sync with title">
                                                 <span className="part-url-prefix">/part/</span>
                                                 <input
                                                     type="text"
-                                                    value={part.slug || ''}
-                                                    onChange={e => updatePart(part.id, index, 'slug', e.target.value)}
+                                                    value={partUrlPreview}
+                                                    readOnly
                                                     className="part-url-input"
-                                                    placeholder={`${index + 1}`}
                                                 />
                                             </div>
                                         </div>

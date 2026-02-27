@@ -51,8 +51,9 @@ const StoryPartsPage = () => {
         return `${compact.slice(0, 140)}...`;
     };
     const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const normalizedTitleSlug = slugify(normalizeDisplayText(part?.title));
         const normalizedCustomSlug = slugify(normalizeDisplayText(part?.slug));
-        return normalizedCustomSlug || String(partIndex + 1);
+        return normalizedTitleSlug || normalizedCustomSlug || String(partIndex + 1);
     };
 
     useEffect(() => {

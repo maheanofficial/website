@@ -528,8 +528,9 @@ const normalizeStoryParts = (story) => {
 };
 
 const toStoryPartSegment = (part, index) => {
+  const fromTitle = slugify(typeof part?.title === 'string' ? part.title : '');
   const custom = slugify(typeof part?.slug === 'string' ? part.slug : '');
-  return custom || String(index + 1);
+  return fromTitle || custom || String(index + 1);
 };
 
 const fetchStoryRows = async () => {

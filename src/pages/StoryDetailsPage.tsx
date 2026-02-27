@@ -37,8 +37,9 @@ const StoryDetailsPage = () => {
     };
     const normalizePartKey = (value?: string) => slugify((value || '').trim());
     const getPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const titleBased = normalizePartKey(part?.title);
         const custom = normalizePartKey(part?.slug);
-        return custom || String(partIndex + 1);
+        return titleBased || custom || String(partIndex + 1);
     };
     const resolvePartIndexFromParam = (parts: StoryPart[], value?: string) => {
         if (!parts.length) return 0;
