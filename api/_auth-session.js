@@ -32,11 +32,20 @@ const secureCookiesByDefault = String(pickFirstEnv('AUTH_SECURE_COOKIES', 'NODE_
     || String(pickFirstEnv('AUTH_SECURE_COOKIES')).trim().toLowerCase() === 'true';
 
 const configuredSecret = pickFirstEnv('AUTH_SESSION_SECRET');
-const activeSecret = configuredSecret || randomBytes(48).toString('hex');
+const sharedFallbackSecret = pickFirstEnv(
+    'APP_SECRET',
+    'SESSION_SECRET',
+    'JWT_SECRET',
+    'GOOGLE_OAUTH_CLIENT_SECRET',
+    'MYSQL_PASSWORD',
+    'DB_PASSWORD'
+);
+const hardcodedFallbackSecret = 'mahean-stable-session-secret-change-me';
+const activeSecret = configuredSecret || sharedFallbackSecret || hardcodedFallbackSecret;
 if (!configuredSecret) {
     console.warn(
-        '[security] AUTH_SESSION_SECRET is not set. Using an ephemeral in-memory secret; '
-        + 'all sessions and reset tokens will be invalidated on restart.'
+        '[security] AUTH_SESSION_SECRET is not set. Falling back to a shared static secret. '
+        + 'Set AUTH_SESSION_SECRET in environment for stronger session security.'
     );
 }
 
