@@ -541,9 +541,12 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             return;
         }
         const existingStory = editingId ? stories.find(story => story.id === editingId) : null;
+        const existingStatus = existingStory?.status || 'published';
         const nextStatus: Story['status'] = isAdmin
-            ? (status || existingStory?.status || 'published')
-            : 'pending';
+            ? (status || existingStatus)
+            : existingStatus === 'published'
+                ? 'published'
+                : 'pending';
         const normalizedCategory = normalizeText(category);
         const normalizedTags = dedupeAndSort(tags);
         const storyId = editingId || Date.now().toString();
