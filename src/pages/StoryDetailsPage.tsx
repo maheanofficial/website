@@ -78,6 +78,14 @@ const StoryDetailsPage = () => {
     const normalizeTagToken = (value?: string) => normalizeMatchToken((value || '').replace(/^#/, ''));
     const toUrlSegment = (value: string | number | undefined) =>
         String(value ?? '').trim().replace(/^\/+|\/+$/g, '');
+    const toAsciiSlug = (value: string | number | undefined) =>
+        String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
     const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
     const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
         const fallback = buildFallbackPartLabel(partIndex);
@@ -92,13 +100,28 @@ const StoryDetailsPage = () => {
         const custom = normalizePartKey(part?.slug);
         return custom || titleBased || String(partIndex + 1);
     };
+    const getPublicStorySegment = (entry: Story | null | undefined, fallback?: string) => {
+        const asciiSlug = toAsciiSlug(entry?.slug || '');
+        const fallbackId = toUrlSegment(entry?.id || fallback || '');
+        return asciiSlug || fallbackId;
+    };
+    const getPublicPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const custom = toAsciiSlug(part?.slug);
+        const byTitle = toAsciiSlug(normalizePartTitleForDisplay(part?.title, partIndex));
+        return custom || byTitle || String(partIndex + 1);
+    };
     const resolvePartIndexFromParam = (parts: StoryPart[], value?: string) => {
         if (!parts.length) return 0;
 
         const rawValue = (value || '').trim();
         const normalizedKey = normalizePartKey(rawValue);
+        const asciiKey = toAsciiSlug(rawValue);
         if (normalizedKey) {
             const matchedIndex = parts.findIndex((part, index) => getPartSegment(part, index) === normalizedKey);
+            if (matchedIndex >= 0) return matchedIndex;
+        }
+        if (asciiKey) {
+            const matchedIndex = parts.findIndex((part, index) => getPublicPartSegment(part, index) === asciiKey);
             if (matchedIndex >= 0) return matchedIndex;
         }
 
@@ -137,9 +160,9 @@ const StoryDetailsPage = () => {
     };
     const toStoryReaderPath = (entry: Story) => {
         const normalizedEntry = normalizeStory(entry);
-        const storySegment = toUrlSegment(normalizedEntry.slug || String(normalizedEntry.id || ''));
+        const storySegment = getPublicStorySegment(normalizedEntry);
         if (!storySegment) return '/stories';
-        const firstPartSegment = toUrlSegment(getPartSegment(normalizedEntry.parts?.[0], 0));
+        const firstPartSegment = getPublicPartSegment(normalizedEntry.parts?.[0], 0);
         return `/stories/${storySegment}/${firstPartSegment}`;
     };
     const toStoryPreview = (entry: Story) => {
@@ -245,19 +268,18 @@ const StoryDetailsPage = () => {
 
     useEffect(() => {
         if (!story) return;
-        const storyId = String(story.id || '').trim();
-        const storySlug = (story.slug || '').trim();
-        const baseSegment = storySlug || storyId || id;
+        const baseSegment = getPublicStorySegment(story, id);
         if (!baseSegment) return;
 
         const parts = story.parts || [];
         const safePartIndex = resolvePartIndexFromParam(parts, partNumber);
-        const desiredPartSegment = toUrlSegment(getPartSegment(parts[safePartIndex], safePartIndex));
+        const desiredPartSegment = getPublicPartSegment(parts[safePartIndex], safePartIndex);
         const desiredPath = `/stories/${toUrlSegment(baseSegment)}/${desiredPartSegment}`;
-        const currentSegment = (id || '').trim();
+        const currentSegment = toUrlSegment(id || '');
         const shouldReplaceSegment = currentSegment !== baseSegment;
-        const requestedPartSegment = normalizePartKey(partNumber);
-        const shouldReplacePart = !requestedPartSegment || requestedPartSegment !== desiredPartSegment;
+        const requestedPartSegment = toUrlSegment(partNumber || '');
+        const requestedPartAscii = toAsciiSlug(requestedPartSegment);
+        const shouldReplacePart = !requestedPartSegment || requestedPartAscii !== desiredPartSegment;
         if (shouldReplaceSegment || shouldReplacePart) {
             navigate(desiredPath, { replace: true });
         }
@@ -268,8 +290,8 @@ const StoryDetailsPage = () => {
         const parts = story.parts || [];
         const totalParts = Math.max(1, parts.length || 0);
         const safePartIndex = clamp(nextPartNumber, 1, totalParts) - 1;
-        const partSegment = toUrlSegment(getPartSegment(parts[safePartIndex], safePartIndex));
-        const baseSegment = (story.slug || String(story.id || '')).trim() || id;
+        const partSegment = getPublicPartSegment(parts[safePartIndex], safePartIndex);
+        const baseSegment = getPublicStorySegment(story, id);
         if (!baseSegment) return;
         navigate(`/stories/${toUrlSegment(baseSegment)}/${partSegment}`);
     };
@@ -365,8 +387,8 @@ const StoryDetailsPage = () => {
     const nextPartNumber = activePartNumber < totalParts ? activePartNumber + 1 : null;
     const prevPartNumber = activePartNumber > 1 ? activePartNumber - 1 : null;
     // Author Details
-    const baseSegment = toUrlSegment(story.slug || story.id);
-    const activePartSegment = toUrlSegment(getPartSegment(currentPart, activePartIndex));
+    const baseSegment = getPublicStorySegment(story, id);
+    const activePartSegment = getPublicPartSegment(currentPart, activePartIndex);
     const storyPath = `/stories/${baseSegment}/${activePartSegment}`;
     const canonicalUrl = `${SITE_URL}${storyPath}`;
     const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
