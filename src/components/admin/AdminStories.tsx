@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Search, Plus, ArrowUpDown, Edit, Trash, Eye, Sparkles, ChevronDown, X, Globe, Lock } from 'lucide-react';
 import './AdminStories.css';
@@ -92,6 +92,59 @@ const getNextPartNumber = (existingParts: StoryPart[]) => {
 };
 
 const normalizePartSlug = (value: string) => slugify(value || '');
+const STORY_EDITOR_DRAFT_PREFIX = 'mahean_story_editor_draft_v1';
+
+type StoryEditorDraft = {
+    title?: string;
+    slug?: string;
+    isSlugManuallyEdited?: boolean;
+    category?: string;
+    tags?: string[];
+    description?: string;
+    status?: Story['status'];
+    authorMode?: 'existing' | 'new';
+    selectedAuthorId?: string;
+    newAuthorName?: string;
+    newAuthorUsername?: string;
+    newAuthorBio?: string;
+    newAuthorAvatar?: string;
+    coverImage?: string;
+    parts?: StoryPart[];
+    updatedAt?: string;
+};
+
+const buildStoryEditorDraftKey = (mode: 'create' | 'edit', storyId?: string) => {
+    const suffix = mode === 'edit' ? (storyId || '') : 'new';
+    return `${STORY_EDITOR_DRAFT_PREFIX}:${mode}:${suffix}`;
+};
+
+const readStoryEditorDraft = (draftKey: string): StoryEditorDraft | null => {
+    try {
+        const raw = localStorage.getItem(draftKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as StoryEditorDraft;
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+};
+
+const writeStoryEditorDraft = (draftKey: string, draft: StoryEditorDraft) => {
+    try {
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+    } catch {
+        // Ignore local draft write failures.
+    }
+};
+
+const clearStoryEditorDraft = (draftKey: string) => {
+    try {
+        localStorage.removeItem(draftKey);
+    } catch {
+        // Ignore local draft removal failures.
+    }
+};
 
 const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => {
     const [stories, setStories] = useState<Story[]>([]);
@@ -130,8 +183,101 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [coverImage, setCoverImage] = useState('');
     const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
     const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+    const hasRestoredCreateDraftRef = useRef(false);
+    const hasRestoredEditDraftRef = useRef(false);
     const isAuthExpiredMessage = (message?: string) =>
         (message || '').toLowerCase().includes('authentication is required');
+
+    const applyDraftToEditor = useCallback((draft: StoryEditorDraft) => {
+        setTitle(typeof draft.title === 'string' ? draft.title : '');
+        setSlug(typeof draft.slug === 'string' ? draft.slug : '');
+        setIsSlugManuallyEdited(Boolean(draft.isSlugManuallyEdited));
+        setCategory(typeof draft.category === 'string' ? draft.category : '');
+        setTags(Array.isArray(draft.tags) ? draft.tags.filter((tag) => typeof tag === 'string') : []);
+        setDescription(typeof draft.description === 'string' ? draft.description : '');
+        if (draft.status) {
+            setStatus(draft.status);
+        }
+        setAuthorMode(draft.authorMode === 'new' ? 'new' : 'existing');
+        setSelectedAuthorId(typeof draft.selectedAuthorId === 'string' ? draft.selectedAuthorId : '');
+        setNewAuthorName(typeof draft.newAuthorName === 'string' ? draft.newAuthorName : '');
+        setNewAuthorUsername(typeof draft.newAuthorUsername === 'string' ? draft.newAuthorUsername : '');
+        setNewAuthorBio(typeof draft.newAuthorBio === 'string' ? draft.newAuthorBio : '');
+        setNewAuthorAvatar(typeof draft.newAuthorAvatar === 'string' ? draft.newAuthorAvatar : '');
+        setCoverImage(typeof draft.coverImage === 'string' ? draft.coverImage : '');
+
+        const normalizedDraftParts = Array.isArray(draft.parts)
+            ? draft.parts.map((part, index) => {
+                if (!part || typeof part !== 'object') return null;
+                const titleValue = typeof part.title === 'string' ? part.title : '';
+                const contentValue = typeof part.content === 'string' ? part.content : '';
+                const slugValue = typeof part.slug === 'string' ? part.slug : '';
+                const hasMeaningfulValue = Boolean(titleValue.trim() || contentValue.trim() || slugValue.trim());
+                if (!hasMeaningfulValue) return null;
+                return {
+                    id: typeof part.id === 'string' ? part.id : `${Date.now()}-${index + 1}`,
+                    title: normalizeLegacyPartTitle(titleValue, index),
+                    slug: slugValue,
+                    content: contentValue
+                };
+            }).filter(Boolean) as StoryPart[]
+            : [];
+        setParts(normalizedDraftParts.length ? normalizedDraftParts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
+    }, []);
+
+    const getActiveDraftKey = useCallback(() => {
+        if (viewMode === 'edit') {
+            const targetStoryId = (editingId || routeStoryId || '').trim();
+            if (!targetStoryId) return '';
+            return buildStoryEditorDraftKey('edit', targetStoryId);
+        }
+        if (viewMode === 'create') {
+            return buildStoryEditorDraftKey('create');
+        }
+        return '';
+    }, [viewMode, editingId, routeStoryId]);
+
+    const persistActiveDraft = useCallback(() => {
+        const draftKey = getActiveDraftKey();
+        if (!draftKey) return false;
+        const payload: StoryEditorDraft = {
+            title,
+            slug,
+            isSlugManuallyEdited,
+            category,
+            tags,
+            description,
+            status,
+            authorMode,
+            selectedAuthorId,
+            newAuthorName,
+            newAuthorUsername,
+            newAuthorBio,
+            newAuthorAvatar,
+            coverImage,
+            parts,
+            updatedAt: new Date().toISOString()
+        };
+        writeStoryEditorDraft(draftKey, payload);
+        return true;
+    }, [
+        getActiveDraftKey,
+        title,
+        slug,
+        isSlugManuallyEdited,
+        category,
+        tags,
+        description,
+        status,
+        authorMode,
+        selectedAuthorId,
+        newAuthorName,
+        newAuthorUsername,
+        newAuthorBio,
+        newAuthorAvatar,
+        coverImage,
+        parts
+    ]);
 
     const loadData = useCallback(async () => {
         const [allStories, categoriesData, authorData] = await Promise.all([
@@ -180,9 +326,14 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             setViewMode(initialViewMode);
             if (initialViewMode === 'create') {
                 resetForm();
+                const createDraft = readStoryEditorDraft(buildStoryEditorDraftKey('create'));
+                if (createDraft) {
+                    applyDraftToEditor(createDraft);
+                }
+                hasRestoredCreateDraftRef.current = true;
             }
         }
-    }, [initialViewMode, resetForm]);
+    }, [initialViewMode, resetForm, applyDraftToEditor]);
 
     useEffect(() => {
         void loadData();
@@ -228,7 +379,22 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             setNewAuthorBio('');
             setNewAuthorAvatar('');
         }
-    }, [initialViewMode, routeStoryId, stories, authors, defaultStatus]);
+
+        const editDraft = readStoryEditorDraft(buildStoryEditorDraftKey('edit', story.id));
+        if (editDraft) {
+            applyDraftToEditor(editDraft);
+        }
+        hasRestoredEditDraftRef.current = true;
+    }, [initialViewMode, routeStoryId, stories, authors, defaultStatus, applyDraftToEditor]);
+
+    useEffect(() => {
+        if (viewMode === 'create' && hasRestoredCreateDraftRef.current) {
+            hasRestoredCreateDraftRef.current = false;
+        }
+        if (viewMode === 'edit' && hasRestoredEditDraftRef.current) {
+            hasRestoredEditDraftRef.current = false;
+        }
+    }, [viewMode]);
 
     useEffect(() => {
         if (viewMode !== 'create' || editingId) return;
@@ -241,6 +407,19 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             setSelectedAuthorId(authors[0]?.id || '');
         }
     }, [authors, viewMode, editingId, selectedAuthorId]);
+
+    useEffect(() => {
+        if (viewMode !== 'create' && viewMode !== 'edit') return;
+        if (viewMode === 'edit' && !editingId) return;
+        const timeout = window.setTimeout(() => {
+            persistActiveDraft();
+        }, 450);
+        return () => window.clearTimeout(timeout);
+    }, [
+        viewMode,
+        editingId,
+        persistActiveDraft
+    ]);
 
     // Auto-generate slug from title if empty
     useEffect(() => {
@@ -675,6 +854,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         };
         const saveResult = await saveStory(newStory);
         if (!saveResult.success || !saveResult.synced) {
+            persistActiveDraft();
             if (isAuthExpiredMessage(saveResult.message)) {
                 alert('Your login session expired. Please log in again, then retry update.');
                 navigate('/login');
@@ -683,6 +863,10 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             alert(saveResult.message || serverSyncErrorMessage);
             return;
         }
+        const successDraftKey = viewMode === 'edit'
+            ? buildStoryEditorDraftKey('edit', storyId)
+            : buildStoryEditorDraftKey('create');
+        clearStoryEditorDraft(successDraftKey);
         await loadData();
         navigate('/admin/dashboard/golpo');
     };
@@ -1122,6 +1306,16 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         </div>
 
                         <div className="form-actions text-center justify-center pt-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const saved = persistActiveDraft();
+                                    alert(saved ? 'Draft saved locally.' : 'No draft target found yet.');
+                                }}
+                                className="btn-secondary"
+                            >
+                                Save Draft
+                            </button>
                             <button type="button" onClick={() => navigate('/admin/dashboard/golpo')} className="btn-cancel">
                                 Cancel
                             </button>

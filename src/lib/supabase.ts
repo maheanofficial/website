@@ -186,33 +186,93 @@ const mapServerUserToSupabaseUser = (user: unknown): SupabaseUser => {
     };
 };
 
+const extractApiErrorMessage = (parsed: JsonObject, statusCode: number) => {
+    const parsedError = parsed.error;
+    if (typeof parsedError === 'string') {
+        return parsedError;
+    }
+    if (isRecord(parsedError) && typeof parsedError.message === 'string') {
+        return parsedError.message;
+    }
+    return `Request failed with ${statusCode}`;
+};
+
+const shouldRefreshSessionBeforeRetry = (url: string, statusCode: number, message: string) => {
+    if (url === '/api/auth') return false;
+    if (statusCode !== 401) return false;
+    const normalized = (message || '').toLowerCase();
+    return normalized.includes('authentication is required') || normalized.includes('unauthorized');
+};
+
+const requestSessionRefresh = async () => {
+    const headers = buildServerAuthHeaders({
+        'Content-Type': 'application/json'
+    });
+    const response = await fetch('/api/auth', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+        body: JSON.stringify({ action: 'session' })
+    });
+    const parsedResponse: unknown = await response.json().catch(() => ({}));
+    const parsed = isRecord(parsedResponse) ? parsedResponse : {};
+    if (!response.ok || !parsed?.user) {
+        writeSession(null);
+        return false;
+    }
+    const user = mapServerUserToSupabaseUser(parsed.user);
+    const session = buildSession(user, {
+        sessionToken: parsed?.sessionToken,
+        sessionExpiresAt: parsed?.sessionExpiresAt
+    });
+    writeSession(session);
+    return true;
+};
+
 const requestJson = async (url: string, payload: unknown): Promise<{ data: JsonObject | null; error: SupabaseErrorLike | null }> => {
     if (typeof window === 'undefined') {
         return { data: null, error: toError('Browser API not available.', 'NO_BROWSER') };
     }
 
     try {
-        const headers = buildServerAuthHeaders({
-            'Content-Type': 'application/json'
-        });
+        const sendOnce = async () => {
+            const headers = buildServerAuthHeaders({
+                'Content-Type': 'application/json'
+            });
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers,
+                body: JSON.stringify(payload)
+            });
+            const parsedResponse: unknown = await response.json().catch(() => ({}));
+            const parsed = isRecord(parsedResponse) ? parsedResponse : {};
+            return { response, parsed };
+        };
 
-        const response = await fetch(url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers,
-            body: JSON.stringify(payload)
-        });
-        const parsedResponse: unknown = await response.json().catch(() => ({}));
-        const parsed = isRecord(parsedResponse) ? parsedResponse : {};
+        let { response, parsed } = await sendOnce();
+
         if (!response.ok) {
-            const parsedError = parsed.error;
-            const message = typeof parsedError === 'string'
-                ? parsedError
-                : isRecord(parsedError) && typeof parsedError.message === 'string'
-                    ? parsedError.message
-                    : `Request failed with ${response.status}`;
+            const message = extractApiErrorMessage(parsed, response.status);
+            if (shouldRefreshSessionBeforeRetry(url, response.status, message)) {
+                try {
+                    const refreshed = await requestSessionRefresh();
+                    if (refreshed) {
+                        const retried = await sendOnce();
+                        response = retried.response;
+                        parsed = retried.parsed;
+                    }
+                } catch {
+                    // Continue with original/retied error response path.
+                }
+            }
+        }
+
+        if (!response.ok) {
+            const message = extractApiErrorMessage(parsed, response.status);
             return { data: null, error: toError(message, 'HTTP_ERROR') };
         }
+
         return { data: parsed, error: null };
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Network request failed.';
