@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, ChevronRight, Play } from 'lucide-react';
 import { getStories, type Story, type StoryPart } from '../utils/storyManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
@@ -21,14 +22,6 @@ const StoryPartsPage = () => {
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
     const toUrlSegment = (value: string | number | undefined) =>
         String(value ?? '').trim().replace(/^\/+|\/+$/g, '');
-    const toAsciiSlug = (value: string | number | undefined) =>
-        String(value ?? '')
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9-]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-+/, '')
-            .replace(/-+$/, '');
     const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
         '\u09e6': '0',
         '\u09e7': '1',
@@ -102,15 +95,10 @@ const StoryPartsPage = () => {
         if (compact.length <= 140) return compact;
         return `${compact.slice(0, 140)}...`;
     };
-    const getPublicStorySegment = (entry: Story | null | undefined, fallback?: string) => {
-        const asciiSlug = toAsciiSlug(entry?.slug || '');
-        const fallbackId = toUrlSegment(entry?.id || fallback || '');
-        return asciiSlug || fallbackId;
-    };
-    const getPublicPartSegment = (part: StoryPart | undefined, partIndex: number) => {
-        const custom = toAsciiSlug(part?.slug);
-        const byTitle = toAsciiSlug(normalizePartTitleForDisplay(part?.title, partIndex));
-        return custom || byTitle || String(partIndex + 1);
+    const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
+        const normalizedTitleSlug = slugify(normalizePartTitleForDisplay(part?.title, partIndex));
+        const normalizedCustomSlug = slugify(normalizeDisplayText(part?.slug));
+        return normalizedCustomSlug || normalizedTitleSlug || String(partIndex + 1);
     };
 
     useEffect(() => {
@@ -140,7 +128,7 @@ const StoryPartsPage = () => {
 
     useEffect(() => {
         if (!story) return;
-        const canonicalSegment = getPublicStorySegment(story, id);
+        const canonicalSegment = toUrlSegment(story.slug || String(story.id || ''));
         if (!canonicalSegment || !id) return;
         if (id === canonicalSegment) return;
         navigate(`/stories/${toUrlSegment(canonicalSegment)}`, { replace: true });
@@ -173,7 +161,7 @@ const StoryPartsPage = () => {
 
     const parts = story.parts || [];
     const totalParts = Math.max(1, parts.length);
-    const baseSegment = getPublicStorySegment(story, id);
+    const baseSegment = toUrlSegment(story.slug || story.id);
     const canonicalUrl = `${SITE_URL}/stories/${baseSegment}`;
     const coverImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const listSchema = {
@@ -184,7 +172,7 @@ const StoryPartsPage = () => {
             '@type': 'ListItem',
             position: index + 1,
             name: getPartLabel(part, index),
-            url: `${SITE_URL}/stories/${baseSegment}/${getPublicPartSegment(part, index)}`
+            url: `${SITE_URL}/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`
         }))
     };
 
@@ -223,7 +211,7 @@ const StoryPartsPage = () => {
                             {displayStoryAuthor} | {formatLongDate(story.date)}
                         </p>
                         <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
-                        <Link to={`/stories/${baseSegment}/${getPublicPartSegment(parts[0], 0)}`} className="story-parts-start-btn">
+                        <Link to={`/stories/${baseSegment}/${toUrlSegment(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
                             <Play size={16} />
                             <span>Start from Part 1</span>
                         </Link>
@@ -242,7 +230,7 @@ const StoryPartsPage = () => {
                             return (
                                 <Link
                                     key={part.id || `${story.id}-part-picker-${index + 1}`}
-                                    to={`/stories/${baseSegment}/${getPublicPartSegment(part, index)}`}
+                                    to={`/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`}
                                     className="story-part-list-item"
                                 >
                                     <div className="story-part-list-left">
