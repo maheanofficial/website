@@ -12,6 +12,9 @@ export interface Author {
 
 const STORAGE_KEY = 'mahean_authors';
 const AUTHOR_TABLE = 'authors';
+const TRASH_STORAGE_KEY = 'mahean_trash';
+const TRASH_TABLE = 'trash';
+const DELETED_AUTHOR_CACHE_TTL_MS = 15_000;
 
 type AuthorRow = {
     id: string;
@@ -25,6 +28,10 @@ type AuthorRow = {
 type SupabaseErrorLike = {
     code?: string;
     message?: string;
+};
+
+type TrashAuthorRow = {
+    original_id?: string | null;
 };
 
 const MISSING_COLUMN_REGEX = /Could not find the '([^']+)' column/i;
@@ -145,6 +152,82 @@ const mapAuthorToRow = (author: Author) => {
 
 let inMemoryAuthorsCache: Author[] = [];
 let hasAttemptedRemoteBackfill = false;
+let deletedAuthorIdsCache: { expiresAt: number; ids: Set<string>; } | null = null;
+
+const normalizeId = (value: unknown) => normalizeKey(typeof value === 'string' ? value : String(value ?? ''));
+
+const invalidateDeletedAuthorIdsCache = () => {
+    deletedAuthorIdsCache = null;
+};
+
+const readDeletedAuthorIdsFromLocalTrash = () => {
+    const ids = new Set<string>();
+    if (typeof window === 'undefined') return ids;
+
+    let raw: string | null = null;
+    try {
+        raw = localStorage.getItem(TRASH_STORAGE_KEY);
+    } catch {
+        return ids;
+    }
+    if (!raw) return ids;
+
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) return ids;
+        parsed.forEach((entry) => {
+            if (!entry || typeof entry !== 'object') return;
+            const record = entry as Record<string, unknown>;
+            if (record.type !== 'author') return;
+            const originalId = record.originalId ?? record.original_id ?? null;
+            const normalizedId = normalizeId(originalId);
+            if (normalizedId) {
+                ids.add(normalizedId);
+            }
+        });
+    } catch {
+        return ids;
+    }
+
+    return ids;
+};
+
+const getDeletedAuthorIds = async () => {
+    const now = Date.now();
+    if (deletedAuthorIdsCache && deletedAuthorIdsCache.expiresAt > now) {
+        return deletedAuthorIdsCache.ids;
+    }
+
+    const ids = readDeletedAuthorIdsFromLocalTrash();
+    try {
+        const { data, error } = await supabase
+            .from(TRASH_TABLE)
+            .select('original_id')
+            .eq('type', 'author');
+        if (error) throw error;
+        ((data || []) as TrashAuthorRow[]).forEach((row) => {
+            const normalizedId = normalizeId(row.original_id);
+            if (normalizedId) {
+                ids.add(normalizedId);
+            }
+        });
+    } catch {
+        // Ignore remote trash read failures and rely on local trash cache.
+    }
+
+    deletedAuthorIdsCache = {
+        ids,
+        expiresAt: now + DELETED_AUTHOR_CACHE_TTL_MS
+    };
+
+    return ids;
+};
+
+const filterDeletedAuthors = async (authors: Author[]) => {
+    const deletedAuthorIds = await getDeletedAuthorIds();
+    if (!deletedAuthorIds.size) return authors;
+    return authors.filter((author) => !deletedAuthorIds.has(normalizeId(author.id)));
+};
 
 const storeAuthors = (authors: Author[]) => {
     const normalized = sortAuthors(authors.map(normalizeAuthor));
@@ -317,11 +400,12 @@ export const getAllAuthors = async (): Promise<Author[]> => {
         }
 
         const merged = sortAuthors(mergeAuthors(authors.length ? authors : localAuthors, localAuthors));
-        storeAuthors(merged);
-        return merged;
+        const visibleAuthors = await filterDeletedAuthors(merged);
+        storeAuthors(visibleAuthors);
+        return visibleAuthors;
     } catch (error) {
         console.warn('Supabase authors fetch failed', error);
-        return localAuthors;
+        return filterDeletedAuthors(localAuthors);
     }
 };
 
@@ -382,6 +466,7 @@ export const deleteAuthor = async (id: string) => {
 
     const { moveToTrash } = await import('./trashManager');
     await moveToTrash('author', id, author, author.name);
+    invalidateDeletedAuthorIdsCache();
 
     const filtered = authors.filter(a => a.id !== id);
     storeAuthors(filtered);
@@ -401,6 +486,7 @@ export const deleteAuthor = async (id: string) => {
 };
 
 export const restoreAuthor = async (author: Author) => {
+    invalidateDeletedAuthorIdsCache();
     await saveAuthor(author);
     const { logActivity } = await import('./activityLogManager');
     await logActivity('restore', 'author', `Restored author: ${author.name}`);
