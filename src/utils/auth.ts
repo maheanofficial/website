@@ -63,11 +63,23 @@ const ADMIN_EMAIL_ALLOWLIST = Array.from(new Set([
     PRIMARY_ADMIN_EMAIL,
     ...parseEmailAllowlist(import.meta.env.VITE_ADMIN_EMAIL_ALLOWLIST as string | undefined)
 ]));
-const ALLOW_LOCAL_AUTH_FALLBACK = import.meta.env.DEV
+const ALLOW_LOCAL_AUTH_FALLBACK_BY_ENV = import.meta.env.DEV
     || String(import.meta.env.VITE_ALLOW_LOCAL_AUTH_FALLBACK || '').trim().toLowerCase() === 'true';
 const GOOGLE_OAUTH_ENABLED = String(import.meta.env.VITE_GOOGLE_OAUTH_ENABLED || 'true')
     .trim()
     .toLowerCase() !== 'false';
+
+const isManagedProductionHost = () => {
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname.toLowerCase();
+    return host === 'mahean.com' || host === 'www.mahean.com';
+};
+
+const canUseLocalAuthFallback = () => {
+    if (!ALLOW_LOCAL_AUTH_FALLBACK_BY_ENV) return false;
+    if (isManagedProductionHost()) return false;
+    return true;
+};
 
 const getStoredOAuthProvider = () => {
     if (typeof window === 'undefined') return undefined;
@@ -297,6 +309,13 @@ export const getCurrentUser = async () => {
             if (!error && data?.session?.user) {
                 return syncSupabaseSession(data.session.user);
             }
+
+            // On production host, do not trust local-only fallback sessions.
+            if (isManagedProductionHost()) {
+                logoutUser();
+                clearStoredOAuthProvider();
+                return null;
+            }
         } catch (error) {
             console.warn('Supabase session check failed', error);
         }
@@ -324,6 +343,12 @@ export const onAuthStateChange = (callback: (event: string, session: AuthSession
         if (!session?.user) {
             const localUser = enforceStoredProviderRole(getLocalCurrentUser());
             if (localUser) {
+                if (!canUseLocalAuthFallback()) {
+                    logoutUser();
+                    clearStoredOAuthProvider();
+                    emitAuthChange('SIGNED_OUT', null);
+                    return;
+                }
                 emitAuthChange('SIGNED_IN', localUser);
                 return;
             }
@@ -363,7 +388,7 @@ export const resetPasswordForEmail = async (email: string) => {
         }
     }
 
-    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+    if (!canUseLocalAuthFallback()) {
         throw new Error(lastServerErrorMessage);
     }
 
@@ -408,7 +433,7 @@ export const signInWithEmailOnly = async (email: string, pass: string) => {
         }
     }
 
-    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+    if (!canUseLocalAuthFallback()) {
         throw new Error(lastServerErrorMessage);
     }
 
@@ -468,7 +493,7 @@ export const signUpWithEmail = async (email: string, password: string, fullName?
         }
     }
 
-    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+    if (!canUseLocalAuthFallback()) {
         throw new Error(lastServerErrorMessage);
     }
 
@@ -508,7 +533,7 @@ export const updateCurrentUserPassword = async (currentPassword: string | null, 
         }
     }
 
-    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+    if (!canUseLocalAuthFallback()) {
         throw new Error(lastServerErrorMessage);
     }
 
@@ -582,7 +607,7 @@ export const applyPasswordReset = async (newPassword: string) => {
         }
     }
 
-    if (!ALLOW_LOCAL_AUTH_FALLBACK) {
+    if (!canUseLocalAuthFallback()) {
         throw new Error(lastServerErrorMessage);
     }
 
