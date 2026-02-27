@@ -231,7 +231,8 @@ ${xmlEntries.join('\n')}
 };
 
 export default async function handler(req, res) {
-    if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    const method = (req.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
         res.statusCode = 405;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end('Method Not Allowed');
@@ -243,12 +244,20 @@ export default async function handler(req, res) {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
-        res.end(xml);
+        if (method === 'HEAD') {
+            res.end();
+        } else {
+            res.end(xml);
+        }
     } catch {
         const xml = buildFallbackSitemap();
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
-        res.end(xml);
+        if (method === 'HEAD') {
+            res.end();
+        } else {
+            res.end(xml);
+        }
     }
 }

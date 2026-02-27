@@ -90,6 +90,22 @@ const toNormalizedPathname = (pathname) => {
     return decoded || '/';
 };
 
+const ROBOTS_TXT = `# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /author
+Disallow: /dashboard
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /update-password
+
+# Sitemaps
+Sitemap: https://www.mahean.com/sitemap.xml
+Sitemap: https://www.mahean.com/sitemap-news.xml
+`;
+
 const safeDecodeURIComponent = (value) => {
     try {
         return decodeURIComponent(value);
@@ -289,6 +305,11 @@ const handleRequest = async (req, res) => {
 
     if (pathname === '/healthz') {
         sendText(res, 200, 'ok');
+        return;
+    }
+
+    if (pathname === '/robots.txt') {
+        sendText(res, 200, ROBOTS_TXT, 'text/plain; charset=utf-8');
         return;
     }
 
