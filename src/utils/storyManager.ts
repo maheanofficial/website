@@ -390,12 +390,15 @@ const mapRowToStory = (row: StoryRow): Story => {
 const mapStoryToRow = (story: Story): Record<string, unknown> => {
     const normalizedStory = normalizeStory(story);
     const meta = buildLegacyStoryMeta(normalizedStory);
+    const lightweightLegacyContent = normalizedStory.parts?.length
+        ? (normalizedStory.parts[0]?.content ?? '')
+        : (normalizedStory.content ?? '');
 
     return {
         id: normalizedStory.id,
         title: normalizedStory.title,
         excerpt: encodeExcerptWithMeta(normalizedStory.excerpt ?? '', meta),
-        content: normalizedStory.content ?? '',
+        content: lightweightLegacyContent,
         author_id: normalizedStory.authorId ?? '',
         author: normalizedStory.author ?? null,
         category_id: normalizedStory.categoryId ?? normalizedStory.category ?? '',

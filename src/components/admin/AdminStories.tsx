@@ -849,7 +849,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             submittedBy: existingStory?.submittedBy || user?.id || undefined,
             views: existingStory?.views ?? 0,
             comments: existingStory?.comments ?? 0,
-            content: normalizedParts.map(p => p.content).join('\n'), // Legacy
+            // Keep legacy content lightweight to avoid oversized save payloads.
+            content: normalizedParts[0]?.content || '',
             excerpt: description || normalizedParts[0]?.content.slice(0, 100) || ''
         };
         const saveResult = await saveStory(newStory);

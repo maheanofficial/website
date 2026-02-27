@@ -15,7 +15,7 @@ import {
 } from './_request-utils.js';
 import { readSessionClaimsFromRequest } from './_auth-session.js';
 
-const DB_BODY_LIMIT_BYTES = 4 * 1024 * 1024;
+const DB_BODY_LIMIT_BYTES = 12 * 1024 * 1024;
 const GLOBAL_WINDOW_MS = 60_000;
 const GLOBAL_MAX_REQUESTS = 400;
 const WRITE_WINDOW_MS = 60_000;
