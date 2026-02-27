@@ -474,6 +474,26 @@ export default async function handler(req, res) {
         return;
     }
 
+    if (action === 'session') {
+        const users = await readUsers();
+        const sessionContext = resolveSessionUser(req, users);
+        if (!sessionContext?.user) {
+            clearSessionCookie(res, req);
+            json(res, 401, { error: 'Authentication is required.' });
+            return;
+        }
+
+        // Rolling session: re-issue token/cookie so active users stay logged in.
+        const session = issueSessionForUser(res, req, sessionContext.user);
+        json(res, 200, {
+            user: toPublicUser(sessionContext.user),
+            sessionToken: session.token,
+            sessionExpiresAt: session.expiresAt,
+            sessionTtlSec
+        });
+        return;
+    }
+
     if (action === 'update-password') {
         const newPassword = String(body.newPassword || '');
         const currentPassword = String(body.currentPassword || '');

@@ -21,7 +21,8 @@ const toPositiveInt = (value, fallback) => {
 const SESSION_TOKEN_PURPOSE = 'session';
 const RESET_TOKEN_PURPOSE = 'password-reset';
 const SESSION_COOKIE_NAME = 'mahean_auth';
-const FALLBACK_SESSION_TTL_SEC = 7 * 24 * 60 * 60;
+// Keep sessions effectively long-lived unless an explicit TTL is configured.
+const FALLBACK_SESSION_TTL_SEC = 10 * 365 * 24 * 60 * 60;
 const FALLBACK_RESET_TTL_SEC = 20 * 60;
 const SESSION_TTL_SEC = toPositiveInt(pickFirstEnv('AUTH_SESSION_TTL_SEC'), FALLBACK_SESSION_TTL_SEC);
 const RESET_TTL_SEC = toPositiveInt(pickFirstEnv('AUTH_RESET_TTL_SEC'), FALLBACK_RESET_TTL_SEC);

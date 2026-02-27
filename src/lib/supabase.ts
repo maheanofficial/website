@@ -530,8 +530,33 @@ const auth = {
         return { error: null };
     },
     async getSession() {
-        const session = readSession();
-        return { data: { session }, error: null };
+        const cachedSession = readSession();
+
+        try {
+            const { data, error } = await requestJson('/api/auth', { action: 'session' });
+            if (!error && data?.user) {
+                const user = mapServerUserToSupabaseUser(data.user);
+                const session = buildSession(user, {
+                    sessionToken: data?.sessionToken,
+                    sessionExpiresAt: data?.sessionExpiresAt
+                });
+                writeSession(session);
+                return { data: { session }, error: null };
+            }
+
+            if (error?.code === 'NETWORK_ERROR' && cachedSession) {
+                return { data: { session: cachedSession }, error: null };
+            }
+
+            // If server says session is invalid, clear local cache to prevent stale auth state.
+            if (error?.code === 'HTTP_ERROR') {
+                writeSession(null);
+            }
+
+            return { data: { session: null }, error: null };
+        } catch {
+            return { data: { session: cachedSession }, error: null };
+        }
     },
     onAuthStateChange(callback: (event: string, session: SessionLike | null) => void) {
         authListeners.add(callback);

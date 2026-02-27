@@ -29,6 +29,7 @@ export interface Story {
     readTime?: string;
     status?: 'published' | 'pending' | 'rejected' | 'draft';
     submittedBy?: string; // userId of the writer
+    updatedAt?: string;
 }
 
 const STORAGE_KEY = 'mahean_stories';
@@ -66,10 +67,41 @@ export type StoryMutationResult = {
     message?: string;
 };
 
+const getStoryRecency = (story: Story) => {
+    const updatedAtMs = Date.parse(story.updatedAt || '');
+    if (Number.isFinite(updatedAtMs)) return updatedAtMs;
+    const dateMs = Date.parse(story.date || '');
+    if (Number.isFinite(dateMs)) return dateMs;
+    return 0;
+};
+
+const getStoryPartsCount = (story: Story) => Array.isArray(story.parts) ? story.parts.length : 0;
+
+const pickPreferredStory = (current: Story, incoming: Story) => {
+    const currentRecency = getStoryRecency(current);
+    const incomingRecency = getStoryRecency(incoming);
+    if (incomingRecency > currentRecency) return incoming;
+    if (incomingRecency < currentRecency) return current;
+
+    const currentPartsCount = getStoryPartsCount(current);
+    const incomingPartsCount = getStoryPartsCount(incoming);
+    if (incomingPartsCount > currentPartsCount) return incoming;
+    if (incomingPartsCount < currentPartsCount) return current;
+
+    return incoming;
+};
+
 const mergeStories = (primary: Story[], secondary: Story[]) => {
     const map = new Map<string, Story>();
-    secondary.forEach(story => map.set(story.id, normalizeStory(story)));
-    primary.forEach(story => map.set(story.id, normalizeStory(story)));
+    [...secondary, ...primary].forEach((story) => {
+        const normalized = normalizeStory(story);
+        const existing = map.get(normalized.id);
+        if (!existing) {
+            map.set(normalized.id, normalized);
+            return;
+        }
+        map.set(normalized.id, pickPreferredStory(existing, normalized));
+    });
     return Array.from(map.values());
 };
 
@@ -350,7 +382,8 @@ const mapRowToStory = (row: StoryRow): Story => {
         is_featured: row.is_featured ?? legacyMeta?.isFeatured ?? false,
         readTime: row.read_time ?? legacyMeta?.readTime ?? undefined,
         status: toStoryStatus(row.status ?? legacyMeta?.status),
-        submittedBy: row.submitted_by ?? legacyMeta?.submittedBy ?? undefined
+        submittedBy: row.submitted_by ?? legacyMeta?.submittedBy ?? undefined,
+        updatedAt: row.updated_at ?? undefined
     };
 };
 
@@ -379,7 +412,7 @@ const mapStoryToRow = (story: Story): Record<string, unknown> => {
         status: toStoryStatus(normalizedStory.status),
         submitted_by: normalizedStory.submittedBy ?? null,
         date: normalizedStory.date ?? new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: normalizedStory.updatedAt ?? new Date().toISOString()
     };
 };
 
@@ -397,7 +430,8 @@ const normalizeStory = (story: Story): Story => ({
     authorId: story.authorId ?? story.submittedBy ?? '',
     author: repairMojibakeText(story.author ?? story.submittedBy ?? ''),
     tags: toStringArray(story.tags),
-    parts: toStoryParts(story.parts)
+    parts: toStoryParts(story.parts),
+    updatedAt: story.updatedAt
 });
 
 const sortStoriesByDate = (stories: Story[]) =>
@@ -654,6 +688,7 @@ export const saveStory = async (story: Story): Promise<StoryMutationResult> => {
         status: story.status
             || (existingIndex >= 0 ? (stories[existingIndex].status || 'published') : 'published')
     });
+    normalized.updatedAt = new Date().toISOString();
 
     if (existingIndex >= 0) {
         stories[existingIndex] = normalized;
@@ -707,7 +742,11 @@ export const updateStoryStatus = async (
 
     const nextStatus = toStoryStatus(status);
     const previousStory = { ...stories[storyIndex] };
-    stories[storyIndex] = normalizeStory({ ...stories[storyIndex], status: nextStatus });
+    stories[storyIndex] = normalizeStory({
+        ...stories[storyIndex],
+        status: nextStatus,
+        updatedAt: new Date().toISOString()
+    });
     storeStories(stories);
 
     try {
