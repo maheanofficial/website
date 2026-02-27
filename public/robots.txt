@@ -11,3 +11,4 @@ Disallow: /update-password
 
 # Sitemaps
 Sitemap: https://www.mahean.com/sitemap.xml
+Sitemap: https://www.mahean.com/sitemap-news.xml

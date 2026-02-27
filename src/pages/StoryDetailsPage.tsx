@@ -21,6 +21,7 @@ const StoryDetailsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showPartsList, setShowPartsList] = useState(true);
     const [readingProgress, setReadingProgress] = useState(0);
+    const [relatedStories, setRelatedStories] = useState<Story[]>([]);
     const contentRef = useRef<HTMLDivElement>(null);
 
     const decodeBanglaUnicodeEscapes = (value: string) =>
@@ -73,6 +74,8 @@ const StoryDetailsPage = () => {
         return parsed;
     };
     const normalizePartKey = (value?: string) => slugify((value || '').trim());
+    const normalizeMatchToken = (value?: string) => normalizeDisplayText(value).toLowerCase();
+    const normalizeTagToken = (value?: string) => normalizeMatchToken((value || '').replace(/^#/, ''));
     const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
     const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
         const fallback = buildFallbackPartLabel(partIndex);
@@ -123,6 +126,28 @@ const StoryDetailsPage = () => {
             parts: getReadableParts(entry)
         };
     };
+    const toStoryTimestamp = (entry: Story) => {
+        const updatedAtValue = Date.parse(entry.updatedAt || '');
+        if (Number.isFinite(updatedAtValue)) return updatedAtValue;
+        const dateValue = Date.parse(entry.date || '');
+        if (Number.isFinite(dateValue)) return dateValue;
+        return 0;
+    };
+    const toStoryReaderPath = (entry: Story) => {
+        const normalizedEntry = normalizeStory(entry);
+        const storySegment = (normalizedEntry.slug || String(normalizedEntry.id || '')).trim();
+        if (!storySegment) return '/stories';
+        const firstPartSegment = getPartSegment(normalizedEntry.parts?.[0], 0);
+        return `/stories/${encodeURIComponent(storySegment)}/${encodeURIComponent(firstPartSegment)}`;
+    };
+    const toStoryPreview = (entry: Story) => {
+        const rawPreview = normalizeDisplayText(entry.excerpt)
+            || normalizeDisplayText(entry.parts?.[0]?.content)
+            || normalizeDisplayText(entry.content)
+            || 'Tap to start reading this story.';
+        if (rawPreview.length <= 140) return rawPreview;
+        return `${rawPreview.slice(0, 140)}...`;
+    };
     const resetStoryCacheAndReload = () => {
         localStorage.removeItem('mahean_stories');
         Object.keys(sessionStorage)
@@ -141,12 +166,54 @@ const StoryDetailsPage = () => {
             if (!foundStory) {
                 if (isMounted) {
                     setStory(null);
+                    setRelatedStories([]);
                     setIsLoading(false);
                 }
                 return;
             }
 
             const normalized = normalizeStory(foundStory);
+            const storyCategory = normalizeMatchToken(normalized.category);
+            const storyTags = new Set(
+                (normalized.tags || [])
+                    .map((tag) => normalizeTagToken(tag))
+                    .filter(Boolean)
+            );
+
+            const relatedByRelevance = stories
+                .filter((entry) => String(entry.id || '') !== String(normalized.id || ''))
+                .map((entry) => normalizeStory(entry))
+                .map((entry) => {
+                    const candidateCategory = normalizeMatchToken(entry.category);
+                    const candidateTags = (entry.tags || []).map((tag) => normalizeTagToken(tag)).filter(Boolean);
+                    const sharedTagCount = candidateTags.reduce((count, tag) => count + (storyTags.has(tag) ? 1 : 0), 0);
+                    const categoryScore = storyCategory && candidateCategory && storyCategory === candidateCategory ? 3 : 0;
+                    return {
+                        entry,
+                        score: categoryScore + (sharedTagCount * 2),
+                        timestamp: toStoryTimestamp(entry)
+                    };
+                })
+                .filter((item) => item.score > 0)
+                .sort((left, right) => {
+                    if (right.score !== left.score) return right.score - left.score;
+                    return right.timestamp - left.timestamp;
+                });
+
+            const relatedFallback = stories
+                .filter((entry) => String(entry.id || '') !== String(normalized.id || ''))
+                .map((entry) => normalizeStory(entry))
+                .sort((left, right) => toStoryTimestamp(right) - toStoryTimestamp(left));
+
+            const selectedRelatedStories = (relatedByRelevance.length
+                ? relatedByRelevance.map((item) => item.entry)
+                : relatedFallback
+            ).slice(0, 6);
+
+            if (isMounted) {
+                setRelatedStories(selectedRelatedStories);
+            }
+
             // Session guard to prevent double counting on refresh/StrictMode
             const viewKey = `viewed_story_${normalized.id}`;
             const hasViewedInSession = sessionStorage.getItem(viewKey);
@@ -521,6 +588,30 @@ const StoryDetailsPage = () => {
                         dangerouslySetInnerHTML={renderFormattedText(currentPart.content)}
                     />
                 </div>
+
+                {relatedStories.length > 0 && (
+                    <section className="related-stories-box" aria-label="Related stories">
+                        <div className="related-stories-head">
+                            <h2>Related Stories</h2>
+                            <Link to="/stories" className="related-stories-all-link">Browse all</Link>
+                        </div>
+                        <div className="related-stories-grid">
+                            {relatedStories.map((relatedStory) => (
+                                <Link
+                                    key={`related-${story.id}-${relatedStory.id}`}
+                                    to={toStoryReaderPath(relatedStory)}
+                                    className="related-story-item"
+                                >
+                                    <h3>{normalizeDisplayText(relatedStory.title) || relatedStory.title}</h3>
+                                    <span className="related-story-meta">
+                                        {(normalizeDisplayText(relatedStory.category) || 'Story')} | {toBanglaNumber(relatedStory.parts?.length || 1)} Parts
+                                    </span>
+                                    <p>{toStoryPreview(relatedStory)}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <div className="story-report-box">
                     <p className="story-report-text">

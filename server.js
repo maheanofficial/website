@@ -9,6 +9,7 @@ import authHandler from './api/auth.js';
 import cleanupTrashHandler from './api/cleanup-trash.js';
 import dbHandler from './api/db.js';
 import sitemapHandler from './api/sitemap.js';
+import sitemapNewsHandler from './api/sitemap-news.js';
 import storyRedirectHandler from './api/story-redirect.js';
 import uploadImageHandler from './api/upload-image.js';
 
@@ -299,6 +300,11 @@ const handleRequest = async (req, res) => {
 
     if (pathname === '/sitemap.xml') {
         await runHandler(req, res, sitemapHandler);
+        return;
+    }
+
+    if (pathname === '/sitemap-news.xml') {
+        await runHandler(req, res, sitemapNewsHandler);
         return;
     }
 
