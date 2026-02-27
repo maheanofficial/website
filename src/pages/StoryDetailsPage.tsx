@@ -27,6 +27,19 @@ const StoryDetailsPage = () => {
         value.replace(/\\u09([0-9a-fA-F]{2})/g, (_, code: string) =>
             String.fromCharCode(Number.parseInt(`09${code}`, 16))
         );
+    const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
+        '\u09e6': '0',
+        '\u09e7': '1',
+        '\u09e8': '2',
+        '\u09e9': '3',
+        '\u09ea': '4',
+        '\u09eb': '5',
+        '\u09ec': '6',
+        '\u09ed': '7',
+        '\u09ee': '8',
+        '\u09ef': '9'
+    };
+    const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
     const parseRequestedPartNumber = (value?: string) => {
@@ -36,8 +49,22 @@ const StoryDetailsPage = () => {
         return parsed;
     };
     const normalizePartKey = (value?: string) => slugify((value || '').trim());
+    const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
+    const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
+        const fallback = buildFallbackPartLabel(partIndex);
+        const trimmedTitle = normalizeDisplayText(value);
+        if (!trimmedTitle) return fallback;
+
+        const match = trimmedTitle.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+        if (!match) return trimmedTitle;
+
+        const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+        const parsed = Number.parseInt(normalizedDigits, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+        return `Part ${String(parsed).padStart(2, '0')}`;
+    };
     const getPartSegment = (part: StoryPart | undefined, partIndex: number) => {
-        const titleBased = normalizePartKey(part?.title);
+        const titleBased = normalizePartKey(normalizePartTitleForDisplay(part?.title, partIndex));
         const custom = normalizePartKey(part?.slug);
         return titleBased || custom || String(partIndex + 1);
     };
@@ -64,15 +91,12 @@ const StoryDetailsPage = () => {
         if (meaningfulParts.length > 0) return meaningfulParts;
         return [{
             id: sourceParts[0]?.id || '1',
-            title: sourceParts[0]?.title || '\u09aa\u09b0\u09cd\u09ac 01',
+            title: sourceParts[0]?.title || 'Part 01',
             content: entry.content || ''
         }];
     };
-    const buildFallbackPartLabel = (partIndex: number) => `পর্ব ${toBanglaNumber(partIndex + 1)}`;
     const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
-        const trimmedTitle = normalizeDisplayText(part?.title);
-        if (trimmedTitle) return trimmedTitle;
-        return buildFallbackPartLabel(partIndex);
+        return normalizePartTitleForDisplay(part?.title, partIndex);
     };
     const normalizeStory = (entry: Story): Story => {
         return {
@@ -442,7 +466,7 @@ const StoryDetailsPage = () => {
                             onClick={() => setShowPartsList(!showPartsList)}
                         >
                             <BookOpen className="icon-sm" />
-                            <span>{showPartsList ? 'পর্ব লিস্ট লুকান' : 'সব পর্ব'}</span>
+                            <span>{showPartsList ? 'Hide Parts List' : 'All Parts'}</span>
                             <ChevronDown className={`icon-sm transition-transform ${showPartsList ? 'rotate-180' : ''}`} />
                         </button>
                     </div>
@@ -499,7 +523,7 @@ const StoryDetailsPage = () => {
                             className="nav-btn prev-btn"
                         >
                             <ArrowLeft className="icon-sm" />
-                            <span>পূর্ববর্তী পর্ব</span>
+                            <span>Previous Part</span>
                         </button>
                     ) : (
                         <div className="spacer"></div>
@@ -515,11 +539,11 @@ const StoryDetailsPage = () => {
                             }}
                             className="nav-btn next-btn"
                         >
-                            <span>পরবর্তী পর্ব</span>
+                            <span>Next Part</span>
                             <ChevronRight className="icon-sm" />
                         </button>
                     ) : (
-                        <div className="completion-msg">শেষ পর্ব</div>
+                        <div className="completion-msg">Last Part</div>
                     )}
                 </div>
             </div>

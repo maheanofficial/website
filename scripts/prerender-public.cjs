@@ -499,7 +499,36 @@ const toStorySegment = (story) => {
 
 const buildFallbackPartTitle = (index) => {
   const padded = String(index + 1).padStart(2, '0');
-  return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+  return `Part ${padded}`;
+};
+
+const BANGLA_DIGIT_TO_LATIN = {
+  '\u09e6': '0',
+  '\u09e7': '1',
+  '\u09e8': '2',
+  '\u09e9': '3',
+  '\u09ea': '4',
+  '\u09eb': '5',
+  '\u09ec': '6',
+  '\u09ed': '7',
+  '\u09ee': '8',
+  '\u09ef': '9'
+};
+
+const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+
+const normalizeLegacyPartTitle = (title, index) => {
+  const fallback = buildFallbackPartTitle(index);
+  const trimmed = String(title || '').trim();
+  if (!trimmed) return fallback;
+
+  const match = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+  if (!match) return trimmed;
+
+  const normalizedDigits = String(match[1]).replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+  const parsed = Number.parseInt(normalizedDigits, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return `Part ${String(parsed).padStart(2, '0')}`;
 };
 
 const normalizeStoryParts = (story) => {
@@ -528,7 +557,7 @@ const normalizeStoryParts = (story) => {
 };
 
 const toStoryPartSegment = (part, index) => {
-  const fromTitle = slugify(typeof part?.title === 'string' ? part.title : '');
+  const fromTitle = slugify(normalizeLegacyPartTitle(part?.title, index));
   const custom = slugify(typeof part?.slug === 'string' ? part.slug : '');
   return fromTitle || custom || String(index + 1);
 };
@@ -567,7 +596,7 @@ const toStoryPartSeos = (story) => {
 
   const parts = normalizeStoryParts(story);
   return parts.map((part, index) => {
-    const partTitle = part.title || buildFallbackPartTitle(index);
+    const partTitle = normalizeLegacyPartTitle(part.title, index) || buildFallbackPartTitle(index);
     const pathValue = `/stories/${encodeURIComponent(segment)}/part/${encodeURIComponent(toStoryPartSegment(part, index))}`;
     const canonicalUrl = `${SITE_URL}${pathValue}`;
 

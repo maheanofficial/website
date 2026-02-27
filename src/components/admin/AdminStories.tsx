@@ -39,7 +39,23 @@ const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
 
 const buildPartTitle = (partNumber: number) => {
     const padded = String(partNumber).padStart(2, '0');
-    return `\u09aa\u09b0\u09cd\u09ac ${padded}`;
+    return `Part ${padded}`;
+};
+
+const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+
+const normalizeLegacyPartTitle = (value: string, fallbackIndex: number) => {
+    const fallback = buildPartTitle(fallbackIndex + 1);
+    const trimmed = (value || '').trim();
+    if (!trimmed) return fallback;
+
+    const match = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+    if (!match) return trimmed;
+
+    const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+    const parsed = Number.parseInt(normalizedDigits, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+    return buildPartTitle(parsed);
 };
 
 const extractPartNumber = (title: string) => {
@@ -174,7 +190,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setNewCategoryName('');
         setDescription(story.excerpt || '');
         setCoverImage(story.cover_image || story.image || '');
-        setParts(story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
+        const storyParts = story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }];
+        setParts(storyParts.map((part, index) => ({
+            ...part,
+            title: normalizeLegacyPartTitle(part.title || '', index),
+            slug: part.slug || '',
+            content: part.content || ''
+        })));
         setStatus(story.status || defaultStatus);
 
         const matchedAuthor = authors.find(author => author.id === story.authorId)
@@ -487,7 +509,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         return buildPartTitle(index + 1);
     };
     const buildPartSlugFromTitle = (rawTitle: string, index: number) => {
-        const normalizedTitle = rawTitle?.trim() ? rawTitle.trim() : buildDefaultPartTitle(index);
+        const normalizedTitle = normalizeLegacyPartTitle(rawTitle || '', index);
         return normalizePartSlug(normalizedTitle) || String(index + 1);
     };
 
@@ -566,7 +588,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             return {
                 ...part,
                 id: part.id || `${Date.now()}-${index + 1}`,
-                title: part.title?.trim() ? part.title.trim() : buildDefaultPartTitle(index),
+                title: normalizeLegacyPartTitle(part.title || '', index),
                 slug: uniqueSlug,
                 content: part.content ?? ''
             };
@@ -1011,7 +1033,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         {/* Parts Section */}
                         <div className="parts-manager">
                             <div className="flex items-center mb-4">
-                                <h3 className="text-lg font-semibold text-white">{'\u09aa\u09b0\u09cd\u09ac\u09b8\u09ae\u09c2\u09b9'}</h3>
+                                <h3 className="text-lg font-semibold text-white">Parts</h3>
                             </div>
 
                             {parts.map((part, index) => {
@@ -1021,14 +1043,14 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 <div key={part.id || `part-${index}`} className="part-editor">
                                     <div className="part-header">
                                         <div className="part-header-main">
-                                            <div className="part-title-wrap" title={'\u09aa\u09b0\u09cd\u09ac\u09c7\u09b0 \u09a8\u09be\u09ae \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8 \u0995\u09b0\u09a4\u09c7 \u098f\u0996\u09be\u09a8\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8'}>
+                                            <div className="part-title-wrap" title="Edit part title">
                                                 <Edit size={14} className="part-title-icon" />
                                                 <input
                                                     type="text"
                                                     value={part.title}
                                                     onChange={e => updatePart(part.id, index, 'title', e.target.value)}
                                                     className="part-title-input"
-                                                    placeholder={`\u09aa\u09b0\u09cd\u09ac ${String(index + 1).padStart(2, '0')}`}
+                                                    placeholder={buildDefaultPartTitle(index)}
                                                 />
                                             </div>
                                             <div className="part-url-wrap" title="Part URL auto sync with title">
@@ -1058,7 +1080,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                                 className="remove-part-btn"
                                                 onClick={() => removePart(part.id, index)}
                                                 disabled={parts.length === 1}
-                                                title={parts.length === 1 ? '\u0995\u09ae\u09aa\u0995\u09cd\u09b7\u09c7 \u09e7\u099f\u09bf \u09aa\u09b0\u09cd\u09ac \u09b0\u09be\u0996\u09a4\u09c7 \u09b9\u09ac\u09c7' : '\u09aa\u09b0\u09cd\u09ac \u09ae\u09c1\u099b\u09c1\u09a8'}
+                                                title={parts.length === 1 ? 'At least 1 Part is required' : 'Remove Part'}
                                             >
                                                 {'\u09ae\u09c1\u099b\u09c1\u09a8'}
                                             </button>
@@ -1075,7 +1097,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                             )})}
                             <div className="flex justify-end mt-3">
                                 <button type="button" className="btn-secondary" onClick={addPart}>
-                                    {'\u09a8\u09a4\u09c1\u09a8 \u09aa\u09b0\u09cd\u09ac \u09af\u09cb\u0997 \u0995\u09b0\u09c1\u09a8'}
+                                    Add New Part
                                 </button>
                             </div>
                         </div>
@@ -1134,7 +1156,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                     <div className="col-header col-title">{'\u099f\u09be\u0987\u099f\u09c7\u09b2'} <ArrowUpDown size={12} /></div>
                     <div className="col-header col-author">{'\u09b2\u09c7\u0996\u0995'}</div>
                     <div className="col-header col-status">{'\u09b8\u09cd\u099f\u09cd\u09af\u09be\u099f\u09be\u09b8'} <ArrowUpDown size={12} /></div>
-                    <div className="col-header col-parts">{'\u09aa\u09b0\u09cd\u09ac'}</div>
+                    <div className="col-header col-parts">Part</div>
                     <div className="col-header col-created">{'\u09a4\u09be\u09b0\u09bf\u0996'} <ArrowUpDown size={12} /></div>
                     <div className="col-header col-actions">{'\u0985\u09cd\u09af\u09be\u0995\u09b6\u09a8\u09b8\u09ae\u09c2\u09b9'}</div>
                 </div>

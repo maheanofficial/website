@@ -20,13 +20,40 @@ const StoryPartsPage = () => {
             String.fromCharCode(Number.parseInt(`09${code}`, 16))
         );
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
+    const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
+        '\u09e6': '0',
+        '\u09e7': '1',
+        '\u09e8': '2',
+        '\u09e9': '3',
+        '\u09ea': '4',
+        '\u09eb': '5',
+        '\u09ec': '6',
+        '\u09ed': '7',
+        '\u09ee': '8',
+        '\u09ef': '9'
+    };
+    const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+    const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
+    const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
+        const fallback = buildFallbackPartLabel(partIndex);
+        const trimmedTitle = normalizeDisplayText(value);
+        if (!trimmedTitle) return fallback;
+
+        const match = trimmedTitle.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+        if (!match) return trimmedTitle;
+
+        const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+        const parsed = Number.parseInt(normalizedDigits, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+        return `Part ${String(parsed).padStart(2, '0')}`;
+    };
     const getReadableParts = (entry: Story): StoryPart[] => {
         const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
         const meaningfulParts = sourceParts.filter((part) => normalizeDisplayText(part?.content).length > 0);
         if (meaningfulParts.length > 0) return meaningfulParts;
         return [{
             id: sourceParts[0]?.id || '1',
-            title: sourceParts[0]?.title || '\u09aa\u09b0\u09cd\u09ac 01',
+            title: sourceParts[0]?.title || 'Part 01',
             content: entry.content || ''
         }];
     };
@@ -38,20 +65,17 @@ const StoryPartsPage = () => {
         };
     };
 
-    const buildFallbackPartLabel = (partIndex: number) => `পর্ব ${toBanglaNumber(partIndex + 1)}`;
     const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
-        const trimmedTitle = normalizeDisplayText(part?.title);
-        if (trimmedTitle) return trimmedTitle;
-        return buildFallbackPartLabel(partIndex);
+        return normalizePartTitleForDisplay(part?.title, partIndex);
     };
     const getPartPreview = (part: StoryPart | undefined) => {
         const compact = normalizeDisplayText(part?.content).replace(/\s+/g, ' ').trim();
-        if (!compact) return 'এই পর্বের কনটেন্ট পড়তে ক্লিক করুন।';
+        if (!compact) return 'Open this Part to read the content.';
         if (compact.length <= 140) return compact;
         return `${compact.slice(0, 140)}...`;
     };
     const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
-        const normalizedTitleSlug = slugify(normalizeDisplayText(part?.title));
+        const normalizedTitleSlug = slugify(normalizePartTitleForDisplay(part?.title, partIndex));
         const normalizedCustomSlug = slugify(normalizeDisplayText(part?.slug));
         return normalizedTitleSlug || normalizedCustomSlug || String(partIndex + 1);
     };
@@ -96,7 +120,7 @@ const StoryPartsPage = () => {
     if (isLoading) {
         return (
             <div className="container py-20 text-center">
-                <h2 className="text-2xl text-white mb-4">গল্পের পর্বগুলো লোড হচ্ছে...</h2>
+                <h2 className="text-2xl text-white mb-4">Story parts are loading...</h2>
                 <p className="text-gray-400">অনুগ্রহ করে অপেক্ষা করুন।</p>
             </div>
         );
@@ -122,7 +146,7 @@ const StoryPartsPage = () => {
     const listSchema = {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: `${displayStoryTitle} - সব পর্ব`,
+        name: `${displayStoryTitle} - All Parts`,
         itemListElement: parts.map((part, index) => ({
             '@type': 'ListItem',
             position: index + 1,
@@ -131,8 +155,8 @@ const StoryPartsPage = () => {
         }))
     };
 
-    const seoTitle = `${displayStoryTitle} - সব পর্ব`;
-    const seoDescription = `${displayStoryTitle} গল্পের সব পর্ব একসাথে দেখুন এবং যে পর্ব থেকে চান, সেখান থেকে পড়া শুরু করুন।`;
+    const seoTitle = `${displayStoryTitle} - All Parts`;
+    const seoDescription = `${displayStoryTitle} story: browse all parts and start reading from any part.`;
 
     return (
         <article className="story-parts-page fade-in-up">
@@ -159,7 +183,7 @@ const StoryPartsPage = () => {
                     <div className="story-parts-meta">
                         <div className="story-parts-badge">
                             <BookOpen size={16} />
-                            <span>{toBanglaNumber(totalParts)} টি পর্ব</span>
+                            <span>{toBanglaNumber(totalParts)} Parts</span>
                         </div>
                         <h1 className="story-parts-title">{displayStoryTitle}</h1>
                         <p className="story-parts-subtitle">
@@ -168,15 +192,15 @@ const StoryPartsPage = () => {
                         <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
                         <Link to={`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
                             <Play size={16} />
-                            <span>প্রথম পর্ব থেকে শুরু করুন</span>
+                            <span>Start from Part 1</span>
                         </Link>
                     </div>
                 </section>
 
                 <section className="story-parts-list-section">
                     <div className="story-parts-list-header">
-                        <h2>পর্ব বাছাই করুন</h2>
-                        <span>{toBanglaNumber(totalParts)} টি পর্ব উপলব্ধ</span>
+                        <h2>Choose Part</h2>
+                        <span>{toBanglaNumber(totalParts)} Parts available</span>
                     </div>
 
                     <div className="story-parts-list-grid">

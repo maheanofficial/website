@@ -77,7 +77,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                 <div className="story-card-footer-stats">
                     <div className="stats-left">
                         <span>সিজন : ১</span>
-                        <span>পর্ব : {toBanglaNumber(story.parts?.length || 1)}</span>
+                        <span>Part : {toBanglaNumber(story.parts?.length || 1)}</span>
                     </div>
                     <div className="stats-right">
                         <span className="eye-icon">👁</span>
