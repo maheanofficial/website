@@ -20,6 +20,8 @@ const StoryPartsPage = () => {
             String.fromCharCode(Number.parseInt(`09${code}`, 16))
         );
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
+    const toUrlSegment = (value: string | number | undefined) =>
+        String(value ?? '').trim().replace(/^\/+|\/+$/g, '');
     const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
         '\u09e6': '0',
         '\u09e7': '1',
@@ -129,7 +131,7 @@ const StoryPartsPage = () => {
         const canonicalSegment = (story.slug || String(story.id || '')).trim();
         if (!canonicalSegment || !id) return;
         if (id === canonicalSegment) return;
-        navigate(`/stories/${encodeURIComponent(canonicalSegment)}`, { replace: true });
+        navigate(`/stories/${toUrlSegment(canonicalSegment)}`, { replace: true });
     }, [story, id, navigate]);
 
     const displayStoryTitle = normalizeDisplayText(story?.title);
@@ -159,8 +161,8 @@ const StoryPartsPage = () => {
 
     const parts = story.parts || [];
     const totalParts = Math.max(1, parts.length);
-    const baseSegment = (story.slug || story.id).trim();
-    const canonicalUrl = `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}`;
+    const baseSegment = toUrlSegment(story.slug || story.id);
+    const canonicalUrl = `${SITE_URL}/stories/${baseSegment}`;
     const coverImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const listSchema = {
         '@context': 'https://schema.org',
@@ -170,7 +172,7 @@ const StoryPartsPage = () => {
             '@type': 'ListItem',
             position: index + 1,
             name: getPartLabel(part, index),
-            url: `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(part, index))}`
+            url: `${SITE_URL}/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`
         }))
     };
 
@@ -209,7 +211,7 @@ const StoryPartsPage = () => {
                             {displayStoryAuthor} | {formatLongDate(story.date)}
                         </p>
                         <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
-                        <Link to={`/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
+                        <Link to={`/stories/${baseSegment}/${toUrlSegment(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
                             <Play size={16} />
                             <span>Start from Part 1</span>
                         </Link>
@@ -228,7 +230,7 @@ const StoryPartsPage = () => {
                             return (
                                 <Link
                                     key={part.id || `${story.id}-part-picker-${index + 1}`}
-                                    to={`/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(part, index))}`}
+                                    to={`/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`}
                                     className="story-part-list-item"
                                 >
                                     <div className="story-part-list-left">
