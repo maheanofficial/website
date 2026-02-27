@@ -37,35 +37,51 @@ const BANGLA_DIGIT_TO_LATIN: Record<string, string> = {
     '\u09ef': '9'
 };
 
-const buildPartTitle = (partNumber: number) => {
-    const padded = String(partNumber).padStart(2, '0');
-    return `Part ${padded}`;
-};
-
 const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+const ENGLISH_PART_TITLE_REGEX = /^part\s*[-: ]*\s*([\u09e6-\u09ef0-9]+)$/iu;
+const NUMERIC_PART_TITLE_REGEX = /^[\u09e6-\u09ef0-9]+$/u;
 
-const normalizeLegacyPartTitle = (value: string, fallbackIndex: number) => {
-    const fallback = buildPartTitle(fallbackIndex + 1);
-    const trimmed = (value || '').trim();
-    if (!trimmed) return fallback;
-
-    const match = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
-    if (!match) return trimmed;
-
-    const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
-    const parsed = Number.parseInt(normalizedDigits, 10);
-    if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-    return buildPartTitle(parsed);
+const buildPartTitle = (partNumber: number) => {
+    return String(partNumber).padStart(2, '0');
 };
 
-const extractPartNumber = (title: string) => {
-    const normalizedDigits = title.replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
-    const matches = normalizedDigits.match(/\d+/g);
-    if (!matches?.length) return null;
-    const parsed = Number.parseInt(matches[matches.length - 1], 10);
+const buildPartSlug = (partNumber: number) => {
+    return `part-${String(partNumber).padStart(2, '0')}`;
+};
+
+const parsePartNumber = (value: string) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return null;
+
+    let digitSource = '';
+    const legacyMatch = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+    const englishMatch = trimmed.match(ENGLISH_PART_TITLE_REGEX);
+    if (legacyMatch) {
+        digitSource = legacyMatch[1];
+    } else if (englishMatch) {
+        digitSource = englishMatch[1];
+    } else if (NUMERIC_PART_TITLE_REGEX.test(trimmed)) {
+        digitSource = trimmed;
+    } else {
+        return null;
+    }
+
+    const normalizedDigits = digitSource.replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+    const parsed = Number.parseInt(normalizedDigits, 10);
     if (!Number.isFinite(parsed) || parsed < 1) return null;
     return parsed;
 };
+
+const normalizeLegacyPartTitle = (value: string, fallbackIndex: number) => {
+    const parsedPartNumber = parsePartNumber(value || '');
+    if (parsedPartNumber !== null) return buildPartTitle(parsedPartNumber);
+
+    const trimmed = (value || '').trim();
+    if (trimmed) return trimmed;
+    return buildPartTitle(fallbackIndex + 1);
+};
+
+const extractPartNumber = (title: string) => parsePartNumber(title || '');
 
 const getNextPartNumber = (existingParts: StoryPart[]) => {
     const highestFromTitles = existingParts.reduce((highest, part) => {
@@ -509,8 +525,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         return buildPartTitle(index + 1);
     };
     const buildPartSlugFromTitle = (rawTitle: string, index: number) => {
+        const parsedPartNumber = parsePartNumber(rawTitle || '');
+        if (parsedPartNumber !== null) return buildPartSlug(parsedPartNumber);
+
         const normalizedTitle = normalizeLegacyPartTitle(rawTitle || '', index);
-        return normalizePartSlug(normalizedTitle) || String(index + 1);
+        return normalizePartSlug(normalizedTitle) || buildPartSlug(index + 1);
     };
 
     const updatePart = (
@@ -1054,7 +1073,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                                 />
                                             </div>
                                             <div className="part-url-wrap" title="Part URL auto sync with title">
-                                                <span className="part-url-prefix">/part/</span>
+                                                <span className="part-url-prefix">/</span>
                                                 <input
                                                     type="text"
                                                     value={partUrlPreview}

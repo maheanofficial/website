@@ -319,7 +319,7 @@ const mapRowToStory = (row: StoryRow): Story => {
     const rowTags = toStringArray(row.tags);
     const rowParts = toStoryParts(row.parts);
     const fallbackParts = content
-        ? [{ id: `${row.id}-part-1`, title: 'Part 01', content }]
+        ? [{ id: `${row.id}-part-1`, title: '01', content }]
         : [];
     const legacyMeta = parsedExcerpt.meta;
     const rawLegacyParts = legacyMeta?.parts?.length ? legacyMeta.parts : [];

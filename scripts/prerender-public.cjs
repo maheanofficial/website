@@ -516,18 +516,38 @@ const BANGLA_DIGIT_TO_LATIN = {
 };
 
 const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+const ENGLISH_PART_TITLE_REGEX = /^part\s*[-: ]*\s*([\u09e6-\u09ef0-9]+)$/iu;
+const NUMERIC_PART_TITLE_REGEX = /^[\u09e6-\u09ef0-9]+$/u;
+
+const parsePartNumberFromTitle = (title) => {
+  const trimmed = String(title || '').trim();
+  if (!trimmed) return null;
+
+  let digitSource = '';
+  const legacyMatch = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+  const englishMatch = trimmed.match(ENGLISH_PART_TITLE_REGEX);
+  if (legacyMatch) {
+    digitSource = legacyMatch[1];
+  } else if (englishMatch) {
+    digitSource = englishMatch[1];
+  } else if (NUMERIC_PART_TITLE_REGEX.test(trimmed)) {
+    digitSource = trimmed;
+  } else {
+    return null;
+  }
+
+  const normalizedDigits = String(digitSource).replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+  const parsed = Number.parseInt(normalizedDigits, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return null;
+  return parsed;
+};
 
 const normalizeLegacyPartTitle = (title, index) => {
   const fallback = buildFallbackPartTitle(index);
   const trimmed = String(title || '').trim();
   if (!trimmed) return fallback;
-
-  const match = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
-  if (!match) return trimmed;
-
-  const normalizedDigits = String(match[1]).replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
-  const parsed = Number.parseInt(normalizedDigits, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  const parsed = parsePartNumberFromTitle(trimmed);
+  if (parsed === null) return trimmed;
   return `Part ${String(parsed).padStart(2, '0')}`;
 };
 
@@ -559,7 +579,7 @@ const normalizeStoryParts = (story) => {
 const toStoryPartSegment = (part, index) => {
   const fromTitle = slugify(normalizeLegacyPartTitle(part?.title, index));
   const custom = slugify(typeof part?.slug === 'string' ? part.slug : '');
-  return fromTitle || custom || String(index + 1);
+  return custom || fromTitle || String(index + 1);
 };
 
 const fetchStoryRows = async () => {
@@ -597,7 +617,7 @@ const toStoryPartSeos = (story) => {
   const parts = normalizeStoryParts(story);
   return parts.map((part, index) => {
     const partTitle = normalizeLegacyPartTitle(part.title, index) || buildFallbackPartTitle(index);
-    const pathValue = `/stories/${encodeURIComponent(segment)}/part/${encodeURIComponent(toStoryPartSegment(part, index))}`;
+    const pathValue = `/stories/${encodeURIComponent(segment)}/${encodeURIComponent(toStoryPartSegment(part, index))}`;
     const canonicalUrl = `${SITE_URL}${pathValue}`;
 
     const description =

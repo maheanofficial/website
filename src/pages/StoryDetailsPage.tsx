@@ -13,7 +13,7 @@ import AdComponent from '../components/AdComponent';
 import './StoryDetailsPage.css';
 
 const StoryDetailsPage = () => {
-    // Routes can be /stories/:id/part/:partNumber or /stories/:slug/part/:partNumber
+    // Routes can be /stories/:id/:partNumber or legacy /stories/:id/part/:partNumber
     const navigate = useNavigate();
     const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
     const [story, setStory] = useState<Story | null>(null);
@@ -40,6 +40,8 @@ const StoryDetailsPage = () => {
         '\u09ef': '9'
     };
     const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+    const ENGLISH_PART_TITLE_REGEX = /^part\s*[-: ]*\s*([\u09e6-\u09ef0-9]+)$/iu;
+    const NUMERIC_PART_TITLE_REGEX = /^[\u09e6-\u09ef0-9]+$/u;
     const normalizeDisplayText = (value: string | undefined) => decodeBanglaUnicodeEscapes(value || '').trim();
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
     const parseRequestedPartNumber = (value?: string) => {
@@ -48,25 +50,42 @@ const StoryDetailsPage = () => {
         if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
     };
+    const parsePartNumberFromTitle = (value?: string) => {
+        const trimmed = normalizeDisplayText(value);
+        if (!trimmed) return null;
+
+        let digitSource = '';
+        const legacyMatch = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+        const englishMatch = trimmed.match(ENGLISH_PART_TITLE_REGEX);
+        if (legacyMatch) {
+            digitSource = legacyMatch[1];
+        } else if (englishMatch) {
+            digitSource = englishMatch[1];
+        } else if (NUMERIC_PART_TITLE_REGEX.test(trimmed)) {
+            digitSource = trimmed;
+        } else {
+            return null;
+        }
+
+        const normalizedDigits = digitSource.replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+        const parsed = Number.parseInt(normalizedDigits, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) return null;
+        return parsed;
+    };
     const normalizePartKey = (value?: string) => slugify((value || '').trim());
     const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
     const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
         const fallback = buildFallbackPartLabel(partIndex);
         const trimmedTitle = normalizeDisplayText(value);
         if (!trimmedTitle) return fallback;
-
-        const match = trimmedTitle.match(LEGACY_BANGLA_PART_TITLE_REGEX);
-        if (!match) return trimmedTitle;
-
-        const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
-        const parsed = Number.parseInt(normalizedDigits, 10);
-        if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-        return `Part ${String(parsed).padStart(2, '0')}`;
+        const parsedPartNumber = parsePartNumberFromTitle(trimmedTitle);
+        if (parsedPartNumber === null) return trimmedTitle;
+        return `Part ${String(parsedPartNumber).padStart(2, '0')}`;
     };
     const getPartSegment = (part: StoryPart | undefined, partIndex: number) => {
         const titleBased = normalizePartKey(normalizePartTitleForDisplay(part?.title, partIndex));
         const custom = normalizePartKey(part?.slug);
-        return titleBased || custom || String(partIndex + 1);
+        return custom || titleBased || String(partIndex + 1);
     };
     const resolvePartIndexFromParam = (parts: StoryPart[], value?: string) => {
         if (!parts.length) return 0;
@@ -91,7 +110,7 @@ const StoryDetailsPage = () => {
         if (meaningfulParts.length > 0) return meaningfulParts;
         return [{
             id: sourceParts[0]?.id || '1',
-            title: sourceParts[0]?.title || 'Part 01',
+            title: sourceParts[0]?.title || '01',
             content: entry.content || ''
         }];
     };
@@ -165,7 +184,7 @@ const StoryDetailsPage = () => {
         const parts = story.parts || [];
         const safePartIndex = resolvePartIndexFromParam(parts, partNumber);
         const desiredPartSegment = getPartSegment(parts[safePartIndex], safePartIndex);
-        const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(desiredPartSegment)}`;
+        const desiredPath = `/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(desiredPartSegment)}`;
         const currentSegment = (id || '').trim();
         const shouldReplaceSegment = currentSegment !== baseSegment;
         const requestedPartSegment = normalizePartKey(partNumber);
@@ -183,7 +202,7 @@ const StoryDetailsPage = () => {
         const partSegment = getPartSegment(parts[safePartIndex], safePartIndex);
         const baseSegment = (story.slug || String(story.id || '')).trim() || id;
         if (!baseSegment) return;
-        navigate(`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(partSegment)}`);
+        navigate(`/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(partSegment)}`);
     };
 
     useEffect(() => {
@@ -279,7 +298,7 @@ const StoryDetailsPage = () => {
     // Author Details
     const baseSegment = story.slug || story.id;
     const activePartSegment = getPartSegment(currentPart, activePartIndex);
-    const storyPath = `/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(activePartSegment)}`;
+    const storyPath = `/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(activePartSegment)}`;
     const canonicalUrl = `${SITE_URL}${storyPath}`;
     const ogImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const articleImage = ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`;

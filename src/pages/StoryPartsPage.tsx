@@ -33,19 +33,38 @@ const StoryPartsPage = () => {
         '\u09ef': '9'
     };
     const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+    const ENGLISH_PART_TITLE_REGEX = /^part\s*[-: ]*\s*([\u09e6-\u09ef0-9]+)$/iu;
+    const NUMERIC_PART_TITLE_REGEX = /^[\u09e6-\u09ef0-9]+$/u;
     const buildFallbackPartLabel = (partIndex: number) => `Part ${String(partIndex + 1).padStart(2, '0')}`;
+    const parsePartNumberFromTitle = (value?: string) => {
+        const trimmed = normalizeDisplayText(value);
+        if (!trimmed) return null;
+
+        let digitSource = '';
+        const legacyMatch = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+        const englishMatch = trimmed.match(ENGLISH_PART_TITLE_REGEX);
+        if (legacyMatch) {
+            digitSource = legacyMatch[1];
+        } else if (englishMatch) {
+            digitSource = englishMatch[1];
+        } else if (NUMERIC_PART_TITLE_REGEX.test(trimmed)) {
+            digitSource = trimmed;
+        } else {
+            return null;
+        }
+
+        const normalizedDigits = digitSource.replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+        const parsed = Number.parseInt(normalizedDigits, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) return null;
+        return parsed;
+    };
     const normalizePartTitleForDisplay = (value: string | undefined, partIndex: number) => {
         const fallback = buildFallbackPartLabel(partIndex);
         const trimmedTitle = normalizeDisplayText(value);
         if (!trimmedTitle) return fallback;
-
-        const match = trimmedTitle.match(LEGACY_BANGLA_PART_TITLE_REGEX);
-        if (!match) return trimmedTitle;
-
-        const normalizedDigits = match[1].replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
-        const parsed = Number.parseInt(normalizedDigits, 10);
-        if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-        return `Part ${String(parsed).padStart(2, '0')}`;
+        const parsedPartNumber = parsePartNumberFromTitle(trimmedTitle);
+        if (parsedPartNumber === null) return trimmedTitle;
+        return `Part ${String(parsedPartNumber).padStart(2, '0')}`;
     };
     const getReadableParts = (entry: Story): StoryPart[] => {
         const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
@@ -53,7 +72,7 @@ const StoryPartsPage = () => {
         if (meaningfulParts.length > 0) return meaningfulParts;
         return [{
             id: sourceParts[0]?.id || '1',
-            title: sourceParts[0]?.title || 'Part 01',
+            title: sourceParts[0]?.title || '01',
             content: entry.content || ''
         }];
     };
@@ -77,7 +96,7 @@ const StoryPartsPage = () => {
     const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
         const normalizedTitleSlug = slugify(normalizePartTitleForDisplay(part?.title, partIndex));
         const normalizedCustomSlug = slugify(normalizeDisplayText(part?.slug));
-        return normalizedTitleSlug || normalizedCustomSlug || String(partIndex + 1);
+        return normalizedCustomSlug || normalizedTitleSlug || String(partIndex + 1);
     };
 
     useEffect(() => {
@@ -151,7 +170,7 @@ const StoryPartsPage = () => {
             '@type': 'ListItem',
             position: index + 1,
             name: getPartLabel(part, index),
-            url: `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(part, index))}`
+            url: `${SITE_URL}/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(part, index))}`
         }))
     };
 
@@ -190,7 +209,7 @@ const StoryPartsPage = () => {
                             {displayStoryAuthor} | {formatLongDate(story.date)}
                         </p>
                         <p className="story-parts-excerpt">{displayStoryExcerpt || getPartPreview(parts[0])}</p>
-                        <Link to={`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
+                        <Link to={`/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(parts[0], 0))}`} className="story-parts-start-btn">
                             <Play size={16} />
                             <span>Start from Part 1</span>
                         </Link>
@@ -209,7 +228,7 @@ const StoryPartsPage = () => {
                             return (
                                 <Link
                                     key={part.id || `${story.id}-part-picker-${index + 1}`}
-                                    to={`/stories/${encodeURIComponent(baseSegment)}/part/${encodeURIComponent(toPartSegment(part, index))}`}
+                                    to={`/stories/${encodeURIComponent(baseSegment)}/${encodeURIComponent(toPartSegment(part, index))}`}
                                     className="story-part-list-item"
                                 >
                                     <div className="story-part-list-left">

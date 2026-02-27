@@ -80,6 +80,7 @@ function App() {
             <Route path="/authors" element={<AuthorsPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/tags" element={<TagsPage />} />
+            <Route path="/stories/:id/:partNumber" element={<StoryDetailsPage />} />
             <Route path="/stories/:id/part/:partNumber" element={<StoryDetailsPage />} />
             <Route path="/stories/:id" element={<StoryPartsPage />} />
             <Route path="/login" element={<SubmitStoryPage />} />
