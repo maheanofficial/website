@@ -98,6 +98,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [coverImage, setCoverImage] = useState('');
     const [parts, setParts] = useState<StoryPart[]>([{ id: '1', title: buildPartTitle(1), slug: '', content: '' }]);
     const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+    const isAuthExpiredMessage = (message?: string) =>
+        (message || '').toLowerCase().includes('authentication is required');
 
     const loadData = useCallback(async () => {
         const [allStories, categoriesData, authorData] = await Promise.all([
@@ -632,6 +634,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         };
         const saveResult = await saveStory(newStory);
         if (!saveResult.success || !saveResult.synced) {
+            if (isAuthExpiredMessage(saveResult.message)) {
+                alert('Your login session expired. Please log in again, then retry update.');
+                navigate('/login');
+                return;
+            }
             alert(saveResult.message || serverSyncErrorMessage);
             return;
         }
@@ -653,6 +660,11 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             : (isPublic ? 'draft' : 'pending');
         const saveResult = await saveStory({ ...story, status: nextStatus });
         if (!saveResult.success || !saveResult.synced) {
+            if (isAuthExpiredMessage(saveResult.message)) {
+                alert('Your login session expired. Please log in again, then retry update.');
+                navigate('/login');
+                return;
+            }
             alert(saveResult.message || serverSyncErrorMessage);
             return;
         }

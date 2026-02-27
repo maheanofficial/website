@@ -96,6 +96,12 @@ const readSession = (): SessionLike | null => {
         if (!raw) return null;
         const parsed = JSON.parse(raw) as SessionLike;
         if (!parsed?.user?.id) return null;
+        const expiresAt = Number(parsed.expires_at);
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (Number.isFinite(expiresAt) && expiresAt > 0 && expiresAt <= nowSec) {
+            localStorage.removeItem(SESSION_KEY);
+            return null;
+        }
         return parsed;
     } catch {
         return null;
