@@ -241,6 +241,17 @@ jobs:
             echo "[deploy] synced static SEO files to ${TARGET_DIR}"
           done
 
+          for FILE_NAME in ads.txt sitemap.xml robots.txt; do
+            SOURCE_FILE="${APP_DIR_VALUE}/${FILE_NAME}"
+            if [ ! -f "${SOURCE_FILE}" ]; then
+              continue
+            fi
+            while IFS= read -r TARGET_FILE; do
+              cp -f "${SOURCE_FILE}" "${TARGET_FILE}" || true
+              echo "[deploy] synced ${FILE_NAME} -> ${TARGET_FILE}"
+            done < <(find "${HOME_DIR}" -maxdepth 6 -type f -path "*/public_html/${FILE_NAME}" 2>/dev/null)
+          done
+
           touch "${APP_DIR_VALUE}/tmp/restart.txt"
           EOS
           )
