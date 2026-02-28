@@ -21,6 +21,7 @@ jobs:
       DEPLOY_BUNDLE: deploy-${{ github.sha }}.tgz
       APP_DIR: ${{ secrets.CPANEL_APP_DIR }}
       NODE_VENV_ACTIVATE: ${{ secrets.CPANEL_NODE_VENV_ACTIVATE }}
+      STATIC_ROOT_DIR: ${{ secrets.CPANEL_STATIC_ROOT_DIR }}
       HEALTHCHECK_URL: https://www.mahean.com/healthz
       CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
       CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
@@ -169,6 +170,7 @@ jobs:
           if [ -z "${APP_DIR_VALUE}" ]; then
             APP_DIR_VALUE="${HOME_DIR}/main_mahean.com"
           fi
+          STATIC_ROOT_VALUE="${STATIC_ROOT_DIR}"
           NODE_VENV_VALUE="${NODE_VENV_ACTIVATE}"
           APP_NAME="$(basename "${APP_DIR_VALUE}")"
           echo "[deploy] home=${HOME_DIR}"
@@ -216,6 +218,29 @@ jobs:
             echo "[deploy] warning: db:init failed in SSH shell (often missing app env). Continuing..."
           fi
           npm run db:fix-encoding || true
+          STATIC_TARGETS=()
+          if [ -n "${STATIC_ROOT_VALUE}" ]; then
+            STATIC_TARGETS+=("${STATIC_ROOT_VALUE}")
+          fi
+          STATIC_TARGETS+=("${HOME_DIR}/public_html")
+          STATIC_TARGETS+=("${HOME_DIR}/www")
+
+          for TARGET_DIR in "${STATIC_TARGETS[@]}"; do
+            if [ -z "${TARGET_DIR}" ] || [ ! -d "${TARGET_DIR}" ]; then
+              continue
+            fi
+            if [ -f "${APP_DIR_VALUE}/ads.txt" ]; then
+              cp -f "${APP_DIR_VALUE}/ads.txt" "${TARGET_DIR}/ads.txt" || true
+            fi
+            if [ -f "${APP_DIR_VALUE}/sitemap.xml" ]; then
+              cp -f "${APP_DIR_VALUE}/sitemap.xml" "${TARGET_DIR}/sitemap.xml" || true
+            fi
+            if [ -f "${APP_DIR_VALUE}/robots.txt" ]; then
+              cp -f "${APP_DIR_VALUE}/robots.txt" "${TARGET_DIR}/robots.txt" || true
+            fi
+            echo "[deploy] synced static SEO files to ${TARGET_DIR}"
+          done
+
           touch "${APP_DIR_VALUE}/tmp/restart.txt"
           EOS
           )
@@ -227,7 +252,7 @@ jobs:
             sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (password)'"
             sshpass -e scp ${scp_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
             sshpass -e ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
-              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
+              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' STATIC_ROOT_DIR='${STATIC_ROOT_DIR}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           }
 
           run_key_deploy() {
@@ -236,7 +261,7 @@ jobs:
             ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" "echo '[ssh] auth ok (key)'"
             scp ${scp_opts} "${DEPLOY_BUNDLE}" "${CPANEL_USER}@${HOST_VALUE}:~/${DEPLOY_BUNDLE}"
             ssh ${ssh_opts} "${CPANEL_USER}@${HOST_VALUE}" \
-              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
+              "APP_DIR='${APP_DIR}' NODE_VENV_ACTIVATE='${NODE_VENV_ACTIVATE}' STATIC_ROOT_DIR='${STATIC_ROOT_DIR}' DEPLOY_BUNDLE='${DEPLOY_BUNDLE}' bash -s" <<< "${remote_script}"
           }
 
           if [ "${AUTH_MODE}" = "password" ]; then
