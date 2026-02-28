@@ -64,7 +64,6 @@ const STATIC_SEO_MIN_INTERVAL_MS = Number.parseInt(process.env.SEO_SYNC_MIN_INTE
 
 let seoSyncInFlight = null;
 let seoSyncLastRunAt = 0;
-const STATIC_WEB_ROOT_PATH_PATTERN = /[\\/](public_html|www|htdocs)(?:[\\/]|$)/i;
 
 const MIME_TYPES = {
     '.avif': 'image/avif',
@@ -396,9 +395,7 @@ const discoverExistingSeoTargets = async () => {
                 const lowerFileName = entry.name.toLowerCase();
                 if (!STATIC_SEO_FILE_NAMES.has(lowerFileName)) continue;
                 const fullPath = path.join(currentDir, entry.name);
-                const normalizedPath = normalizeFsPath(fullPath);
-                if (!STATIC_WEB_ROOT_PATH_PATTERN.test(normalizedPath)) continue;
-                discoveredByFile.get(lowerFileName)?.add(normalizedPath);
+                discoveredByFile.get(lowerFileName)?.add(normalizeFsPath(fullPath));
                 continue;
             }
 
