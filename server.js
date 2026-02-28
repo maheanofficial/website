@@ -20,6 +20,24 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, 'dist');
 const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
 const NOT_FOUND_HTML_PATH = path.join(DIST_DIR, '404.html');
+const HOME_DIR = process.env.HOME || process.env.USERPROFILE || '';
+
+const STATIC_SEO_SYNC_FILES = [
+    { source: path.join(DIST_DIR, 'ads.txt'), fileName: 'ads.txt' },
+    { source: path.join(DIST_DIR, 'sitemap.xml'), fileName: 'sitemap.xml' },
+    { source: path.join(DIST_DIR, 'robots.txt'), fileName: 'robots.txt' }
+];
+
+const STATIC_SEO_TARGET_DIRS = Array.from(new Set(
+    [
+        __dirname,
+        path.resolve(__dirname, '..'),
+        HOME_DIR ? path.join(HOME_DIR, 'public_html') : '',
+        HOME_DIR ? path.join(HOME_DIR, 'www') : '',
+        path.resolve(__dirname, '..', 'public_html'),
+        path.resolve(__dirname, '..', 'www')
+    ].filter(Boolean)
+));
 
 const MIME_TYPES = {
     '.avif': 'image/avif',
@@ -397,7 +415,30 @@ server.requestTimeout = 60_000;
 server.headersTimeout = 65_000;
 server.keepAliveTimeout = 5_000;
 
+const syncStaticSeoFiles = async () => {
+    for (const entry of STATIC_SEO_SYNC_FILES) {
+        let payload = null;
+        try {
+            payload = await fsp.readFile(entry.source);
+        } catch {
+            continue;
+        }
+
+        for (const targetDir of STATIC_SEO_TARGET_DIRS) {
+            try {
+                const targetStat = await fsp.stat(targetDir).catch(() => null);
+                if (!targetStat?.isDirectory()) continue;
+                const targetFilePath = path.join(targetDir, entry.fileName);
+                await fsp.writeFile(targetFilePath, payload);
+            } catch (error) {
+                console.warn(`[seo-sync] Failed to sync ${entry.fileName} to ${targetDir}:`, error?.message || error);
+            }
+        }
+    }
+};
+
 const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    void syncStaticSeoFiles();
 });
