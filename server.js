@@ -30,14 +30,41 @@ const STATIC_SEO_SYNC_FILES = [
 
 const STATIC_SEO_TARGET_DIRS = Array.from(new Set(
     [
-        __dirname,
-        path.resolve(__dirname, '..'),
+        process.env.STATIC_SEO_ROOT_DIR || '',
         HOME_DIR ? path.join(HOME_DIR, 'public_html') : '',
         HOME_DIR ? path.join(HOME_DIR, 'www') : '',
         path.resolve(__dirname, '..', 'public_html'),
         path.resolve(__dirname, '..', 'www')
     ].filter(Boolean)
 ));
+
+const STATIC_SEO_DISCOVERY_ROOTS = Array.from(new Set(
+    [
+        ...STATIC_SEO_TARGET_DIRS,
+        HOME_DIR,
+    ].filter(Boolean)
+));
+
+const STATIC_SEO_FILE_NAMES = new Set(['ads.txt', 'sitemap.xml', 'robots.txt']);
+const STATIC_SEO_DESCEND_BLOCKLIST = new Set([
+    '.git',
+    '.github',
+    'node_modules',
+    'vendor',
+    'cache',
+    'caches',
+    'tmp',
+    'temp',
+    'logs',
+    'log'
+]);
+const STATIC_SEO_SCAN_MAX_DEPTH = Number.parseInt(process.env.SEO_SYNC_SCAN_DEPTH || '', 10) || 6;
+const STATIC_SEO_SCAN_MAX_DIRS = Number.parseInt(process.env.SEO_SYNC_SCAN_MAX_DIRS || '', 10) || 2000;
+const STATIC_SEO_MIN_INTERVAL_MS = Number.parseInt(process.env.SEO_SYNC_MIN_INTERVAL_MS || '', 10) || 300_000;
+
+let seoSyncInFlight = null;
+let seoSyncLastRunAt = 0;
+const STATIC_WEB_ROOT_PATH_PATTERN = /[\\/](public_html|www|htdocs)(?:[\\/]|$)/i;
 
 const MIME_TYPES = {
     '.avif': 'image/avif',
@@ -314,6 +341,165 @@ const isKnownSpaRoute = (pathname) =>
     SPA_EXACT_PATHS.has(pathname)
     || SPA_PREFIX_PATHS.some((prefix) => pathname.startsWith(prefix));
 
+const normalizeFsPath = (value) => path.resolve(String(value || ''));
+
+const shouldDescendDirectory = (parentDir, entryName, depth) => {
+    const normalizedName = String(entryName || '').trim();
+    if (!normalizedName) return false;
+    const lowerName = normalizedName.toLowerCase();
+    if (lowerName.startsWith('.')) return false;
+    if (STATIC_SEO_DESCEND_BLOCKLIST.has(lowerName)) return false;
+
+    if (depth <= 1) return true;
+
+    const parentLower = String(parentDir || '').toLowerCase();
+    const relevantPattern = /(public_html|www|htdocs|mahean|domain|site|web)/i;
+    if (relevantPattern.test(lowerName) || relevantPattern.test(parentLower)) {
+        return true;
+    }
+
+    return depth <= 3;
+};
+
+const discoverExistingSeoTargets = async () => {
+    const discoveredByFile = new Map();
+    STATIC_SEO_FILE_NAMES.forEach((fileName) => {
+        discoveredByFile.set(fileName, new Set());
+    });
+
+    const queue = STATIC_SEO_DISCOVERY_ROOTS
+        .map((dirPath) => ({
+            dirPath: normalizeFsPath(dirPath),
+            depth: 0
+        }));
+    const visitedDirs = new Set();
+
+    while (queue.length > 0 && visitedDirs.size < STATIC_SEO_SCAN_MAX_DIRS) {
+        const next = queue.shift();
+        if (!next?.dirPath) continue;
+
+        const currentDir = next.dirPath;
+        if (visitedDirs.has(currentDir)) continue;
+        visitedDirs.add(currentDir);
+
+        let entries;
+        try {
+            const stat = await fsp.stat(currentDir);
+            if (!stat.isDirectory()) continue;
+            entries = await fsp.readdir(currentDir, { withFileTypes: true });
+        } catch {
+            continue;
+        }
+
+        for (const entry of entries) {
+            if (entry.isFile()) {
+                const lowerFileName = entry.name.toLowerCase();
+                if (!STATIC_SEO_FILE_NAMES.has(lowerFileName)) continue;
+                const fullPath = path.join(currentDir, entry.name);
+                const normalizedPath = normalizeFsPath(fullPath);
+                if (!STATIC_WEB_ROOT_PATH_PATTERN.test(normalizedPath)) continue;
+                discoveredByFile.get(lowerFileName)?.add(normalizedPath);
+                continue;
+            }
+
+            if (!entry.isDirectory()) continue;
+            if (next.depth >= STATIC_SEO_SCAN_MAX_DEPTH) continue;
+            if (!shouldDescendDirectory(currentDir, entry.name, next.depth)) continue;
+
+            queue.push({
+                dirPath: normalizeFsPath(path.join(currentDir, entry.name)),
+                depth: next.depth + 1
+            });
+        }
+    }
+
+    return discoveredByFile;
+};
+
+const syncStaticSeoFiles = async () => {
+    const sourcePayloadByName = new Map();
+    const sourcePathsByName = new Map();
+
+    for (const entry of STATIC_SEO_SYNC_FILES) {
+        const lowerFileName = entry.fileName.toLowerCase();
+        if (!STATIC_SEO_FILE_NAMES.has(lowerFileName)) continue;
+        try {
+            const payload = await fsp.readFile(entry.source);
+            sourcePayloadByName.set(lowerFileName, payload);
+            sourcePathsByName.set(lowerFileName, normalizeFsPath(entry.source));
+        } catch {
+            // Ignore missing source assets.
+        }
+    }
+
+    if (sourcePayloadByName.size === 0) {
+        return;
+    }
+
+    const targetFiles = new Map();
+    sourcePayloadByName.forEach((_, fileName) => {
+        targetFiles.set(fileName, new Set());
+    });
+
+    for (const targetDir of STATIC_SEO_TARGET_DIRS) {
+        let stat = null;
+        try {
+            stat = await fsp.stat(targetDir);
+        } catch {
+            continue;
+        }
+        if (!stat?.isDirectory()) continue;
+
+        sourcePayloadByName.forEach((_, fileName) => {
+            targetFiles.get(fileName)?.add(normalizeFsPath(path.join(targetDir, fileName)));
+        });
+    }
+
+    const discoveredTargets = await discoverExistingSeoTargets();
+    discoveredTargets.forEach((paths, fileName) => {
+        const collection = targetFiles.get(fileName);
+        if (!collection) return;
+        paths.forEach((targetPath) => collection.add(normalizeFsPath(targetPath)));
+    });
+
+    for (const [fileName, paths] of targetFiles.entries()) {
+        const payload = sourcePayloadByName.get(fileName);
+        const sourcePath = sourcePathsByName.get(fileName);
+        if (!payload || !sourcePath) continue;
+
+        for (const targetPath of paths) {
+            if (!targetPath || targetPath === sourcePath) continue;
+            try {
+                await fsp.writeFile(targetPath, payload);
+            } catch (error) {
+                console.warn(`[seo-sync] Failed to sync ${fileName} to ${targetPath}:`, error?.message || error);
+            }
+        }
+    }
+};
+
+const triggerSeoSync = (force = false) => {
+    const now = Date.now();
+    if (!force && seoSyncLastRunAt && (now - seoSyncLastRunAt) < STATIC_SEO_MIN_INTERVAL_MS) {
+        return seoSyncInFlight;
+    }
+
+    if (seoSyncInFlight) {
+        return seoSyncInFlight;
+    }
+
+    seoSyncLastRunAt = now;
+    seoSyncInFlight = syncStaticSeoFiles()
+        .catch((error) => {
+            console.warn('[seo-sync] Static SEO sync failed:', error?.message || error);
+        })
+        .finally(() => {
+            seoSyncInFlight = null;
+        });
+
+    return seoSyncInFlight;
+};
+
 const handleRequest = async (req, res) => {
     applySecurityHeaders(req, res);
 
@@ -323,6 +509,7 @@ const handleRequest = async (req, res) => {
     const method = (req.method || 'GET').toUpperCase();
 
     if (pathname === '/healthz') {
+        void triggerSeoSync(false);
         sendText(res, 200, 'ok');
         return;
     }
@@ -415,30 +602,8 @@ server.requestTimeout = 60_000;
 server.headersTimeout = 65_000;
 server.keepAliveTimeout = 5_000;
 
-const syncStaticSeoFiles = async () => {
-    for (const entry of STATIC_SEO_SYNC_FILES) {
-        let payload = null;
-        try {
-            payload = await fsp.readFile(entry.source);
-        } catch {
-            continue;
-        }
-
-        for (const targetDir of STATIC_SEO_TARGET_DIRS) {
-            try {
-                const targetStat = await fsp.stat(targetDir).catch(() => null);
-                if (!targetStat?.isDirectory()) continue;
-                const targetFilePath = path.join(targetDir, entry.fileName);
-                await fsp.writeFile(targetFilePath, payload);
-            } catch (error) {
-                console.warn(`[seo-sync] Failed to sync ${entry.fileName} to ${targetDir}:`, error?.message || error);
-            }
-        }
-    }
-};
-
 const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-    void syncStaticSeoFiles();
+    void triggerSeoSync(true);
 });
