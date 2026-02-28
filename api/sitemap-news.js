@@ -129,15 +129,61 @@ const toPartSegment = (part, index) => {
     return custom || byTitle || String(index + 1);
 };
 
+const fetchStoriesFromDbApi = async () => {
+    let timeoutId = null;
+    try {
+        const controller = new AbortController();
+        timeoutId = setTimeout(() => controller.abort(), 8_000);
+        const response = await fetch(`${SITE_URL}/api/db`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                table: 'stories',
+                action: 'select',
+                columns: '*',
+                orderBy: {
+                    column: 'updated_at',
+                    ascending: false
+                }
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        timeoutId = null;
+        if (!response.ok) return [];
+        const payload = await response.json().catch(() => null);
+        return Array.isArray(payload?.data) ? payload.data : [];
+    } catch (error) {
+        console.warn('[sitemap-news] Failed to load story rows from /api/db:', error?.message || error);
+        return [];
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+};
+
+const fetchStoryRows = async () => {
+    let directRows = [];
+    try {
+        const rows = await listRows('stories', {
+            orderBy: { column: 'updated_at', ascending: false }
+        });
+        directRows = Array.isArray(rows) ? rows : [];
+    } catch (error) {
+        console.warn('[sitemap-news] Failed to load story rows from table store:', error?.message || error);
+    }
+
+    const apiRows = await fetchStoriesFromDbApi();
+    return apiRows.length > directRows.length ? apiRows : directRows;
+};
+
 const buildNewsEntries = async () => {
     const nowMs = Date.now();
     const entries = [];
     const seenLocs = new Set();
 
-    const rows = await listRows('stories', {
-        orderBy: { column: 'updated_at', ascending: false }
-    });
-    const stories = Array.isArray(rows) ? rows : [];
+    const stories = await fetchStoryRows();
 
     for (const story of stories) {
         if (!isPublicStory(story)) continue;

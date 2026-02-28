@@ -12,6 +12,7 @@ import sitemapHandler from './api/sitemap.js';
 import sitemapNewsHandler from './api/sitemap-news.js';
 import storyRedirectHandler from './api/story-redirect.js';
 import uploadImageHandler from './api/upload-image.js';
+import { tryServeStorySeoPage } from './api/_story-seo-page.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -355,6 +356,18 @@ const handleRequest = async (req, res) => {
     }
 
     const hasExtension = Boolean(path.extname(pathname));
+    if (!hasExtension && isHtmlNavigation(req) && pathname.startsWith('/stories/')) {
+        const servedStorySeoPage = await tryServeStorySeoPage({
+            req,
+            res,
+            pathname,
+            indexHtmlPath: INDEX_HTML_PATH
+        });
+        if (servedStorySeoPage) {
+            return;
+        }
+    }
+
     if (!hasExtension && isHtmlNavigation(req) && isKnownSpaRoute(pathname)) {
         if (await serveFile(req, res, INDEX_HTML_PATH, 200)) {
             return;

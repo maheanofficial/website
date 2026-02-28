@@ -1,4 +1,5 @@
 const toTrimmed = (value: string | undefined) => (value || '').trim();
+const DEFAULT_ADSENSE_PUBLISHER_ID = 'ca-pub-6313362498664713';
 
 const normalizePublisherId = (value: string) => {
     if (!value) return '';
@@ -17,7 +18,9 @@ const parseBoolean = (value: string | undefined, defaultValue: boolean) => {
 
 const env = import.meta.env as Record<string, string | undefined>;
 
-export const ADSENSE_PUBLISHER_ID = normalizePublisherId(toTrimmed(env.VITE_ADSENSE_PUBLISHER_ID));
+export const ADSENSE_PUBLISHER_ID =
+    normalizePublisherId(toTrimmed(env.VITE_ADSENSE_PUBLISHER_ID))
+    || DEFAULT_ADSENSE_PUBLISHER_ID;
 export const ADSENSE_ENABLED = parseBoolean(env.VITE_ADSENSE_ENABLED, true) && Boolean(ADSENSE_PUBLISHER_ID);
 export const ADSENSE_SHOW_DEV_PLACEHOLDER = parseBoolean(env.VITE_ADSENSE_SHOW_DEV_PLACEHOLDER, true);
 
@@ -46,4 +49,3 @@ export const resolveAdSlot = (slotOrKey?: string) => {
 
     return '';
 };
-

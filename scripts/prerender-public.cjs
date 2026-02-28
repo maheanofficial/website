@@ -1,11 +1,13 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const DIST_INDEX = path.join(DIST_DIR, 'index.html');
 const STORIES_TABLE_PATH = path.join(ROOT_DIR, 'data', 'table-stories.json');
 const DEFAULT_SITE_URL = 'https://www.mahean.com';
+const DEFAULT_ADSENSE_PUBLISHER_ID = 'ca-pub-6313362498664713';
 const BUILD_MODE = process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
 const parseEnvLine = (line) => {
@@ -222,15 +224,13 @@ const normalizeAdsensePublisherId = (value) => {
 };
 
 const buildAdsenseVerificationBlock = (publisherId) => {
-  if (!publisherId) {
-    return `${ADSENSE_VERIFICATION_START}\n  ${ADSENSE_VERIFICATION_END}`;
-  }
+  const resolvedPublisherId = normalizeAdsensePublisherId(publisherId) || DEFAULT_ADSENSE_PUBLISHER_ID;
 
   return [
     ADSENSE_VERIFICATION_START,
-    `  <meta name="google-adsense-account" content="${publisherId}" />`,
+    `  <meta name="google-adsense-account" content="${resolvedPublisherId}" />`,
     '  <script id="google-adsense-script" async',
-    `    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}"`,
+    `    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${resolvedPublisherId}"`,
     '    crossorigin="anonymous"></script>',
     `  ${ADSENSE_VERIFICATION_END}`
   ].join('\n');
@@ -246,20 +246,12 @@ const applyAdsenseVerification = (html, publisherId) => {
 };
 
 const writeAdsTxt = async (publisherId) => {
-  const publisher = publisherId ? publisherId.replace(/^ca-/i, '') : '';
-
-  const adsTxtContent = publisher
-    ? `google.com, ${publisher}, DIRECT, ${ADSENSE_SELLER_ID}\n`
-    : [
-        '# Google AdSense ads.txt',
-        '# Configure VITE_ADSENSE_PUBLISHER_ID to auto-generate this file during build.',
-        '# Example:',
-        '# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0',
-        ''
-      ].join('\n');
+  const resolvedPublisherId = normalizeAdsensePublisherId(publisherId) || DEFAULT_ADSENSE_PUBLISHER_ID;
+  const publisher = resolvedPublisherId.replace(/^ca-/i, '');
+  const adsTxtContent = `google.com, ${publisher}, DIRECT, ${ADSENSE_SELLER_ID}\n`;
 
   await fs.writeFile(path.join(DIST_DIR, 'ads.txt'), adsTxtContent, 'utf8');
-  return Boolean(publisher);
+  return true;
 };
 
 const LEGACY_META_START = '__MAHEAN_META__:';
@@ -582,7 +574,7 @@ const toStoryPartSegment = (part, index) => {
   return custom || fromTitle || String(index + 1);
 };
 
-const fetchStoryRows = async () => {
+const readStoriesFromLocalTable = async () => {
   try {
     const raw = await fs.readFile(STORIES_TABLE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
@@ -594,6 +586,81 @@ const fetchStoryRows = async () => {
     console.warn('[prerender] unable to read stories table:', error);
     return [];
   }
+};
+
+const readStoriesFromApiStore = async () => {
+  try {
+    const tableStoreUrl = pathToFileURL(path.join(ROOT_DIR, 'api', '_table-store.js')).href;
+    const tableStoreModule = await import(tableStoreUrl);
+    if (typeof tableStoreModule?.listRows !== 'function') {
+      return [];
+    }
+    const rows = await tableStoreModule.listRows('stories', {
+      orderBy: { column: 'updated_at', ascending: false }
+    });
+    return Array.isArray(rows) ? repairDeep(rows) : [];
+  } catch (error) {
+    console.warn('[prerender] unable to read stories from table store:', error?.message || error);
+    return [];
+  }
+};
+
+const readStoriesFromPublicApi = async () => {
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 8_000);
+    const response = await fetch(`${SITE_URL}/api/db`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        table: 'stories',
+        action: 'select',
+        columns: '*',
+        orderBy: {
+          column: 'updated_at',
+          ascending: false
+        }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    timeoutId = null;
+    if (!response.ok) return [];
+    const payload = await response.json().catch(() => null);
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    return repairDeep(rows);
+  } catch (error) {
+    console.warn('[prerender] unable to read stories from public API:', error?.message || error);
+    return [];
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
+const fetchStoryRows = async () => {
+  const fromApiStore = await readStoriesFromApiStore();
+  const fromLocalTable = await readStoriesFromLocalTable();
+  const fromPublicApi = await readStoriesFromPublicApi();
+  const candidates = [
+    { label: 'table store', rows: fromApiStore },
+    { label: 'public API', rows: fromPublicApi },
+    { label: 'local JSON', rows: fromLocalTable }
+  ];
+  const selected = candidates
+    .slice()
+    .sort((left, right) => right.rows.length - left.rows.length)
+    .find((candidate) => candidate.rows.length > 0);
+
+  if (selected) {
+    console.log(`[prerender] story source: ${selected.label} (${selected.rows.length})`);
+    return selected.rows;
+  }
+
+  console.log('[prerender] story source: none');
+  return [];
 };
 
 const toStoryPartSeos = (story) => {
@@ -666,6 +733,94 @@ const parsePositiveInt = (value, fallback) => {
   return parsed;
 };
 
+const escapeXml = (value) =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const toDateOnly = (...values) => {
+  for (const value of values) {
+    const parsed = new Date(String(value || ''));
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+  return new Date().toISOString().slice(0, 10);
+};
+
+const toSitemapStaticEntries = () =>
+  staticRouteMeta
+    .filter((route) => !/\bnoindex\b/i.test(String(route.robots || '')))
+    .map((route) => ({
+      path: route.path,
+      changefreq: route.path === '/stories' ? 'daily' : 'weekly',
+      priority: route.path === '/' ? '1.0' : route.path === '/stories' ? '0.9' : '0.7',
+      lastmod: toDateOnly()
+    }));
+
+const writeSitemap = async (stories, maxStories, maxPartsPerStory) => {
+  const entries = [];
+  const seen = new Set();
+  const addEntry = (pathValue, changefreq, priority, lastmod) => {
+    if (!pathValue || seen.has(pathValue)) return;
+    seen.add(pathValue);
+    entries.push({
+      path: pathValue,
+      changefreq,
+      priority,
+      lastmod
+    });
+  };
+
+  toSitemapStaticEntries().forEach((entry) => {
+    addEntry(entry.path, entry.changefreq, entry.priority, entry.lastmod);
+  });
+
+  let includedStories = 0;
+  for (const story of stories) {
+    if (!isPublicStory(story)) continue;
+    if (includedStories >= maxStories) break;
+
+    const storySegment = toStorySegment(story);
+    if (!storySegment) continue;
+
+    includedStories += 1;
+    const lastmod = toDateOnly(story.updated_at, story.date, story.created_at);
+    const storyPath = `/stories/${encodeURIComponent(storySegment)}`;
+    addEntry(storyPath, 'daily', '0.9', lastmod);
+
+    const parts = normalizeStoryParts(story).slice(0, maxPartsPerStory);
+    parts.forEach((part, index) => {
+      const partSegment = toStoryPartSegment(part, index);
+      addEntry(
+        `${storyPath}/${encodeURIComponent(partSegment)}`,
+        'weekly',
+        '0.8',
+        lastmod
+      );
+    });
+  }
+
+  const xmlRows = entries.map((entry) => `  <url>
+    <loc>${escapeXml(`${SITE_URL}${entry.path}`)}</loc>
+    <lastmod>${entry.lastmod}</lastmod>
+    <changefreq>${entry.changefreq}</changefreq>
+    <priority>${entry.priority}</priority>
+  </url>`);
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${xmlRows.join('\n')}
+</urlset>
+`;
+
+  await fs.writeFile(path.join(DIST_DIR, 'sitemap.xml'), xml, 'utf8');
+  return entries.length;
+};
+
 
 const run = async () => {
   await loadEnvFiles();
@@ -675,7 +830,7 @@ const run = async () => {
       'ADSENSE_PUBLISHER_ID',
       'NEXT_PUBLIC_ADSENSE_PUBLISHER_ID'
     )
-  );
+  ) || DEFAULT_ADSENSE_PUBLISHER_ID;
 
   let template = await fs.readFile(DIST_INDEX, 'utf8');
   template = applyAdsenseVerification(template, ADSENSE_PUBLISHER_ID);
@@ -690,6 +845,8 @@ const run = async () => {
 
   const MAX_PARTS_PER_STORY = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_PARTS_PER_STORY'), 200);
   const MAX_STORY_ROUTES = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_STORY_ROUTES'), 5000);
+  const MAX_SITEMAP_STORIES = parsePositiveInt(pickFirstEnv('SITEMAP_MAX_STORIES'), 10000);
+  const MAX_SITEMAP_PARTS = parsePositiveInt(pickFirstEnv('SITEMAP_MAX_PARTS_PER_STORY'), 200);
 
   const stories = (await fetchStoryRows()).filter(isPublicStory);
   const uniquePaths = new Set();
@@ -706,8 +863,10 @@ const run = async () => {
     }
   }
 
+  const sitemapEntryCount = await writeSitemap(stories, MAX_SITEMAP_STORIES, MAX_SITEMAP_PARTS);
   const hasAdsensePublisher = await writeAdsTxt(ADSENSE_PUBLISHER_ID);
   console.log(`[prerender] generated ${generated} HTML routes (${uniquePaths.size} story routes).`);
+  console.log(`[prerender] sitemap generated (${sitemapEntryCount} URLs).`);
   console.log(
     `[prerender] ads.txt ${hasAdsensePublisher ? 'generated with AdSense publisher id.' : 'generated with placeholder comments.'}`
   );

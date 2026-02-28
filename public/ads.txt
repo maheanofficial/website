@@ -1,5 +1,1 @@
-# Google AdSense ads.txt
-# Local/dev fallback only.
-# Production build overwrites dist/ads.txt from VITE_ADSENSE_PUBLISHER_ID when configured.
-# Example:
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+google.com, pub-6313362498664713, DIRECT, f08c47fec0942fa0
