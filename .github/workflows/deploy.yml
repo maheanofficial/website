@@ -54,6 +54,15 @@ jobs:
           cp package.json deploy/package.json
           cp package-lock.json deploy/package-lock.json
           cp server.js deploy/server.js
+          if [ -f dist/ads.txt ]; then
+            cp dist/ads.txt deploy/ads.txt
+          fi
+          if [ -f dist/sitemap.xml ]; then
+            cp dist/sitemap.xml deploy/sitemap.xml
+          fi
+          if [ -f dist/robots.txt ]; then
+            cp dist/robots.txt deploy/robots.txt
+          fi
           if [ -d data ]; then
             cp -r data deploy/data
           fi
