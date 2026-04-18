@@ -20,6 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DIST_DIR = path.join(__dirname, 'dist');
+const PUBLIC_DIR = path.join(__dirname, 'public');
 const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
 const NOT_FOUND_HTML_PATH = path.join(DIST_DIR, '404.html');
 const HOME_DIR = process.env.HOME || process.env.USERPROFILE || '';
@@ -296,15 +297,31 @@ const isNotModified = (req, stat, etag) => {
 };
 
 const serveFile = async (req, res, filePath, statusCode = 200) => {
-    const stat = await existsFile(filePath);
+    let stat = await existsFile(filePath);
+    let resolvedFilePath = filePath;
+
+    if (!stat) {
+        // Fallback for cache-busted database image names that don't match the file system.
+        // Strips patterns like "-cb202603311808-1" from the filename.
+        const parsedPath = path.parse(filePath);
+        const strippedName = parsedPath.name.replace(/-cb\d+(-\d+)?$/, '');
+        if (strippedName !== parsedPath.name) {
+            const fallbackPath = path.join(parsedPath.dir, strippedName + parsedPath.ext);
+            stat = await existsFile(fallbackPath);
+            if (stat) {
+                resolvedFilePath = fallbackPath;
+            }
+        }
+    }
+
     if (!stat) {
         return false;
     }
 
     const etag = toEtag(stat);
     res.statusCode = statusCode;
-    res.setHeader('Content-Type', toMimeType(filePath));
-    res.setHeader('Cache-Control', toCacheControl(filePath));
+    res.setHeader('Content-Type', toMimeType(resolvedFilePath));
+    res.setHeader('Cache-Control', toCacheControl(resolvedFilePath));
     res.setHeader('Last-Modified', stat.mtime.toUTCString());
     res.setHeader('ETag', etag);
 
@@ -322,7 +339,7 @@ const serveFile = async (req, res, filePath, statusCode = 200) => {
         return true;
     }
 
-    const stream = fs.createReadStream(filePath);
+    const stream = fs.createReadStream(resolvedFilePath);
     stream.on('error', (error) => {
         if (!res.headersSent) {
             sendText(res, 500, 'Failed to read static file.');
@@ -656,6 +673,11 @@ const handleRequest = async (req, res) => {
     }
 
     if (await serveFile(req, res, candidatePath, 200)) {
+        return;
+    }
+
+    const publicCandidatePath = path.resolve(path.join(PUBLIC_DIR, `.${requestedPath}`));
+    if (publicCandidatePath.startsWith(PUBLIC_DIR) && await serveFile(req, res, publicCandidatePath, 200)) {
         return;
     }
 
