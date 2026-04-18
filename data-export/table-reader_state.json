@@ -1,0 +1,98 @@
+{
+  "rows": [
+    {
+      "id": "primary-admin",
+      "userId": "primary-admin",
+      "state": {
+        "history": [
+          {
+            "storyId": "1773596913290",
+            "storySlug": "পুনর্জন্ম-the-another-love-sory",
+            "storyTitle": "পুনর্জন্ম The Another Love Sory",
+            "path": "/stories/পুনর্জন্ম-the-another-love-sory/part-20",
+            "partLabel": "পর্ব ২০",
+            "progress": 0,
+            "totalParts": 20,
+            "coverImage": "/uploads/stories/covers/2026/03/6408d93b-5c0e-4eb9-8181-92993d08c9f1.png",
+            "updatedAt": "2026-04-01T07:21:23.007Z"
+          },
+          {
+            "storyId": "1773089993198",
+            "storySlug": "পুনর্জন্ম",
+            "storyTitle": "পুনর্জন্ম (এক প্রেম কাহিনী)",
+            "path": "/stories/পুনর্জন্ম/part-02",
+            "partLabel": "পর্ব ০২",
+            "progress": 0,
+            "totalParts": 9,
+            "coverImage": "/uploads/stories/covers/2026/03/3239a5d1-9858-40fe-b8f3-1c1cd15cd26d.png",
+            "updatedAt": "2026-03-14T16:39:28.591Z"
+          },
+          {
+            "storyId": "1773437931065",
+            "storySlug": "পুনর্জন্ম-পঞ্চশক্তি-ও-নাগমণি",
+            "storyTitle": "পুনর্জন্ম পঞ্চশক্তি ও নাগমণি",
+            "path": "/stories/পুনর্জন্ম-পঞ্চশক্তি-ও-নাগমণি/part-04",
+            "partLabel": "পর্ব ০৪",
+            "progress": 80,
+            "totalParts": 4,
+            "coverImage": "/uploads/stories/covers/2026/03/cf65bce3-f0cf-4d5b-825b-e43feaf90224.png",
+            "updatedAt": "2026-03-13T21:40:39.654Z"
+          },
+          {
+            "storyId": "1772140577928",
+            "storySlug": "মনপবন",
+            "storyTitle": "মনপবন",
+            "path": "/stories/মনপবন/part-01",
+            "partLabel": "পর্ব ০১",
+            "progress": 0,
+            "totalParts": 1,
+            "coverImage": "/uploads/stories/covers/2026/02/1aabff39-1e58-4ecf-887c-7fa4f8c7af44.png",
+            "updatedAt": "2026-03-13T21:21:18.902Z"
+          },
+          {
+            "storyId": "1772612149007",
+            "storySlug": "প্রাপ্তি-প্রথম-অধ্যায়",
+            "storyTitle": "প্রাপ্তি {প্রথম অধ্যায়}",
+            "path": "/stories/প্রাপ্তি-প্রথম-অধ্যায়/part-01",
+            "partLabel": "পর্ব ০১",
+            "progress": 0,
+            "totalParts": 45,
+            "coverImage": "/uploads/stories/covers/2026/03/5e361dcb-ec88-42bf-84ac-cb6e13a2d4f9.png",
+            "updatedAt": "2026-03-04T21:00:58.769Z"
+          }
+        ],
+        "bookmarks": [],
+        "follows": {
+          "authors": [],
+          "categories": [],
+          "tags": [],
+          "lastSeenAt": "2026-03-08T16:37:54.067Z",
+          "updatedAt": "2026-03-08T16:37:54.067Z"
+        },
+        "collections": [],
+        "dismissedNotifications": [],
+        "updatedAt": "2026-04-08T15:57:21.663Z"
+      },
+      "updatedAt": "2026-04-08T15:57:21.663Z"
+    },
+    {
+      "id": "51fbf1da-938b-456b-b927-110e4955177b",
+      "userId": "51fbf1da-938b-456b-b927-110e4955177b",
+      "state": {
+        "history": [],
+        "bookmarks": [],
+        "follows": {
+          "authors": [],
+          "categories": [],
+          "tags": [],
+          "lastSeenAt": "2026-03-09T12:41:32.521Z",
+          "updatedAt": "2026-03-09T12:41:32.521Z"
+        },
+        "collections": [],
+        "dismissedNotifications": [],
+        "updatedAt": "2026-03-09T13:54:40.553Z"
+      },
+      "updatedAt": "2026-03-09T13:54:40.553Z"
+    }
+  ]
+}

@@ -1,0 +1,876 @@
+{
+  "rows": [
+    {
+      "date": "2026-02-21",
+      "visitors": 2,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 2,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 2
+      },
+      "updated_at": "2026-02-21T10:54:17.046Z"
+    },
+    {
+      "date": "2026-02-22",
+      "visitors": 12,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 12,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 12
+      },
+      "updated_at": "2026-02-22T23:26:00.832Z"
+    },
+    {
+      "date": "2026-02-23",
+      "visitors": 263,
+      "mobile": 150,
+      "iphone": 68,
+      "pc": 41,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 213,
+        "India": 30,
+        "USA": 10,
+        "UK": 5,
+        "Pakistan": 5
+      },
+      "updated_at": "2026-02-23T00:00:00.052Z"
+    },
+    {
+      "date": "2026-02-24",
+      "visitors": 127,
+      "mobile": 71,
+      "iphone": 32,
+      "pc": 21,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 109,
+        "India": 10,
+        "USA": 3,
+        "UK": 3,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-02-24T22:02:13.006Z"
+    },
+    {
+      "date": "2026-02-25",
+      "visitors": 160,
+      "mobile": 90,
+      "iphone": 41,
+      "pc": 25,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 130,
+        "India": 18,
+        "USA": 6,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-02-25T12:53:46.628Z"
+    },
+    {
+      "date": "2026-02-26",
+      "visitors": 6,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 6,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 6
+      },
+      "updated_at": "2026-02-26T22:50:38.193Z"
+    },
+    {
+      "date": "2026-02-27",
+      "visitors": 188,
+      "mobile": 107,
+      "iphone": 48,
+      "pc": 29,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 153,
+        "India": 21,
+        "USA": 7,
+        "UK": 4,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-02-27T22:13:05.052Z"
+    },
+    {
+      "date": "2026-02-28",
+      "visitors": 313,
+      "mobile": 177,
+      "iphone": 81,
+      "pc": 50,
+      "other": 5,
+      "countries": {
+        "Bangladesh": 257,
+        "India": 34,
+        "USA": 18,
+        "UK": 11,
+        "Pakistan": 7
+      },
+      "updated_at": "2026-02-28T23:59:58.465Z"
+    },
+    {
+      "date": "2026-03-01",
+      "visitors": 195,
+      "mobile": 111,
+      "iphone": 50,
+      "pc": 31,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 158,
+        "India": 19,
+        "USA": 9,
+        "UK": 6,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-01T23:58:10.320Z"
+    },
+    {
+      "date": "2026-03-02",
+      "visitors": 217,
+      "mobile": 124,
+      "iphone": 56,
+      "pc": 34,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 176,
+        "India": 26,
+        "USA": 8,
+        "UK": 6,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-02T23:47:46.017Z"
+    },
+    {
+      "date": "2026-03-03",
+      "visitors": 1,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 1,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 1
+      },
+      "updated_at": "2026-03-03T16:11:00.085Z"
+    },
+    {
+      "date": "2026-03-04",
+      "visitors": 3,
+      "mobile": 0,
+      "iphone": 3,
+      "pc": 0,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 3
+      },
+      "updated_at": "2026-03-04T23:56:43.574Z"
+    },
+    {
+      "date": "2026-03-05",
+      "visitors": 2,
+      "mobile": 2,
+      "iphone": 0,
+      "pc": 0,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 2
+      },
+      "updated_at": "2026-03-05T23:55:39.051Z"
+    },
+    {
+      "date": "2026-03-06",
+      "visitors": 216,
+      "mobile": 122,
+      "iphone": 55,
+      "pc": 34,
+      "other": 5,
+      "countries": {
+        "Bangladesh": 176,
+        "India": 24,
+        "USA": 10,
+        "UK": 6,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-03-06T19:18:30.886Z"
+    },
+    {
+      "date": "2026-03-07",
+      "visitors": 6,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 6,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 6
+      },
+      "updated_at": "2026-03-07T23:53:28.235Z"
+    },
+    {
+      "date": "2026-03-07",
+      "visitors": 322,
+      "mobile": 183,
+      "iphone": 83,
+      "pc": 51,
+      "other": 5,
+      "countries": {
+        "Bangladesh": 271,
+        "India": 39,
+        "USA": 16,
+        "UK": 10,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-03-07T23:20:59.343Z"
+    },
+    {
+      "date": "2026-03-08",
+      "visitors": 234,
+      "mobile": 132,
+      "iphone": 60,
+      "pc": 38,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 186,
+        "India": 27,
+        "USA": 9,
+        "UK": 8,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-03-08T23:49:01.526Z"
+    },
+    {
+      "date": "2026-03-09",
+      "visitors": 8,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 8,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 8
+      },
+      "updated_at": "2026-03-09T21:40:25.377Z"
+    },
+    {
+      "date": "2026-03-10",
+      "visitors": 2,
+      "mobile": 0,
+      "iphone": 2,
+      "pc": 0,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 2
+      },
+      "updated_at": "2026-03-10T22:36:24.344Z"
+    },
+    {
+      "date": "2026-03-11",
+      "visitors": 106,
+      "mobile": 59,
+      "iphone": 27,
+      "pc": 17,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 90,
+        "India": 8,
+        "USA": 5,
+        "UK": 2,
+        "Pakistan": 1
+      },
+      "updated_at": "2026-03-11T21:02:38.786Z"
+    },
+    {
+      "date": "2026-03-12",
+      "visitors": 1,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 1,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 1
+      },
+      "updated_at": "2026-03-12T20:09:47.437Z"
+    },
+    {
+      "date": "2026-03-13",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-13T00:00:00.062Z"
+    },
+    {
+      "date": "2026-03-14",
+      "visitors": 5,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 5,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 5
+      },
+      "updated_at": "2026-03-14T21:56:20.810Z"
+    },
+    {
+      "date": "2026-03-15",
+      "visitors": 394,
+      "mobile": 224,
+      "iphone": 102,
+      "pc": 62,
+      "other": 6,
+      "countries": {
+        "Bangladesh": 325,
+        "India": 42,
+        "USA": 16,
+        "UK": 7,
+        "Pakistan": 10
+      },
+      "updated_at": "2026-03-15T23:06:52.427Z"
+    },
+    {
+      "date": "2026-03-16",
+      "visitors": 247,
+      "mobile": 140,
+      "iphone": 63,
+      "pc": 40,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 210,
+        "India": 19,
+        "USA": 11,
+        "UK": 7,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-03-16T23:43:00.332Z"
+    },
+    {
+      "date": "2026-03-17",
+      "visitors": 145,
+      "mobile": 82,
+      "iphone": 37,
+      "pc": 24,
+      "other": 2,
+      "countries": {
+        "Bangladesh": 120,
+        "India": 16,
+        "USA": 7,
+        "UK": 4,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-17T22:45:10.948Z"
+    },
+    {
+      "date": "2026-03-18",
+      "visitors": 147,
+      "mobile": 83,
+      "iphone": 37,
+      "pc": 24,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 121,
+        "India": 12,
+        "USA": 7,
+        "UK": 4,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-18T22:14:45.142Z"
+    },
+    {
+      "date": "2026-03-19",
+      "visitors": 123,
+      "mobile": 70,
+      "iphone": 31,
+      "pc": 19,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 103,
+        "India": 12,
+        "USA": 4,
+        "UK": 2,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-03-19T00:00:00.033Z"
+    },
+    {
+      "date": "2026-03-20",
+      "visitors": 151,
+      "mobile": 86,
+      "iphone": 39,
+      "pc": 24,
+      "other": 2,
+      "countries": {
+        "Bangladesh": 126,
+        "India": 12,
+        "USA": 5,
+        "UK": 5,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-20T23:48:50.062Z"
+    },
+    {
+      "date": "2026-03-21",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-21T00:00:00.062Z"
+    },
+    {
+      "date": "2026-03-22",
+      "visitors": 215,
+      "mobile": 121,
+      "iphone": 55,
+      "pc": 34,
+      "other": 5,
+      "countries": {
+        "Bangladesh": 180,
+        "India": 26,
+        "USA": 8,
+        "UK": 6,
+        "Pakistan": 6
+      },
+      "updated_at": "2026-03-22T22:39:56.438Z"
+    },
+    {
+      "date": "2026-03-23",
+      "visitors": 184,
+      "mobile": 105,
+      "iphone": 47,
+      "pc": 29,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 152,
+        "India": 18,
+        "USA": 9,
+        "UK": 4,
+        "Pakistan": 5
+      },
+      "updated_at": "2026-03-23T21:42:50.209Z"
+    },
+    {
+      "date": "2026-03-24",
+      "visitors": 207,
+      "mobile": 117,
+      "iphone": 53,
+      "pc": 33,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 165,
+        "India": 25,
+        "USA": 6,
+        "UK": 5,
+        "Pakistan": 6
+      },
+      "updated_at": "2026-03-24T19:47:33.301Z"
+    },
+    {
+      "date": "2026-03-25",
+      "visitors": 166,
+      "mobile": 95,
+      "iphone": 42,
+      "pc": 26,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 137,
+        "India": 20,
+        "USA": 8,
+        "UK": 4,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-03-25T06:24:49.777Z"
+    },
+    {
+      "date": "2026-03-26",
+      "visitors": 173,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 142,
+        "India": 16,
+        "USA": 6,
+        "UK": 6,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-26T22:58:54.610Z"
+    },
+    {
+      "date": "2026-03-27",
+      "visitors": 218,
+      "mobile": 123,
+      "iphone": 56,
+      "pc": 35,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 183,
+        "India": 25,
+        "USA": 8,
+        "UK": 5,
+        "Pakistan": 6
+      },
+      "updated_at": "2026-03-27T20:51:16.150Z"
+    },
+    {
+      "date": "2026-03-28",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-03-28T00:00:00.063Z"
+    },
+    {
+      "date": "2026-03-29",
+      "visitors": 252,
+      "mobile": 144,
+      "iphone": 65,
+      "pc": 40,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 203,
+        "India": 28,
+        "USA": 13,
+        "UK": 9,
+        "Pakistan": 6
+      },
+      "updated_at": "2026-03-29T20:09:04.893Z"
+    },
+    {
+      "date": "2026-03-30",
+      "visitors": 241,
+      "mobile": 137,
+      "iphone": 62,
+      "pc": 38,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 204,
+        "India": 27,
+        "USA": 10,
+        "UK": 5,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-03-30T00:00:00.072Z"
+    },
+    {
+      "date": "2026-03-31",
+      "visitors": 6,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 6,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 6
+      },
+      "updated_at": "2026-03-31T18:00:12.092Z"
+    },
+    {
+      "date": "2026-04-01",
+      "visitors": 184,
+      "mobile": 104,
+      "iphone": 47,
+      "pc": 30,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 145,
+        "India": 23,
+        "USA": 8,
+        "UK": 5,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-01T23:47:42.461Z"
+    },
+    {
+      "date": "2026-04-02",
+      "visitors": 177,
+      "mobile": 100,
+      "iphone": 45,
+      "pc": 29,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 144,
+        "India": 22,
+        "USA": 6,
+        "UK": 3,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-04-02T22:36:41.375Z"
+    },
+    {
+      "date": "2026-04-03",
+      "visitors": 163,
+      "mobile": 92,
+      "iphone": 42,
+      "pc": 25,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 129,
+        "India": 19,
+        "USA": 8,
+        "UK": 3,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-04-03T16:10:38.007Z"
+    },
+    {
+      "date": "2026-04-04",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-04T00:00:00.062Z"
+    },
+    {
+      "date": "2026-04-05",
+      "visitors": 201,
+      "mobile": 114,
+      "iphone": 52,
+      "pc": 33,
+      "other": 2,
+      "countries": {
+        "Bangladesh": 163,
+        "India": 20,
+        "USA": 7,
+        "UK": 6,
+        "Pakistan": 5
+      },
+      "updated_at": "2026-04-05T23:16:02.844Z"
+    },
+    {
+      "date": "2026-04-06",
+      "visitors": 151,
+      "mobile": 85,
+      "iphone": 39,
+      "pc": 25,
+      "other": 2,
+      "countries": {
+        "Bangladesh": 119,
+        "India": 16,
+        "USA": 8,
+        "UK": 5,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-06T19:50:28.938Z"
+    },
+    {
+      "date": "2026-04-07",
+      "visitors": 149,
+      "mobile": 84,
+      "iphone": 38,
+      "pc": 24,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 122,
+        "India": 17,
+        "USA": 4,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-07T23:12:41.311Z"
+    },
+    {
+      "date": "2026-04-08",
+      "visitors": 130,
+      "mobile": 73,
+      "iphone": 33,
+      "pc": 20,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 108,
+        "India": 13,
+        "USA": 4,
+        "UK": 4,
+        "Pakistan": 1
+      },
+      "updated_at": "2026-04-08T16:09:15.308Z"
+    },
+    {
+      "date": "2026-04-09",
+      "visitors": 2,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 2,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 2
+      },
+      "updated_at": "2026-04-09T20:40:27.921Z"
+    },
+    {
+      "date": "2026-04-10",
+      "visitors": 145,
+      "mobile": 82,
+      "iphone": 37,
+      "pc": 23,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 121,
+        "India": 14,
+        "USA": 5,
+        "UK": 3,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-04-10T09:53:39.770Z"
+    },
+    {
+      "date": "2026-04-11",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-11T00:00:00.052Z"
+    },
+    {
+      "date": "2026-04-12",
+      "visitors": 227,
+      "mobile": 128,
+      "iphone": 58,
+      "pc": 37,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 188,
+        "India": 26,
+        "USA": 13,
+        "UK": 5,
+        "Pakistan": 4
+      },
+      "updated_at": "2026-04-12T23:53:19.817Z"
+    },
+    {
+      "date": "2026-04-13",
+      "visitors": 202,
+      "mobile": 115,
+      "iphone": 52,
+      "pc": 32,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 167,
+        "India": 20,
+        "USA": 8,
+        "UK": 4,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-13T00:00:00.022Z"
+    },
+    {
+      "date": "2026-04-14",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 146,
+        "India": 19,
+        "USA": 7,
+        "UK": 3,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-14T00:00:00.052Z"
+    },
+    {
+      "date": "2026-04-15",
+      "visitors": 127,
+      "mobile": 72,
+      "iphone": 32,
+      "pc": 20,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 102,
+        "India": 13,
+        "USA": 5,
+        "UK": 4,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-15T00:00:00.062Z"
+    },
+    {
+      "date": "2026-04-16",
+      "visitors": 172,
+      "mobile": 98,
+      "iphone": 44,
+      "pc": 27,
+      "other": 3,
+      "countries": {
+        "Bangladesh": 143,
+        "India": 15,
+        "USA": 8,
+        "UK": 6,
+        "Pakistan": 3
+      },
+      "updated_at": "2026-04-16T22:55:26.389Z"
+    },
+    {
+      "date": "2026-04-17",
+      "visitors": 199,
+      "mobile": 112,
+      "iphone": 51,
+      "pc": 32,
+      "other": 4,
+      "countries": {
+        "Bangladesh": 168,
+        "India": 23,
+        "USA": 6,
+        "UK": 7,
+        "Pakistan": 2
+      },
+      "updated_at": "2026-04-17T21:23:38.222Z"
+    },
+    {
+      "date": "2026-04-18",
+      "visitors": 2,
+      "mobile": 0,
+      "iphone": 0,
+      "pc": 2,
+      "other": 0,
+      "countries": {
+        "Bangladesh": 2
+      },
+      "updated_at": "2026-04-18T16:08:07.130Z"
+    }
+  ]
+}

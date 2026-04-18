@@ -45,6 +45,8 @@ import {
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
+import ShareButtons from '../components/ShareButtons';
+import StoryRating from '../components/StoryRating';
 import type { User } from '../utils/userManager';
 import './StoryDetailsPage.css';
 
@@ -348,6 +350,8 @@ const StoryDetailsPage = () => {
     const [commentEditDraft, setCommentEditDraft] = useState('');
     const [commentError, setCommentError] = useState('');
     const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
+    const [showCompletionBanner, setShowCompletionBanner] = useState(false);
+    const completionShownRef = useRef('');
     const contentRef = useRef<HTMLDivElement>(null);
     const resetStoryCacheAndReload = () => {
         localStorage.removeItem('mahean_stories');
@@ -571,6 +575,19 @@ const StoryDetailsPage = () => {
 
     useEffect(() => {
         if (!story) return;
+        const parts = story.parts ?? [];
+        const total = Math.max(1, parts.length);
+        const safeIndex = resolvePartIndexFromParam(parts, partNumber);
+        if (safeIndex !== total - 1) return;
+        const key = `${story.id}-${safeIndex}`;
+        if (readingProgress >= 88 && completionShownRef.current !== key) {
+            completionShownRef.current = key;
+            setShowCompletionBanner(true);
+        }
+    }, [readingProgress, story, partNumber]);
+
+    useEffect(() => {
+        if (!story) return;
 
         const parts = story.parts ?? [];
         if (!parts.length) return;
@@ -765,7 +782,7 @@ const StoryDetailsPage = () => {
     const handleCommentUpdate = async (comment: StoryComment) => {
         const nextContent = commentEditDraft.trim();
         if (!nextContent) {
-            setCommentError('Comment cannot be empty.');
+            setCommentError('মন্তব্য খালি রাখা যাবে না।');
             return;
         }
 
@@ -784,14 +801,14 @@ const StoryDetailsPage = () => {
             )));
             handleCancelCommentEdit();
         } catch (error) {
-            setCommentError(error instanceof Error ? error.message : 'Comment update failed.');
+            setCommentError(error instanceof Error ? error.message : 'মন্তব্য আপডেট করা যায়নি।');
         } finally {
             setIsCommentSubmitting(false);
         }
     };
 
     const handleCommentDelete = async (comment: StoryComment) => {
-        const confirmed = window.confirm('Delete this comment?');
+        const confirmed = window.confirm('মন্তব্যটি মুছে দেবেন?');
         if (!confirmed) {
             return;
         }
@@ -815,7 +832,7 @@ const StoryDetailsPage = () => {
                 handleCancelCommentEdit();
             }
         } catch (error) {
-            setCommentError(error instanceof Error ? error.message : 'Comment delete failed.');
+            setCommentError(error instanceof Error ? error.message : 'মন্তব্য মুছতে পারা যায়নি।');
         } finally {
             setIsCommentSubmitting(false);
         }
@@ -1099,8 +1116,8 @@ const StoryDetailsPage = () => {
 
                 <section className="reader-utility-box" aria-label="Reader controls">
                     <div className="reader-utility-copy">
-                        <span className="reader-utility-kicker">Reader mode</span>
-                        <h2>{currentReaderFontLabel} reading</h2>
+                        <span className="reader-utility-kicker">পাঠক মোড</span>
+                        <h2>{currentReaderFontLabel} আকারে পড়া</h2>
                         <p>
                             এই পর্ব পড়তে আনুমানিক {toBanglaNumber(estimatedReadMinutes)} মিনিট লাগতে পারে।
                             {readingProgress > 5 && ` শেষ করতে আরও প্রায় ${toBanglaNumber(remainingReadMinutes)} মিনিট।`}
@@ -1134,7 +1151,7 @@ const StoryDetailsPage = () => {
                             onClick={handleBookmarkToggle}
                         >
                             {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-                            <span>{isBookmarked ? 'Saved' : 'Save story'}</span>
+                            <span>{isBookmarked ? 'সংরক্ষিত' : 'সংরক্ষণ করুন'}</span>
                         </button>
                         <button
                             type="button"
@@ -1156,6 +1173,25 @@ const StoryDetailsPage = () => {
                         dangerouslySetInnerHTML={renderFormattedText(currentPart.content)}
                     />
                 </div>
+
+                {showCompletionBanner && (
+                    <div className="completion-celebration" role="status">
+                        <button
+                            type="button"
+                            className="completion-close"
+                            onClick={() => setShowCompletionBanner(false)}
+                            aria-label="বন্ধ করুন"
+                        >
+                            ✕
+                        </button>
+                        <div className="completion-emoji">🎉</div>
+                        <h3>গল্পটি শেষ হলো!</h3>
+                        <p>এই পর্বটি পুরোপুরি পড়ার জন্য ধন্যবাদ।</p>
+                    </div>
+                )}
+
+                <ShareButtons url={canonicalUrl} title={story.title} />
+                <StoryRating storyId={String(story.id)} />
 
                 <section className="story-comments-box" aria-label="Story comments">
                     <div className="story-comments-head">
@@ -1241,7 +1277,7 @@ const StoryDetailsPage = () => {
                                                         onClick={() => void handleCommentUpdate(comment)}
                                                         disabled={isCommentSubmitting}
                                                     >
-                                                        {isCommentSubmitting ? 'Saving...' : 'Save'}
+                                                        {isCommentSubmitting ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ'}
                                                     </button>
                                                     <button
                                                         type="button"
@@ -1249,7 +1285,7 @@ const StoryDetailsPage = () => {
                                                         onClick={handleCancelCommentEdit}
                                                         disabled={isCommentSubmitting}
                                                     >
-                                                        Cancel
+                                                        বাতিল
                                                     </button>
                                                 </div>
                                             </div>
@@ -1264,7 +1300,7 @@ const StoryDetailsPage = () => {
                                                     onClick={() => handleStartCommentEdit(comment)}
                                                     disabled={isCommentSubmitting}
                                                 >
-                                                    Edit
+                                                    সম্পাদনা
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1272,7 +1308,7 @@ const StoryDetailsPage = () => {
                                                     onClick={() => void handleCommentDelete(comment)}
                                                     disabled={isCommentSubmitting}
                                                 >
-                                                    Delete
+                                                    মুছুন
                                                 </button>
                                             </div>
                                         ) : null}
@@ -1289,7 +1325,7 @@ const StoryDetailsPage = () => {
                 {nextPartNumber && nextPartLabel && (
                     <section className="up-next-panel" aria-label="Up next">
                         <div className="up-next-copy">
-                            <span className="up-next-kicker">Next up</span>
+                            <span className="up-next-kicker">পরের পর্ব</span>
                             <h2>{nextPartLabel}</h2>
                             <p>
                                 এক বসায় পড়ছেন? পরের পর্বে চলে যান, flow break হবে না.
@@ -1309,8 +1345,8 @@ const StoryDetailsPage = () => {
                 {relatedStories.length > 0 && (
                     <section className="related-stories-box" aria-label="Related stories">
                         <div className="related-stories-head">
-                            <h2>Related Stories</h2>
-                            <Link to="/stories" className="related-stories-all-link">Browse all</Link>
+                            <h2>আরও পড়ুন</h2>
+                            <Link to="/stories" className="related-stories-all-link">সব গল্প দেখুন</Link>
                         </div>
                         <div className="related-stories-grid">
                             {relatedStories.map((relatedStory) => (
@@ -1332,10 +1368,10 @@ const StoryDetailsPage = () => {
 
                 <div className="story-report-box">
                     <p className="story-report-text">
-                        Found policy-violating or copyright-problematic content?
+                        গল্পে কোনো সমস্যা বা কপিরাইট লঙ্ঘন দেখলে জানান।
                     </p>
                     <a href={reportIssueMailto} className="story-report-link">
-                        Report this story
+                        অভিযোগ করুন
                     </a>
                 </div>
 

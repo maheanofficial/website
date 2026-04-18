@@ -1,0 +1,17 @@
+{
+  "rows": [
+    {
+      "id": "primary-admin",
+      "username": "mahean4bd@gmail.com",
+      "email": "mahean4bd@gmail.com",
+      "password": "scrypt$10047013e07f06c3e289f75b932f5b0a$0cc001c17496cc2194dcd7764cc7dc1ffd97fee91b1a2b7ba0156fecb09df764957325cc23cf65c274e6bcc1f7c55486fd26d153ddcd15381120cfbd1a91737e",
+      "role": "admin",
+      "createdAt": "2026-03-15T17:11:53.427Z",
+      "displayName": "Mahean Ahmed",
+      "photoURL": "/uploads/profiles/avatars/2026/03/d1025795-24fe-49c4-9312-f55e4f9109f5.jpg",
+      "providers": [
+        "local"
+      ]
+    }
+  ]
+}

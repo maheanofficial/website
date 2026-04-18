@@ -998,3 +998,57 @@
         border-radius: 18px;
     }
 }
+
+/* Completion Celebration Banner */
+.completion-celebration {
+    position: relative;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 46, 38, 0.7));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: var(--radius-xl);
+    padding: 24px 28px;
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+    animation: celebrationIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes celebrationIn {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.completion-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s;
+}
+
+.completion-close:hover {
+    color: var(--text-primary);
+}
+
+.completion-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.completion-celebration h3 {
+    margin: 0 0 6px;
+    color: #34d399;
+    font-size: var(--text-xl);
+    font-weight: 800;
+}
+
+.completion-celebration p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
