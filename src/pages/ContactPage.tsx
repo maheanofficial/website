@@ -1,0 +1,32 @@
+import SEO from '../components/SEO';
+import Contact from '../components/Contact';
+import { SITE_URL } from '../utils/siteMeta';
+
+const ContactPage = () => {
+    return (
+        <>
+            <SEO
+                title="যোগাযোগ - মাহিয়ান আহমেদ"
+                description="কাজের ব্যাপারে কথা বলতে বা যেকোনো প্রয়োজনে যোগাযোগ করুন। ইমেইল বা সোশ্যাল মিডিয়ার মাধ্যমে কানেক্টেড থাকুন।"
+                keywords="Contact Mahean Ahmed, Mahean Ahmed Email, Voice Over Service, Audio Story Request"
+                canonicalUrl="/contact"
+                jsonLd={{
+                    "@context": "https://schema.org",
+                    "@type": "ContactPage",
+                    "url": `${SITE_URL}/contact`,
+                    "mainEntity": {
+                        "@type": "Person",
+                        "name": "Mahean Ahmed",
+                        "email": "maheanofficial@gmail.com",
+                        "url": SITE_URL
+                    }
+                }}
+            />
+            <div className="page-offset">
+                <Contact />
+            </div>
+        </>
+    );
+};
+
+export default ContactPage;

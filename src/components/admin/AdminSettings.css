@@ -1,0 +1,298 @@
+.admin-settings-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+    max-width: 860px;
+    width: 100%;
+}
+
+.settings-sidebar {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    padding: 16px;
+    position: sticky;
+    top: 20px;
+}
+
+.settings-sidebar-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--admin-text);
+    margin-bottom: 6px;
+}
+
+.settings-sidebar-desc {
+    color: var(--admin-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.settings-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--admin-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.settings-link:hover {
+    color: var(--admin-text);
+    background: var(--admin-hover);
+}
+
+.settings-link.active {
+    background: var(--admin-hover);
+    color: var(--admin-text);
+    border-left: 3px solid var(--admin-text);
+}
+
+.settings-panel {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.settings-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--admin-text);
+    margin-bottom: 4px;
+}
+
+.settings-header p {
+    color: var(--admin-muted);
+    font-size: 13px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.settings-avatar-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.settings-avatar-uploader {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 1px solid var(--admin-input-border);
+    background: var(--admin-input-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.settings-avatar-note {
+    color: var(--admin-muted);
+    font-size: 12px;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-label {
+    color: var(--admin-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.settings-input,
+.settings-textarea,
+.settings-select {
+    width: 100%;
+    background: var(--admin-input-bg);
+    border: 1px solid var(--admin-input-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--admin-input-text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.settings-input:focus,
+.settings-textarea:focus,
+.settings-select:focus {
+    border-color: var(--admin-text);
+}
+
+.settings-textarea {
+    resize: vertical;
+}
+
+.settings-input-with-icon {
+    position: relative;
+}
+
+.settings-input-with-icon .settings-input {
+    padding-right: 36px;
+}
+
+.settings-input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--admin-muted);
+}
+
+.settings-input-group {
+    position: relative;
+}
+
+.settings-input-group .settings-input {
+    padding-right: 40px;
+}
+
+.settings-eye-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--admin-muted);
+    cursor: pointer;
+}
+
+.settings-eye-btn:hover {
+    color: var(--admin-text);
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--admin-text);
+    margin: 0;
+}
+
+.settings-section-desc {
+    font-size: 12px;
+    color: var(--admin-muted);
+    margin: 0;
+}
+
+.settings-save-btn {
+    align-self: flex-start;
+    background: var(--admin-text);
+    color: var(--admin-bg);
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.settings-save-btn:hover {
+    background: var(--admin-text);
+}
+
+.settings-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.settings-status {
+    color: #22c55e;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.settings-status.error {
+    color: #ef4444;
+}
+
+.settings-radio-group {
+    display: grid;
+    gap: 12px;
+}
+
+.settings-radio {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--admin-input-bg);
+    border: 1px solid var(--admin-input-border);
+    color: var(--admin-input-text);
+    font-size: 13px;
+}
+
+.settings-radio input {
+    accent-color: #58a6ff;
+}
+
+@media (max-width: 1024px) {
+    .admin-settings-layout {
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
+
+    .settings-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .settings-panel {
+        padding: 18px;
+    }
+
+    .settings-avatar-uploader {
+        width: 96px;
+        height: 96px;
+    }
+
+    .settings-save-btn {
+        width: 100%;
+        text-align: center;
+    }
+}

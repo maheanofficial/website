@@ -1,0 +1,109 @@
+.pagination-wrap {
+    margin-top: 3rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(18, 26, 42, 0.86) 0%, rgba(8, 12, 20, 0.86) 100%);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.pagination-summary {
+    font-size: 0.95rem;
+    color: #d1d5db;
+    font-weight: 500;
+}
+
+.pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    min-width: 2.45rem;
+    height: 2.45rem;
+    padding: 0 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(15, 23, 42, 0.76);
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: rgba(255, 126, 31, 0.9);
+    color: #ffffff;
+    background: rgba(31, 41, 55, 0.95);
+    transform: translateY(-1px);
+}
+
+.pagination-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 126, 31, 0.35);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.pagination-arrow {
+    padding: 0;
+    min-width: 2.45rem;
+}
+
+.pagination-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.pagination-btn.is-active {
+    background: linear-gradient(135deg, #ff7e1f 0%, #ff5a1f 100%);
+    border-color: rgba(255, 122, 31, 1);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(255, 106, 26, 0.28);
+}
+
+.pagination-ellipsis {
+    min-width: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .pagination-wrap {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.9rem 0.95rem;
+    }
+
+    .pagination-summary {
+        text-align: center;
+        font-size: 0.88rem;
+    }
+
+    .pagination-nav {
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    .pagination-btn {
+        min-width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 0.65rem;
+    }
+}

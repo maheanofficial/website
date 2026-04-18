@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /author/dashboard
+
+# Sitemaps
+Sitemap: https://www.mahean.com/sitemap.xml
+Sitemap: https://www.mahean.com/sitemap-news.xml
+Host: www.mahean.com

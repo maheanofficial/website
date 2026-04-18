@@ -1,0 +1,9 @@
+PassengerStartupFile server.js
+PassengerForceMaxConcurrentRequestsPerProcess 0
+PassengerFriendlyErrorPages on
+PassengerNodejs /usr/local/bin/node
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [L]
+</IfModule>

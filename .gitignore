@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.vercel
+.wrangler
+
+# Runtime JSON storage (server-side data on cPanel)
+data/*.json
+!data/.gitkeep
+
+# Local deployment artifacts / secrets
+cpanel_key
+cpanel_key_lf
+cpanel_key_user
+cpanel-fullsite-cpanel-db.zip
+cpanel-nosupabase-deploy.zip
+onboarding-project-cpanel-upload.zip
+onboarding-project-cpanel-upload-v2.zip
+.deploy.local.json
+.githooks/.env
+.ai/
+tmp/
+
+# Local generated artifacts
+/ads.txt
+/robots.txt
+/sitemap.xml
+/tmp_*
+
+.env

@@ -1,0 +1,1116 @@
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
+const ROOT_DIR = path.resolve(__dirname, '..');
+const DIST_DIR = path.join(ROOT_DIR, 'dist');
+const DIST_INDEX = path.join(DIST_DIR, 'index.html');
+const STORIES_TABLE_PATH = path.join(ROOT_DIR, 'data', 'table-stories.json');
+const PUBLIC_STORY_ROWS_MODULE_PATH = path.join(ROOT_DIR, 'api', '_public-story-rows.js');
+const DEFAULT_SITE_URL = 'https://www.mahean.com';
+const DEFAULT_ADSENSE_PUBLISHER_ID = 'ca-pub-6313362498664713';
+const BUILD_MODE = process.env.NODE_ENV === 'development' ? 'development' : 'production';
+
+const parseEnvLine = (line) => {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) return null;
+
+  const normalized = trimmed.startsWith('export ') ? trimmed.slice(7).trim() : trimmed;
+  const match = normalized.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+  if (!match) return null;
+
+  const key = match[1];
+  let value = match[2].trim();
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1);
+  } else {
+    value = value.replace(/\s+#.*$/, '').trim();
+  }
+
+  value = value
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t');
+
+  return { key, value };
+};
+
+const loadEnvFiles = async () => {
+  const envFiles = [
+    '.env',
+    '.env.local',
+    `.env.${BUILD_MODE}`,
+    `.env.${BUILD_MODE}.local`
+  ];
+
+  const resolved = {};
+
+  for (const envFile of envFiles) {
+    const filePath = path.join(ROOT_DIR, envFile);
+    try {
+      const raw = await fs.readFile(filePath, 'utf8');
+      const lines = raw.split(/\r?\n/);
+      for (const line of lines) {
+        const parsed = parseEnvLine(line);
+        if (!parsed) continue;
+        resolved[parsed.key] = parsed.value;
+      }
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  for (const [key, value] of Object.entries(resolved)) {
+    if (typeof process.env[key] === 'undefined') {
+      process.env[key] = value;
+    }
+  }
+};
+
+const staticRouteMeta = [
+  {
+    path: '/',
+    title: 'Mahean Ahmed - Voice Artist and Bangla Stories',
+    description: 'Listen to Bangla audiobooks, stories, and voice-over content by Mahean Ahmed.',
+    keywords: 'Mahean Ahmed, Bangla Audiobook, Bangla Story, Voice Artist, Audio Story'
+  },
+  {
+    path: '/stories',
+    title: 'Bangla Stories Collection - Mahean Ahmed',
+    description: 'Read and explore the latest Bangla stories across thriller, horror, and romance genres.',
+    keywords: 'Bangla Story, Bengali Story, Thriller Story, Horror Story, Mahean Ahmed'
+  },
+  {
+    path: '/series',
+    title: 'Story Series - Mahean Ahmed',
+    description: 'Browse multi-part and serialized Bangla story collections.',
+    keywords: 'Bangla Series, Story Series, Bengali Serialized Story'
+  },
+  {
+    path: '/authors',
+    title: 'Authors - Mahean Ahmed',
+    description: 'Discover writer profiles and published stories from our authors.',
+    keywords: 'Bangla Authors, Story Writers, Bengali Writers'
+  },
+  {
+    path: '/categories',
+    title: 'Story Categories - Mahean Ahmed',
+    description: 'Find stories by category and genre.',
+    keywords: 'Story Categories, Bangla Story Category, Bengali Story Genres'
+  },
+  {
+    path: '/tags',
+    title: 'Story Tags - Mahean Ahmed',
+    description: 'Browse stories by topic tags and themes.',
+    keywords: 'Story Tags, Bangla Tags, Bengali Story Topics'
+  },
+  {
+    path: '/audiobooks',
+    title: 'অডিওবুক লাইব্রেরি - Mahean Ahmed',
+    description: 'সাজানো বাংলা অডিওবুক, ধারাবাহিক গল্প, এবং শুনতে সুবিধাজনক curated collection এক জায়গায়।',
+    keywords: 'Bangla Audiobook, Bengali Audiobook, Audio Story, Mahean Ahmed, Bangla Story Listening'
+  },
+  {
+    path: '/skills',
+    title: 'Skills - Mahean Ahmed',
+    description: 'Learn about Mahean Ahmed skills and creative work.',
+    keywords: 'Voice Skills, Narration Skills, Mahean Ahmed'
+  },
+  {
+    path: '/contact',
+    title: 'Contact - Mahean Ahmed',
+    description: 'Contact for voice-over and content collaboration.',
+    keywords: 'Contact Mahean Ahmed, Voice Over Contact'
+  },
+  {
+    path: '/privacy',
+    title: 'Privacy Policy - Mahean Ahmed',
+    description: 'Read our privacy policy and data handling information.',
+    keywords: 'Privacy Policy'
+  },
+  {
+    path: '/terms',
+    title: 'Terms and Conditions - Mahean Ahmed',
+    description: 'Read terms and conditions for using this site.',
+    keywords: 'Terms and Conditions'
+  },
+  {
+    path: '/disclaimer',
+    title: 'Disclaimer - Mahean Ahmed',
+    description: 'Read legal disclaimers about ads, copyright, and content usage.',
+    keywords: 'Disclaimer, Legal Notice, Copyright'
+  },
+  {
+    path: '/about',
+    title: 'About - Mahean Ahmed',
+    description: 'Learn more about Mahean Ahmed and his voice content journey.',
+    keywords: 'About Mahean Ahmed, Voice Artist Bio'
+  },
+  {
+    path: '/links',
+    title: 'Important Links - Mahean Ahmed',
+    description: 'Find important links and resources from Mahean Ahmed.',
+    keywords: 'Mahean Links, Social Links'
+  },
+  {
+    path: '/login',
+    title: 'User Login - Mahean Ahmed',
+    description: 'Login to your reader account on the Mahean Ahmed stories platform.',
+    keywords: 'user login, reader account, mahean stories',
+    robots: 'noindex, nofollow, max-image-preview:large'
+  },
+  {
+    path: '/signup',
+    title: 'User Signup - Mahean Ahmed',
+    description: 'Create a new reader account for the Mahean Ahmed stories platform.',
+    keywords: 'user signup, create account, reader portal',
+    robots: 'noindex, nofollow, max-image-preview:large'
+  },
+  {
+    path: '/forgot-password',
+    title: 'Forgot Password - Mahean Ahmed',
+    description: 'Reset your account password securely.',
+    keywords: 'forgot password, reset password, reader account',
+    robots: 'noindex, nofollow, max-image-preview:large'
+  },
+  {
+    path: '/update-password',
+    title: 'Set New Password - Mahean Ahmed',
+    description: 'Set a new password for your account.',
+    keywords: 'new password, update password, account',
+    robots: 'noindex, nofollow, max-image-preview:large'
+  }
+];
+
+const STATIC_VISIBLE_SNAPSHOTS = {
+  '/stories': {
+    heading: 'Bangla Stories Collection',
+    paragraphs: [
+      'Browse published Bangla stories, multi-part series, category archives, and tag-based discovery from one central collection page.',
+      'Readers can open full stories, continue serialized parts, and explore the latest published content quickly.'
+    ]
+  },
+  '/series': {
+    heading: 'Bangla Story Series',
+    paragraphs: [
+      'This page highlights serialized and multi-part Bangla stories for readers who prefer longer reading sessions and chapter-based storytelling.'
+    ]
+  },
+  '/authors': {
+    heading: 'Story Authors Directory',
+    paragraphs: [
+      'Discover writer profiles, published works, and story collections by contributing authors on the platform.'
+    ]
+  },
+  '/categories': {
+    heading: 'Story Categories',
+    paragraphs: [
+      'Explore Bangla stories by category and genre to quickly find romance, thriller, horror, and other curated reading themes.'
+    ]
+  },
+  '/tags': {
+    heading: 'Story Tags',
+    paragraphs: [
+      'Find stories by tag, topic, and recurring themes to reach highly relevant reading collections faster.'
+    ]
+  },
+  '/audiobooks': {
+    heading: 'Bangla Audiobooks Library',
+    paragraphs: [
+      'The audiobooks page organizes Bangla audiobooks, narration channels, featured listening picks, and curated listening destinations in one place.',
+      'Visitors can discover top audio stories, featured listening options, and direct links to official channels without browsing randomly.'
+    ],
+    links: [
+      { href: 'https://www.youtube.com/@banglaaudiobooks.mahean', label: 'Primary audiobook channel' },
+      { href: 'https://www.youtube.com/@maheanstoryvoice', label: 'Bangla story channel' }
+    ]
+  },
+  '/links': {
+    heading: 'Official Links',
+    paragraphs: [
+      'This page lists the official social, YouTube, and public profile links connected to Mahean Ahmed.'
+    ]
+  },
+  '/about': {
+    heading: 'About Mahean Ahmed',
+    paragraphs: [
+      'Mahean Ahmed is a Bangla voice artist and storyteller focused on quality story narration, audiobooks, and creative publishing.',
+      'This page describes creator background, work areas, and official contact channels.'
+    ]
+  },
+  '/privacy': {
+    heading: 'Privacy Policy Summary',
+    paragraphs: [
+      'This site explains what data may be collected, how cookies may be used, and how visitors can manage advertising preferences.',
+      'The complete privacy policy remains available on this page for transparent user communication.'
+    ]
+  },
+  '/terms': {
+    heading: 'Terms and Conditions Summary',
+    paragraphs: [
+      'This page defines acceptable use rules, copyright expectations, and legal limits for content usage.',
+      'By using the website, visitors agree to these terms and platform rules.'
+    ]
+  },
+  '/disclaimer': {
+    heading: 'Disclaimer Summary',
+    paragraphs: [
+      'This page contains advertising, copyright, and user-content responsibility disclosures.',
+      'Policy-violating or copyright-infringing content can be edited, unpublished, or removed.'
+    ]
+  },
+  '/contact': {
+    heading: 'Contact Information',
+    paragraphs: [
+      'Visitors and collaborators can use the contact page to reach Mahean Ahmed for voice and story related communication.'
+    ],
+    links: [
+      { href: 'mailto:maheanofficial@gmail.com', label: 'maheanofficial@gmail.com' }
+    ]
+  }
+};
+
+const pickFirstEnv = (...keys) => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+};
+
+const normalizeBaseUrl = (value) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, '');
+};
+
+const SITE_URL =
+  normalizeBaseUrl(
+    pickFirstEnv('SITE_URL', 'VITE_SITE_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_URL')
+  ) || DEFAULT_SITE_URL;
+const PUBLIC_API_STORY_COLUMNS = [
+  'id',
+  'title',
+  'excerpt',
+  'slug',
+  'parts',
+  'tags',
+  'status',
+  'author',
+  'category',
+  'category_id',
+  'image',
+  'cover_image',
+  'date',
+  'created_at',
+  'updated_at'
+].join(',');
+
+const ADSENSE_SELLER_ID = 'f08c47fec0942fa0';
+const ADSENSE_VERIFICATION_START = '<!-- ADSENSE_VERIFICATION_START -->';
+const ADSENSE_VERIFICATION_END = '<!-- ADSENSE_VERIFICATION_END -->';
+
+const normalizeAdsensePublisherId = (value) => {
+  const cleaned = String(value || '').trim();
+  if (!cleaned) return '';
+  if (/^ca-pub-\d{6,}$/i.test(cleaned)) return cleaned.toLowerCase();
+  if (/^pub-\d{6,}$/i.test(cleaned)) return `ca-${cleaned.toLowerCase()}`;
+  if (/^\d{6,}$/.test(cleaned)) return `ca-pub-${cleaned}`;
+  return '';
+};
+
+const buildAdsenseVerificationBlock = (publisherId) => {
+  const resolvedPublisherId = normalizeAdsensePublisherId(publisherId) || DEFAULT_ADSENSE_PUBLISHER_ID;
+
+  return [
+    ADSENSE_VERIFICATION_START,
+    `  <meta name="google-adsense-account" content="${resolvedPublisherId}" />`,
+    '  <script id="google-adsense-script" async',
+    `    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${resolvedPublisherId}"`,
+    '    crossorigin="anonymous"></script>',
+    `  ${ADSENSE_VERIFICATION_END}`
+  ].join('\n');
+};
+
+const applyAdsenseVerification = (html, publisherId) => {
+  const blockPattern = new RegExp(
+    `${escapeRegex(ADSENSE_VERIFICATION_START)}[\\s\\S]*?${escapeRegex(ADSENSE_VERIFICATION_END)}`,
+    'i'
+  );
+  if (!blockPattern.test(html)) return html;
+  return html.replace(blockPattern, buildAdsenseVerificationBlock(publisherId));
+};
+
+const writeAdsTxt = async (publisherId) => {
+  const resolvedPublisherId = normalizeAdsensePublisherId(publisherId) || DEFAULT_ADSENSE_PUBLISHER_ID;
+  const publisher = resolvedPublisherId.replace(/^ca-/i, '');
+  const adsTxtContent = `google.com, ${publisher}, DIRECT, ${ADSENSE_SELLER_ID}\n`;
+
+  await fs.writeFile(path.join(DIST_DIR, 'ads.txt'), adsTxtContent, 'utf8');
+  return true;
+};
+
+const LEGACY_META_START = '__MAHEAN_META__:';
+const LEGACY_META_END = ':__MAHEAN_META_END__';
+const MOJIBAKE_PATTERN = /(?:\u00E0\u00A6|\u00E0\u00A7|\u00C3|\u00C2|\u00E2\u20AC|\uFFFD)/;
+
+const scoreMojibake = (value) =>
+  (String(value).match(/(?:\u00E0\u00A6|\u00E0\u00A7|\u00C3|\u00C2|\u00E2\u20AC|\uFFFD)/g) || []).length;
+const scoreBangla = (value) => (String(value).match(/[\u0980-\u09FF]/g) || []).length;
+
+const decodeEscapedUnicode = (value) =>
+  String(value ?? '').replace(/\\u([0-9a-fA-F]{4})/g, (_match, hex) =>
+    String.fromCharCode(Number.parseInt(hex, 16))
+  );
+
+const decodeLatin1AsUtf8 = (value) => {
+  try {
+    return Buffer.from(String(value), 'latin1').toString('utf8');
+  } catch {
+    return String(value);
+  }
+};
+
+const repairMojibakeText = (value) => {
+  const input = decodeEscapedUnicode(String(value ?? ''));
+  if (!input) return '';
+  if (!MOJIBAKE_PATTERN.test(input)) return input;
+
+  let current = input;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const decoded = decodeLatin1AsUtf8(current);
+    if (!decoded || decoded === current) break;
+    const improvedBangla = scoreBangla(decoded) > scoreBangla(current);
+    const reducedNoise = scoreMojibake(decoded) < scoreMojibake(current);
+    if (!improvedBangla && !reducedNoise) break;
+    current = decoded;
+  }
+
+  return decodeEscapedUnicode(current);
+};
+
+const repairDeep = (value) => {
+  if (typeof value === 'string') return repairMojibakeText(value);
+  if (Array.isArray(value)) return value.map(repairDeep);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, repairDeep(entry)])
+    );
+  }
+  return value;
+};
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const toAbsoluteUrl = (value) => {
+  if (!value) return `${SITE_URL}/mahean-3.jpg`;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('/')) return `${SITE_URL}${value}`;
+  return `${SITE_URL}/${value}`;
+};
+
+const normalizeDescription = (value) => {
+  const plain = repairMojibakeText(String(value || ''))
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return '';
+  return plain.length > 180 ? `${plain.slice(0, 177)}...` : plain;
+};
+
+const normalizeExcerpt = (value) => {
+  const raw = String(value || '');
+  if (!raw.startsWith(LEGACY_META_START)) return repairMojibakeText(raw);
+  const markerEnd = raw.indexOf(LEGACY_META_END);
+  if (markerEnd < 0) return repairMojibakeText(raw);
+  return repairMojibakeText(raw.slice(markerEnd + LEGACY_META_END.length));
+};
+
+const parseLegacyMeta = (value) => {
+  const raw = String(value || '');
+  if (!raw.startsWith(LEGACY_META_START)) return null;
+  const markerEnd = raw.indexOf(LEGACY_META_END);
+  if (markerEnd < 0) return null;
+  const payload = raw.slice(LEGACY_META_START.length, markerEnd);
+  try {
+    const parsed = JSON.parse(payload);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return repairDeep(parsed);
+  } catch {
+    return null;
+  }
+};
+
+const slugify = (value) => {
+  let text = String(value || '');
+  try {
+    text = text.normalize('NFKC');
+  } catch {
+    // ignore
+  }
+
+  const normalized = text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-');
+
+  let cleaned = normalized;
+  try {
+    cleaned = cleaned.replace(/[^\p{L}\p{N}\p{M}-]+/gu, '');
+  } catch {
+    cleaned = cleaned.replace(/[^\w-]+/g, '');
+  }
+
+  return cleaned
+    .replace(/-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
+
+const LEGACY_STORY_SLUG_SUFFIX_REGEX = /-\d{5}$/;
+const stripLegacyStorySlugSuffix = (value) => {
+  const normalized = slugify(value);
+  if (!normalized) return '';
+  const stripped = normalized.replace(LEGACY_STORY_SLUG_SUFFIX_REGEX, '');
+  return stripped || normalized;
+};
+
+const setTitle = (html, title) =>
+  html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+
+const upsertTag = (html, pattern, replacement) => {
+  if (pattern.test(html)) {
+    return html.replace(pattern, replacement);
+  }
+  return html.replace('</head>', `  ${replacement}\n</head>`);
+};
+
+const setMetaName = (html, name, content) => {
+  const tag = `<meta name="${name}" content="${escapeHtml(content)}" />`;
+  const pattern = new RegExp(
+    `<meta\\s+name=["']${escapeRegex(name)}["']\\s+content=["'][^"']*["']\\s*/?>`,
+    'i'
+  );
+  return upsertTag(html, pattern, tag);
+};
+
+const setMetaProperty = (html, property, content) => {
+  const tag = `<meta property="${property}" content="${escapeHtml(content)}" />`;
+  const pattern = new RegExp(
+    `<meta\\s+property=["']${escapeRegex(property)}["']\\s+content=["'][^"']*["']\\s*/?>`,
+    'i'
+  );
+  return upsertTag(html, pattern, tag);
+};
+
+const setCanonical = (html, canonicalUrl) => {
+  const tag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;
+  const pattern = /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i;
+  return upsertTag(html, pattern, tag);
+};
+
+const setJsonLd = (html, jsonLd) => {
+  if (!jsonLd) return html;
+  const json = JSON.stringify(jsonLd).replace(/<\/script/gi, '<\\/script');
+  const clean = html.replace(
+    /<script\s+type=["']application\/ld\+json["'][\s\S]*?<\/script>/i,
+    ''
+  );
+  return clean.replace(
+    '</head>',
+    `  <script type="application/ld+json">${json}</script>\n</head>`
+  );
+};
+
+const buildVisibleSnapshotMarkup = (snapshot) => {
+  if (!snapshot || typeof snapshot !== 'object') return '';
+  const heading = normalizeDescription(snapshot.heading || '').replace(/\.\.\.$/, '') || 'Page Summary';
+  const paragraphs = Array.isArray(snapshot.paragraphs)
+    ? snapshot.paragraphs.map((entry) => normalizeDescription(entry)).filter(Boolean)
+    : [];
+  const links = Array.isArray(snapshot.links)
+    ? snapshot.links
+      .filter((entry) => entry && typeof entry === 'object')
+      .map((entry) => ({
+        href: typeof entry.href === 'string' ? entry.href : '',
+        label: normalizeDescription(typeof entry.label === 'string' ? entry.label : '')
+      }))
+      .filter((entry) => entry.href && entry.label)
+    : [];
+
+  const paragraphHtml = paragraphs.map((entry) => `<p>${escapeHtml(entry)}</p>`).join('');
+  const linkHtml = links.length
+    ? `<ul>${links.map((entry) => `<li><a href="${escapeHtml(entry.href)}">${escapeHtml(entry.label)}</a></li>`).join('')}</ul>`
+    : '';
+
+  return `<main data-seo-snapshot="true" style="max-width:960px;margin:24px auto;padding:0 16px;color:#111;font-family:system-ui,sans-serif;"><article><h1>${escapeHtml(heading)}</h1>${paragraphHtml}${linkHtml}</article></main>`;
+};
+
+const injectVisibleSnapshot = (html, snapshotMarkup) => {
+  const cleaned = html.replace(/<main data-seo-snapshot="true"[\s\S]*?<\/main>/i, '');
+  if (!snapshotMarkup) return cleaned;
+  const rootPattern = /<div id="root"><\/div>/i;
+  if (rootPattern.test(cleaned)) {
+    return cleaned.replace(rootPattern, `<div id="root">${snapshotMarkup}</div>`);
+  }
+  return cleaned.replace('</body>', `${snapshotMarkup}\n</body>`);
+};
+
+const buildSeoHtml = (template, seo) => {
+  const canonicalUrl = `${SITE_URL}${seo.path === '/' ? '/' : seo.path}`;
+  const ogImage = toAbsoluteUrl(seo.ogImage || '/mahean-3.jpg');
+  let html = template;
+  html = setTitle(html, seo.title);
+  html = setCanonical(html, canonicalUrl);
+  html = setMetaName(html, 'description', seo.description);
+  html = setMetaName(html, 'keywords', seo.keywords || '');
+  html = setMetaName(html, 'robots', seo.robots || 'index, follow, max-image-preview:large');
+  html = setMetaName(html, 'googlebot', seo.robots || 'index, follow, max-image-preview:large');
+  if (seo.author) {
+    html = setMetaName(html, 'author', seo.author);
+  }
+  html = setMetaProperty(html, 'og:type', seo.ogType || 'website');
+  html = setMetaProperty(html, 'og:title', seo.title);
+  html = setMetaProperty(html, 'og:description', seo.description);
+  html = setMetaProperty(html, 'og:url', canonicalUrl);
+  html = setMetaProperty(html, 'og:site_name', 'Mahean Ahmed');
+  html = setMetaProperty(html, 'og:image', ogImage);
+  html = setMetaProperty(html, 'og:image:alt', seo.imageAlt || seo.title);
+  if ((seo.ogType || 'website') === 'article') {
+    if (seo.author) {
+      html = setMetaProperty(html, 'article:author', seo.author);
+    }
+    if (seo.publishedTime) {
+      html = setMetaProperty(html, 'article:published_time', seo.publishedTime);
+    }
+    if (seo.modifiedTime) {
+      html = setMetaProperty(html, 'article:modified_time', seo.modifiedTime);
+    }
+  }
+  html = setMetaName(html, 'twitter:card', 'summary_large_image');
+  html = setMetaName(html, 'twitter:title', seo.title);
+  html = setMetaName(html, 'twitter:description', seo.description);
+  html = setMetaName(html, 'twitter:site', '@mahean_ahmed');
+  html = setMetaName(html, 'twitter:image', ogImage);
+  html = setMetaName(html, 'twitter:image:alt', seo.imageAlt || seo.title);
+  html = setJsonLd(html, seo.jsonLd || null);
+  html = injectVisibleSnapshot(html, buildVisibleSnapshotMarkup(seo.visibleSnapshot));
+  return html;
+};
+
+const routeToOutputFile = (routePath) => {
+  if (routePath === '/') {
+    return path.join(DIST_DIR, 'index.html');
+  }
+  const cleanPath = routePath.replace(/^\/+/, '').replace(/\/+$/, '');
+  return path.join(DIST_DIR, cleanPath, 'index.html');
+};
+
+const writeRouteHtml = async (routePath, html) => {
+  const filePath = routeToOutputFile(routePath);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, html, 'utf8');
+};
+
+const isPublicStory = (story) => {
+  if (!Object.prototype.hasOwnProperty.call(story, 'status')) return true;
+  const status = typeof story.status === 'string' ? story.status.trim().toLowerCase() : '';
+  if (!status) return true;
+  return ['published', 'completed', 'ongoing'].includes(status);
+};
+
+const toStorySegment = (story) => {
+  const meta = parseLegacyMeta(story?.excerpt);
+  const rawSlug = repairMojibakeText(typeof story.slug === 'string' ? story.slug : '').trim();
+  const metaSlug = repairMojibakeText(typeof meta?.slug === 'string' ? meta.slug : '').trim();
+  const generated = slugify(repairMojibakeText(typeof story.title === 'string' ? story.title : ''));
+  const fallbackId = String(story.id || '').trim();
+  const segment = stripLegacyStorySlugSuffix(rawSlug || metaSlug || generated) || fallbackId;
+  return segment || null;
+};
+
+const buildFallbackPartTitle = (index) => {
+  const padded = String(index + 1).padStart(2, '0');
+  return `Part ${padded}`;
+};
+
+const BANGLA_DIGIT_TO_LATIN = {
+  '\u09e6': '0',
+  '\u09e7': '1',
+  '\u09e8': '2',
+  '\u09e9': '3',
+  '\u09ea': '4',
+  '\u09eb': '5',
+  '\u09ec': '6',
+  '\u09ed': '7',
+  '\u09ee': '8',
+  '\u09ef': '9'
+};
+
+const LEGACY_BANGLA_PART_TITLE_REGEX = /^\u09aa\u09b0\u09cd\u09ac\s*([\u09e6-\u09ef0-9]+)$/u;
+const ENGLISH_PART_TITLE_REGEX = /^part\s*[-: ]*\s*([\u09e6-\u09ef0-9]+)$/iu;
+const NUMERIC_PART_TITLE_REGEX = /^[\u09e6-\u09ef0-9]+$/u;
+
+const parsePartNumberFromTitle = (title) => {
+  const trimmed = repairMojibakeText(String(title || '')).trim();
+  if (!trimmed) return null;
+
+  let digitSource = '';
+  const legacyMatch = trimmed.match(LEGACY_BANGLA_PART_TITLE_REGEX);
+  const englishMatch = trimmed.match(ENGLISH_PART_TITLE_REGEX);
+  if (legacyMatch) {
+    digitSource = legacyMatch[1];
+  } else if (englishMatch) {
+    digitSource = englishMatch[1];
+  } else if (NUMERIC_PART_TITLE_REGEX.test(trimmed)) {
+    digitSource = trimmed;
+  } else {
+    return null;
+  }
+
+  const normalizedDigits = String(digitSource).replace(/[\u09e6-\u09ef]/g, (digit) => BANGLA_DIGIT_TO_LATIN[digit] || digit);
+  const parsed = Number.parseInt(normalizedDigits, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return null;
+  return parsed;
+};
+
+const normalizeLegacyPartTitle = (title, index) => {
+  const fallback = buildFallbackPartTitle(index);
+  const trimmed = repairMojibakeText(String(title || '')).trim();
+  if (!trimmed) return fallback;
+  const parsed = parsePartNumberFromTitle(trimmed);
+  if (parsed === null) return trimmed;
+  return `Part ${String(parsed).padStart(2, '0')}`;
+};
+
+const normalizeStoryParts = (story) => {
+  const meta = parseLegacyMeta(story?.excerpt);
+  const fromRow = Array.isArray(story?.parts) ? story.parts : null;
+  const fromMeta = Array.isArray(meta?.parts) ? meta.parts : null;
+  const candidate = (fromRow && fromRow.length ? fromRow : fromMeta) || [];
+
+  const normalized = candidate
+    .map((part) => {
+      if (!part || typeof part !== 'object') return null;
+      const title = repairMojibakeText(typeof part.title === 'string' ? part.title : '');
+      const content = repairMojibakeText(typeof part.content === 'string' ? part.content : '');
+      const slug = repairMojibakeText(typeof part.slug === 'string' ? part.slug : '');
+      if (!title.trim() && !content.trim()) return null;
+      return { title: title.trim(), slug: slug.trim(), content: content.trim() };
+    })
+    .filter(Boolean);
+
+  if (normalized.length) return normalized;
+
+  const content = typeof story?.content === 'string' ? story.content : '';
+  const excerpt = normalizeExcerpt(story?.excerpt);
+  const fallback = content || excerpt || '';
+  return [{ title: '', content: String(fallback).trim() }];
+};
+
+const readStoriesFromLocalTable = async () => {
+  try {
+    const raw = await fs.readFile(STORIES_TABLE_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.rows) ? repairDeep(parsed.rows) : [];
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return [];
+    }
+    console.warn('[prerender] unable to read stories table:', error);
+    return [];
+  }
+};
+
+const readStoriesFromApiStore = async () => {
+  try {
+    const publicStoryRowsUrl = pathToFileURL(PUBLIC_STORY_ROWS_MODULE_PATH).href;
+    const publicStoryRowsModule = await import(publicStoryRowsUrl);
+    if (typeof publicStoryRowsModule?.listPublicStoryRows !== 'function') {
+      return [];
+    }
+    const rows = await publicStoryRowsModule.listPublicStoryRows({
+      orderBy: { column: 'updated_at', ascending: false }
+    });
+    return Array.isArray(rows) ? repairDeep(rows) : [];
+  } catch (error) {
+    console.warn('[prerender] unable to read stories from table store:', error?.message || error);
+    return [];
+  }
+};
+
+const readStoriesFromPublicApi = async () => {
+  let timeoutId = null;
+  try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 8_000);
+    const response = await fetch(`${SITE_URL}/api/db`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        table: 'stories',
+        action: 'select',
+        columns: PUBLIC_API_STORY_COLUMNS,
+        orderBy: {
+          column: 'updated_at',
+          ascending: false
+        }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    timeoutId = null;
+    if (!response.ok) return [];
+    const payload = await response.json().catch(() => null);
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    return repairDeep(rows);
+  } catch (error) {
+    console.warn('[prerender] unable to read stories from public API:', error?.message || error);
+    return [];
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
+const fetchStoryRows = async () => {
+  const fromApiStore = await readStoriesFromApiStore();
+  if (fromApiStore.length > 0) {
+    console.log(`[prerender] story source: table store (${fromApiStore.length})`);
+    return fromApiStore;
+  }
+
+  const fromLocalTable = await readStoriesFromLocalTable();
+  if (fromLocalTable.length > 0) {
+    console.log(`[prerender] story source: local JSON (${fromLocalTable.length})`);
+    return fromLocalTable;
+  }
+
+  const fromPublicApi = await readStoriesFromPublicApi();
+  if (fromPublicApi.length > 0) {
+    console.log(`[prerender] story source: public API (${fromPublicApi.length})`);
+    return fromPublicApi;
+  }
+
+  console.log('[prerender] story source: none');
+  return [];
+};
+
+const toStoryPartSeos = (story) => {
+  const segment = toStorySegment(story);
+  if (!segment) return [];
+
+  const storyTitle = repairMojibakeText(typeof story.title === 'string' ? story.title : '').trim();
+  const authorName =
+    repairMojibakeText(typeof story.author === 'string' ? story.author : '').trim() || 'Mahean Ahmed';
+  const image = story.cover_image || story.image || '/mahean-3.jpg';
+  const publishedTime = story.date || undefined;
+  const modifiedTime = story.updated_at || story.date || undefined;
+
+  const rawTags = Array.isArray(story.tags)
+    ? story.tags.filter((tag) => typeof tag === 'string').map((tag) => repairMojibakeText(tag).trim())
+    : [];
+  const keywords = [...rawTags, authorName, 'Bangla Story', 'Bengali Story']
+    .filter(Boolean)
+    .join(', ');
+
+  const parts = normalizeStoryParts(story);
+  const partLinks = parts.slice(0, 20).map((part, index) => {
+    const label = normalizeLegacyPartTitle(part.title, index) || buildFallbackPartTitle(index);
+    return {
+      href: `${SITE_URL}/stories/${encodeURIComponent(segment)}/part/${index + 1}`,
+      label
+    };
+  });
+
+  return parts.map((part, index) => {
+    const partTitle = normalizeLegacyPartTitle(part.title, index) || buildFallbackPartTitle(index);
+    const pathValue = `/stories/${encodeURIComponent(segment)}/part/${index + 1}`;
+    const canonicalUrl = `${SITE_URL}${pathValue}`;
+
+    const description =
+      normalizeDescription(part.content) ||
+      normalizeDescription(normalizeExcerpt(story.excerpt)) ||
+      normalizeDescription(story.content) ||
+      '\u09ac\u09be\u0982\u09b2\u09be \u0997\u09b2\u09cd\u09aa \u09aa\u09dc\u09c1\u09a8 - Mahean Ahmed';
+
+    const pageTitle = storyTitle
+      ? `${storyTitle} - ${partTitle} | Mahean Ahmed`
+      : `Bangla Story | Mahean Ahmed`;
+    const headline = storyTitle ? `${storyTitle} - ${partTitle}` : partTitle;
+
+    return {
+      path: pathValue,
+      title: pageTitle,
+      description,
+      keywords,
+      ogType: 'article',
+      ogImage: image,
+      imageAlt: storyTitle || 'Story cover image',
+      author: authorName,
+      publishedTime,
+      modifiedTime,
+      visibleSnapshot: {
+        heading: headline,
+        paragraphs: [
+          description,
+          `Author: ${authorName}`
+        ],
+        links: partLinks
+      },
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline,
+        description,
+        url: canonicalUrl,
+        datePublished: publishedTime,
+        dateModified: modifiedTime,
+        author: {
+          '@type': 'Person',
+          name: authorName
+        },
+        image: [toAbsoluteUrl(image)]
+      }
+    };
+  });
+};
+
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+};
+
+const escapeXml = (value) =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const toDateOnly = (...values) => {
+  for (const value of values) {
+    const parsed = new Date(String(value || ''));
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+  return new Date().toISOString().slice(0, 10);
+};
+
+const toSitemapStaticEntries = () =>
+  staticRouteMeta
+    .filter((route) => !/\bnoindex\b/i.test(String(route.robots || '')))
+    .map((route) => ({
+      path: route.path,
+      changefreq: route.path === '/stories' ? 'daily' : 'weekly',
+      priority: route.path === '/' ? '1.0' : route.path === '/stories' ? '0.9' : '0.7',
+      lastmod: toDateOnly()
+    }));
+
+const normalizeSitemapCategoryValue = (value) => repairMojibakeText(String(value ?? '')).trim();
+const normalizeSitemapCategoryKey = (value) => normalizeSitemapCategoryValue(value).toLowerCase();
+const normalizeSitemapTagValue = (value) =>
+  repairMojibakeText(String(value ?? '')).trim().replace(/^#/, '');
+const normalizeSitemapTagKey = (value) => normalizeSitemapTagValue(value).toLowerCase();
+const toUniqueSitemapCategoryValues = (values) => {
+  const seen = new Set();
+  const output = [];
+
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const normalizedValue = normalizeSitemapCategoryValue(value);
+    const normalizedKey = normalizeSitemapCategoryKey(normalizedValue);
+    if (!normalizedKey || seen.has(normalizedKey)) return;
+    seen.add(normalizedKey);
+    output.push(normalizedValue);
+  });
+
+  return output;
+};
+
+const writeSitemap = async (stories, maxStories, maxPartsPerStory) => {
+  const entries = [];
+  const seen = new Set();
+  const categoryEntries = new Map();
+  const tagEntries = new Map();
+  const addEntry = (pathValue, changefreq, priority, lastmod) => {
+    if (!pathValue || seen.has(pathValue)) return;
+    seen.add(pathValue);
+    entries.push({
+      path: pathValue,
+      changefreq,
+      priority,
+      lastmod
+    });
+  };
+
+  toSitemapStaticEntries().forEach((entry) => {
+    addEntry(entry.path, entry.changefreq, entry.priority, entry.lastmod);
+  });
+
+  let includedStories = 0;
+  for (const story of stories) {
+    if (!isPublicStory(story)) continue;
+    if (includedStories >= maxStories) break;
+
+    const storySegment = toStorySegment(story);
+    if (!storySegment) continue;
+
+    includedStories += 1;
+    const lastmod = toDateOnly(story.updated_at, story.date, story.created_at);
+    const storyPath = `/stories/${encodeURIComponent(storySegment)}`;
+    addEntry(storyPath, 'daily', '0.9', lastmod);
+
+    const meta = parseLegacyMeta(story?.excerpt);
+    const categoryNames = toUniqueSitemapCategoryValues(
+      Array.isArray(meta?.categories)
+        ? meta.categories
+        : [story.category || story.category_id || meta?.category]
+    );
+    categoryNames.forEach((categoryName) => {
+      const categoryKey = normalizeSitemapCategoryKey(categoryName);
+      if (!categoryKey) return;
+
+      const categoryPath = `/stories?category=${encodeURIComponent(categoryName)}`;
+      const existingCategoryEntry = categoryEntries.get(categoryKey);
+      if (!existingCategoryEntry || existingCategoryEntry.lastmod < lastmod) {
+        categoryEntries.set(categoryKey, {
+          path: categoryPath,
+          lastmod
+        });
+      }
+    });
+
+    const rawTags = Array.isArray(story.tags)
+      ? story.tags
+      : [];
+    rawTags.forEach((tag) => {
+      const tagName = normalizeSitemapTagValue(tag);
+      const tagKey = normalizeSitemapTagKey(tagName);
+      if (!tagKey) return;
+
+      const tagPath = `/stories?tag=${encodeURIComponent(tagName)}`;
+      const existingTagEntry = tagEntries.get(tagKey);
+      if (!existingTagEntry || existingTagEntry.lastmod < lastmod) {
+        tagEntries.set(tagKey, {
+          path: tagPath,
+          lastmod
+        });
+      }
+    });
+
+    const parts = normalizeStoryParts(story).slice(0, maxPartsPerStory);
+    parts.forEach((_part, index) => {
+      addEntry(
+        `${storyPath}/part/${index + 1}`,
+        'weekly',
+        '0.8',
+        lastmod
+      );
+    });
+  }
+
+  categoryEntries.forEach((entry) => {
+    addEntry(entry.path, 'weekly', '0.7', entry.lastmod);
+  });
+
+  tagEntries.forEach((entry) => {
+    addEntry(entry.path, 'weekly', '0.7', entry.lastmod);
+  });
+
+  const xmlRows = entries.map((entry) => `  <url>
+    <loc>${escapeXml(`${SITE_URL}${entry.path}`)}</loc>
+    <lastmod>${entry.lastmod}</lastmod>
+    <changefreq>${entry.changefreq}</changefreq>
+    <priority>${entry.priority}</priority>
+  </url>`);
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${xmlRows.join('\n')}
+</urlset>
+`;
+
+  await fs.writeFile(path.join(DIST_DIR, 'sitemap.xml'), xml, 'utf8');
+  return entries.length;
+};
+
+
+const run = async () => {
+  await loadEnvFiles();
+  const ADSENSE_PUBLISHER_ID = normalizeAdsensePublisherId(
+    pickFirstEnv(
+      'VITE_ADSENSE_PUBLISHER_ID',
+      'ADSENSE_PUBLISHER_ID',
+      'NEXT_PUBLIC_ADSENSE_PUBLISHER_ID'
+    )
+  ) || DEFAULT_ADSENSE_PUBLISHER_ID;
+
+  let template = await fs.readFile(DIST_INDEX, 'utf8');
+  template = applyAdsenseVerification(template, ADSENSE_PUBLISHER_ID);
+  await fs.writeFile(DIST_INDEX, template, 'utf8');
+  let generated = 0;
+
+  for (const route of staticRouteMeta) {
+    const html = buildSeoHtml(template, {
+      ...route,
+      visibleSnapshot: STATIC_VISIBLE_SNAPSHOTS[route.path] || null
+    });
+    await writeRouteHtml(route.path, html);
+    generated += 1;
+  }
+
+  const MAX_PARTS_PER_STORY = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_PARTS_PER_STORY'), 200);
+  const MAX_STORY_ROUTES = parsePositiveInt(pickFirstEnv('PRERENDER_MAX_STORY_ROUTES'), 5000);
+  const MAX_SITEMAP_STORIES = parsePositiveInt(pickFirstEnv('SITEMAP_MAX_STORIES'), 10000);
+  const MAX_SITEMAP_PARTS = parsePositiveInt(pickFirstEnv('SITEMAP_MAX_PARTS_PER_STORY'), 200);
+
+  const stories = (await fetchStoryRows()).filter(isPublicStory);
+  const uniquePaths = new Set();
+  for (const story of stories) {
+    if (uniquePaths.size >= MAX_STORY_ROUTES) break;
+    const seoEntries = toStoryPartSeos(story).slice(0, MAX_PARTS_PER_STORY);
+    for (const seo of seoEntries) {
+      if (!seo || uniquePaths.has(seo.path)) continue;
+      if (uniquePaths.size >= MAX_STORY_ROUTES) break;
+      const html = buildSeoHtml(template, seo);
+      await writeRouteHtml(seo.path, html);
+      uniquePaths.add(seo.path);
+      generated += 1;
+    }
+  }
+
+  const sitemapEntryCount = await writeSitemap(stories, MAX_SITEMAP_STORIES, MAX_SITEMAP_PARTS);
+  const hasAdsensePublisher = await writeAdsTxt(ADSENSE_PUBLISHER_ID);
+  console.log(`[prerender] generated ${generated} HTML routes (${uniquePaths.size} story routes).`);
+  console.log(`[prerender] sitemap generated (${sitemapEntryCount} URLs).`);
+  console.log(
+    `[prerender] ads.txt ${hasAdsensePublisher ? 'generated with AdSense publisher id.' : 'generated with placeholder comments.'}`
+  );
+};
+
+run().catch((error) => {
+  console.error('[prerender] failed:', error);
+  process.exitCode = 1;
+});
+

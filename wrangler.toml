@@ -1,0 +1,29 @@
+name = "mahean-fullsite"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-03-07"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+routes = [
+  { pattern = "www.mahean.com/*", zone_name = "mahean.com" },
+  { pattern = "mahean.com/*", zone_name = "mahean.com" }
+]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[vars]
+CANONICAL_HOST = "www.mahean.com"
+SITE_URL = "https://www.mahean.com"
+ALLOWED_ORIGINS = "https://www.mahean.com,https://mahean.com"
+DB_BACKEND = "d1"
+D1_BINDING = "D1_DB"
+
+[[d1_databases]]
+binding = "D1_DB"
+database_name = "mahean-fullsite-db"
+database_id = "c52018ec-f481-4147-a442-51d0fb35167b"
+
+[[r2_buckets]]
+binding = "UPLOADS_BUCKET"
+bucket_name = "mahean-uploads-prod"
+preview_bucket_name = "mahean-uploads-preview"

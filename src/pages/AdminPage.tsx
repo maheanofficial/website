@@ -1,0 +1,360 @@
+import { useState, useEffect } from 'react';
+import { Link, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus, Trash2, ShieldAlert } from 'lucide-react';
+import './AdminPage.css';
+import BrandLogo from '../components/BrandLogo';
+import AdminStories from '../components/admin/AdminStories';
+import AdminAuthors from '../components/admin/AdminAuthors';
+import AdminSettings from '../components/admin/AdminSettings';
+import AdminProfile from '../components/admin/AdminProfile';
+import DashboardAnalytics from '../components/admin/DashboardAnalytics';
+import AdminApprovals from '../components/admin/AdminApprovals';
+import AdminModeration from '../components/admin/AdminModeration';
+import AdminUsers from '../components/admin/AdminUsers';
+import AdminTrash from '../components/admin/AdminTrash';
+import { buildAuthPageLink, consumeStoredAuthRedirectIntent } from '../utils/authRedirect';
+import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
+import type { User } from '../utils/userManager';
+
+
+const AdminPage = () => {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [mobileMenuState, setMobileMenuState] = useState({ open: false, path: '' });
+    const [isAuthChecking, setIsAuthChecking] = useState(true);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const isMobileMenuOpen = mobileMenuState.open && mobileMenuState.path === location.pathname;
+    const isAdmin = currentUser?.role === 'admin';
+    const isStaff = isAdmin || currentUser?.role === 'moderator';
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const user = await getCurrentUser();
+            setCurrentUser(user);
+            setIsAuthChecking(false);
+        };
+        checkAuth();
+
+        const subscription = onAuthStateChange((_event, session) => {
+            setCurrentUser(session?.user ?? null);
+            setIsAuthChecking(false);
+        });
+
+        return () => {
+            if (subscription && typeof subscription.unsubscribe === 'function') {
+                subscription.unsubscribe();
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isAuthChecking || !currentUser) {
+            return;
+        }
+
+        const currentPath = `${location.pathname}${location.search}${location.hash}`;
+        const redirectIntent = consumeStoredAuthRedirectIntent(currentPath);
+        if (redirectIntent && redirectIntent !== currentPath) {
+            const wantsAdminRoute = redirectIntent.startsWith('/admin')
+                || redirectIntent.startsWith('/dashboard')
+                || redirectIntent.startsWith('/author/dashboard');
+
+            if (wantsAdminRoute && !isStaff) {
+                navigate('/profile', { replace: true });
+                return;
+            }
+
+            navigate(redirectIntent, { replace: true });
+            return;
+        }
+
+        if (!isStaff) {
+            navigate('/profile', { replace: true });
+        }
+    }, [
+        currentUser,
+        isAuthChecking,
+        isStaff,
+        location.hash,
+        location.pathname,
+        location.search,
+        navigate
+    ]);
+
+    const closeMobileMenu = () => {
+        setMobileMenuState({ open: false, path: location.pathname });
+    };
+
+    const toggleMobileMenu = () => {
+        setMobileMenuState((prev) =>
+            prev.open && prev.path === location.pathname
+                ? { open: false, path: location.pathname }
+                : { open: true, path: location.pathname }
+        );
+    };
+
+    const handleLogout = async () => {
+        try {
+            closeMobileMenu();
+            await signOut();
+            navigate('/admin/login');
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
+    };
+
+    if (isAuthChecking) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        );
+    }
+
+    if (!currentUser) {
+        const nextTarget = `${location.pathname}${location.search}${location.hash}`;
+        return <Navigate to={buildAuthPageLink('/admin/login', nextTarget, '/admin/dashboard')} replace />;
+    }
+
+    if (!isStaff) {
+        return null;
+    }
+
+    // Helper to determine active tab for styling
+    const getActiveTab = () => {
+        const path = location.pathname;
+        if (path === '/admin/dashboard' || path === '/admin/dashboard/') return 'dashboard';
+        if (path.includes('/golpo')) return 'golpo';
+        if (path.includes('/authors')) return 'authors';
+        if (path.includes('/moderation')) return 'moderation';
+        if (path.includes('/approvals')) return 'approvals';
+        if (path.includes('/users')) return 'users';
+        if (path.includes('/trash')) return 'trash';
+        if (path.includes('/settings')) return 'settings';
+        if (path.includes('/profile')) return 'profile';
+        return '';
+    };
+
+    const activeTab = getActiveTab();
+
+    const renderBreadcrumbs = () => {
+        const path = location.pathname;
+        const crumbs: { label: string, path: string, icon?: React.ReactNode }[] = [
+            { label: 'ড্যাশবোর্ড', path: '/admin/dashboard', icon: <LayoutDashboard size={14} /> }
+        ];
+
+        if (path.includes('/golpo')) {
+            crumbs.push({ label: '\u0997\u09b2\u09cd\u09aa', path: '/admin/dashboard/golpo', icon: undefined });
+            if (path.includes('/create')) {
+                crumbs.push({ label: '\u09a4\u09c8\u09b0\u09bf', path: '', icon: undefined });
+            } else if (path.includes('/edit')) {
+                crumbs.push({ label: '\u098f\u09a1\u09bf\u099f', path: '', icon: undefined });
+            }
+        } else if (path.includes('/authors')) {
+            crumbs.push({ label: 'লেখক', path: '/admin/dashboard/authors', icon: undefined });
+        } else if (path.includes('/moderation')) {
+            crumbs.push({ label: 'Moderation', path: '/admin/dashboard/moderation', icon: undefined });
+        } else if (path.includes('/approvals')) {
+            crumbs.push({ label: 'Approvals', path: '/admin/dashboard/approvals', icon: undefined });
+        } else if (path.includes('/users')) {
+            crumbs.push({ label: 'Users', path: '/admin/dashboard/users', icon: undefined });
+        } else if (path.includes('/trash')) {
+            crumbs.push({ label: 'Trash', path: '/admin/dashboard/trash', icon: undefined });
+        } else if (path.includes('/settings')) {
+            crumbs.push({ label: 'সেটিংস', path: '/admin/dashboard/settings/profile', icon: undefined });
+            if (path.includes('/password')) {
+                crumbs.push({ label: 'পাসওয়ার্ড', path: '', icon: undefined });
+            } else if (path.includes('/appearance')) {
+                crumbs.push({ label: 'অ্যাপিয়ারেন্স', path: '', icon: undefined });
+            } else {
+                crumbs.push({ label: 'প্রোফাইল', path: '', icon: undefined });
+            }
+        } else if (path.includes('/profile')) {
+            crumbs.push({ label: 'প্রোফাইল', path: '/admin/dashboard/profile', icon: undefined });
+        }
+
+        return (
+            <div className="breadcrumbs">
+                {crumbs.map((crumb, index) => (
+                    <div key={index} className="crumb-unit">
+                        {index > 0 && <span className="crumb-sep">&gt;</span>}
+                        <div className="crumb-item">
+                            {crumb.icon && <span className="crumb-icon">{crumb.icon}</span>}
+                            {crumb.path ? (
+                                <Link to={crumb.path} className={`crumb-text ${index === crumbs.length - 1 ? 'active' : ''}`}>
+                                    {crumb.label}
+                                </Link>
+                            ) : (
+                                <span className="crumb-text active">{crumb.label}</span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const displayName = currentUser?.displayName
+        || currentUser?.email?.split('@')[0]
+        || 'User';
+    const avatarUrl = currentUser?.photoURL
+        || '';
+    const userInitial = displayName?.trim()?.charAt(0)?.toUpperCase() || 'U';
+
+    return (
+        <div className="admin-layout">
+            {/* Mobile Header Toggle */}
+            <button
+                className="admin-mobile-toggle"
+                onClick={toggleMobileMenu}
+            >
+                {isMobileMenuOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
+            </button>
+
+            {/* Side Navigation */}
+            <aside className={`admin-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+                <div className="admin-brand">
+                    <BrandLogo alt="GolpoHub" className="admin-logo-img" />
+                </div>
+
+                <div className="sidebar-section">
+                    <div className="sidebar-label">প্লাটফর্ম</div>
+                    <nav className="sidebar-nav">
+                        <Link to="/" className="sidebar-item">
+                            <Home size={18} />
+                            <span>হোম</span>
+                        </Link>
+                        <Link
+                            to="/admin/dashboard"
+                            className={`sidebar-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                        >
+                            <LayoutDashboard size={18} />
+                            <span>ড্যাশবোর্ড</span>
+                        </Link>
+                        <Link
+                            to="/admin/dashboard/golpo"
+                            className={`sidebar-item ${activeTab === 'golpo' ? 'active' : ''}`}
+                        >
+                            <BookOpen size={18} />
+                            <span>গল্প</span>
+                        </Link>
+                        <Link
+                            to="/admin/dashboard/trash"
+                            className={`sidebar-item ${activeTab === 'trash' ? 'active' : ''}`}
+                        >
+                            <Trash2 size={18} />
+                            <span>Trash</span>
+                        </Link>
+                    </nav>
+                </div>
+
+                {isAdmin && (
+                    <div className="sidebar-section">
+                        <div className="sidebar-label">Admin</div>
+                        <nav className="sidebar-nav">
+                            <Link
+                                to="/admin/dashboard/moderation"
+                                className={`sidebar-item ${activeTab === 'moderation' ? 'active' : ''}`}
+                            >
+                                <ShieldAlert size={18} />
+                                <span>Moderation</span>
+                            </Link>
+                            <Link
+                                to="/admin/dashboard/approvals"
+                                className={`sidebar-item ${activeTab === 'approvals' ? 'active' : ''}`}
+                            >
+                                <CheckCircle size={18} />
+                                <span>Approvals</span>
+                            </Link>
+                            <Link
+                                to="/admin/dashboard/users"
+                                className={`sidebar-item ${activeTab === 'users' ? 'active' : ''}`}
+                            >
+                                <UserPlus size={18} />
+                                <span>Users</span>
+                            </Link>
+                            <Link
+                                to="/admin/dashboard/authors"
+                                className={`sidebar-item ${activeTab === 'authors' ? 'active' : ''}`}
+                            >
+                                <Users size={18} />
+                                <span>{'\u09b2\u09c7\u0996\u0995'}</span>
+                            </Link>
+                        </nav>
+                    </div>
+                )}
+
+                <div className="sidebar-footer-menu">
+                    <Link
+                        to="/admin/dashboard/settings/profile"
+                        className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
+                    >
+                        <Settings size={18} />
+                        <span>সেটিংস</span>
+                    </Link>
+                    <Link
+                        to="/admin/dashboard/profile"
+                        className={`sidebar-item ${activeTab === 'profile' ? 'active' : ''}`}
+                    >
+                        <UserIcon size={18} />
+                        <span>প্রোফাইল</span>
+                    </Link>
+                </div>
+
+                <div className="sidebar-user-profile">
+                    <div className="user-avatar-sm">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="User" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                            userInitial
+                        )}
+                    </div>
+                    <div className="user-info-mini">
+                        <div className="u-name">{displayName}</div>
+                        <div className="u-role">{isAdmin ? 'Admin' : 'Moderator'}</div>
+                        <button onClick={handleLogout} className="u-logout">Log out</button>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <main className="admin-main">
+                <header className="admin-topbar">
+                    {renderBreadcrumbs()}
+                </header>
+
+                <div className="admin-content-scroll">
+                    <Routes>
+                        <Route index element={<DashboardAnalytics />} />
+                        <Route path="golpo" element={<AdminStories user={currentUser} />} />
+                        <Route path="golpo/create" element={<AdminStories user={currentUser} initialViewMode="create" />} />
+                        <Route path="golpo/edit/:id" element={<AdminStories user={currentUser} initialViewMode="edit" />} />
+                        <Route
+                            path="authors"
+                            element={isAdmin ? <AdminAuthors /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="approvals"
+                            element={isAdmin ? <AdminApprovals /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="moderation"
+                            element={isAdmin ? <AdminModeration /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="users"
+                            element={isAdmin ? <AdminUsers currentUser={currentUser} /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route path="trash" element={<AdminTrash />} />
+                        <Route path="profile" element={<AdminProfile />} />
+                        <Route path="settings/*" element={<AdminSettings />} />
+                        {/* Fallback */}
+                        <Route path="*" element={<DashboardAnalytics />} />
+                    </Routes>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default AdminPage;

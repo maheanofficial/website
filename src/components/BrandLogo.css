@@ -1,0 +1,39 @@
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.brand-logo__image {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.brand-logo__fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    min-width: 4.5rem;
+    max-width: min(100%, 14rem);
+    padding: 0.42em 0.82em;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 92, 0, 0.24);
+    background:
+        linear-gradient(135deg, rgba(255, 92, 0, 0.24), rgba(255, 92, 0, 0.08)),
+        rgba(12, 12, 12, 0.92);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    color: #fff7ed;
+    font-family: 'Hind Siliguri', var(--font-display), sans-serif;
+    font-size: clamp(0.58rem, 1vw, 0.88rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-align: center;
+    white-space: nowrap;
+}
