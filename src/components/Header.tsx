@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Search } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
@@ -11,6 +11,8 @@ import './Header.css';
 export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
+    const [headerVisible, setHeaderVisible] = useState(true);
+    const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
@@ -25,10 +27,20 @@ export default function Header() {
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 50);
+            const currentY = window.scrollY;
+            setScrolled(currentY > 50);
+
+            if (currentY < 80) {
+                setHeaderVisible(true);
+            } else if (currentY > lastScrollY.current + 8) {
+                setHeaderVisible(false);
+            } else if (currentY < lastScrollY.current - 5) {
+                setHeaderVisible(true);
+            }
+            lastScrollY.current = currentY;
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -105,7 +117,7 @@ export default function Header() {
     };
 
     return (
-        <header className={`header ${scrolled ? 'header-scrolled' : ''}`}>
+        <header className={`header ${scrolled ? 'header-scrolled' : ''} ${!headerVisible ? 'header-hidden' : ''}`}>
             <div className="container">
                 <nav className="nav">
                     <Link to="/" className="logo">

@@ -5,13 +5,21 @@
   /* Primary Hue - Antique Gold (Warmer, less harsh) */
   --primary-hue: 40;
 
-  /* Backgrounds - Soft Charcoal & Deep Gray (Better for long reading) */
-  --bg-primary: #121212;
-  /* Soft Black (Charcoal) */
-  --bg-secondary: #1E1E1E;
-  /* Dark Gray for cards */
-  --bg-tertiary: #252525;
-  /* Lighter Gray for inputs */
+  /* Backgrounds - Deep Navy-Black (Premium, easier on eyes) */
+  --bg-primary: #0D0D14;
+  /* Deep Navy-Black */
+  --bg-secondary: #13131E;
+  /* Dark Navy for cards */
+  --bg-tertiary: #1C1C2A;
+  /* Elevated surface for inputs */
+
+  /* Reader Mode Themes */
+  --bg-reader-sepia: #1A160E;
+  --text-reader-sepia: #D4C4A8;
+  --bg-reader-paper: #F5F0E8;
+  --text-reader-paper: #2C2416;
+  --bg-reader-night: #000000;
+  --text-reader-night: #8a9bb0;
 
   /* Accent - Logo Orange */
   --accent-primary: #FF5C00;
@@ -34,9 +42,9 @@
   /* Soft Muted Gray */
 
   /* Glassmorphism - Frosted & Matte */
-  --glass-bg: rgba(30, 30, 30, 0.75);
-  /* Matte dark glass */
-  --glass-border: rgba(255, 92, 0, 0.15);
+  --glass-bg: rgba(19, 19, 30, 0.82);
+  /* Deep navy glass */
+  --glass-border: rgba(255, 92, 0, 0.18);
   /* Soft Orange border */
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
@@ -53,9 +61,9 @@
   --spacing-2xl: 5rem;
   --spacing-lg: 4rem;
   --spacing-xl: 6rem;
-  --header-space: 180px;
-  /* Approximate fixed header height (logo + vertical padding). */
-  --header-height: 142px;
+  --header-space: 110px;
+  /* Reduced: slim header (80px logo) */
+  --header-height: 90px;
 
   /* Border Radius - Friendly & Modern */
   --radius-sm: 8px;
@@ -180,10 +188,11 @@ body {
   font-family: var(--font-primary);
   background: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-height: 100vh;
   min-height: 100dvh;
   /* Dynamic viewport height */
@@ -214,8 +223,9 @@ body::before {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at 20% 30%, hsla(35, 95%, 40%, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, hsla(45, 95%, 40%, 0.1) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 30%, hsla(35, 95%, 40%, 0.14) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, hsla(45, 95%, 40%, 0.14) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, hsla(250, 60%, 20%, 0.08) 0%, transparent 50%);
   pointer-events: none;
   z-index: -1;
   animation: backgroundPulse 10s ease-in-out infinite;
@@ -805,12 +815,14 @@ a:hover {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(24px);
+    filter: blur(4px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
@@ -856,6 +868,17 @@ a:hover {
   animation: float 3s ease-in-out infinite;
 }
 
+/* Press feedback on primary buttons */
+.btn-primary:active,
+.story-card-read-link:active {
+  transform: scale(0.97);
+}
+
+/* Story card staggered animation */
+.story-card {
+  animation: fadeInUp 0.45s ease-out backwards;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   :root {
@@ -864,7 +887,7 @@ a:hover {
     --text-4xl: 1.75rem;
     --text-3xl: 1.5rem;
     --spacing-xl: 3rem;
-    --header-space: 120px;
+    --header-space: 95px;
     --header-height: 72px;
   }
 

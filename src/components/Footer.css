@@ -1,6 +1,7 @@
 .footer {
     background: var(--bg-secondary);
-    border-top: 1px solid var(--glass-border);
+    border-top: 2px solid transparent;
+    border-image: linear-gradient(90deg, transparent 0%, rgba(255, 92, 0, 0.35) 30%, rgba(255, 92, 0, 0.5) 50%, rgba(255, 92, 0, 0.35) 70%, transparent 100%) 1;
     padding: var(--spacing-xl) 0 calc(var(--spacing-md) + var(--sab));
     margin-top: var(--spacing-xl);
 }

@@ -5,7 +5,13 @@
     right: 0;
     z-index: 1000;
     padding: var(--spacing-sm) 0;
-    transition: all var(--transition-base);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    will-change: transform;
+}
+
+.header-hidden {
+    transform: translateY(-100%);
 }
 
 .header-scrolled {
@@ -25,7 +31,7 @@
 .logo {
     display: inline-flex;
     align-items: center;
-    min-height: 84px;
+    min-height: 60px;
     font-size: var(--text-xl);
     font-weight: 800;
     font-family: var(--font-display);
@@ -42,7 +48,7 @@
 }
 
 .site-logo {
-    height: 118px;
+    height: 80px;
     width: auto;
     display: inline-block;
     object-fit: contain;

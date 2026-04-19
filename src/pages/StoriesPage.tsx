@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Search, Filter, Calendar, PenTool, ChevronRight, Sparkles, TrendingUp } from 'lucide-react';
+import SkeletonCard from '../components/SkeletonCard';
 import StoryCard from '../components/StoryCard';
 import StoryCarousel from '../components/StoryCarousel';
 import AuthorsGrid from '../components/AuthorsGrid';
@@ -697,7 +698,9 @@ export default function StoriesPage() {
 
                             {/* Results Grid */}
                             <div className="stories-grid">
-                                {paginatedStories.length > 0 ? (
+                                {stories.length === 0 ? (
+                                    <SkeletonCard count={6} />
+                                ) : paginatedStories.length > 0 ? (
                                     paginatedStories.map((story) => (
                                         <StoryCard key={story.id} story={story} />
                                     ))

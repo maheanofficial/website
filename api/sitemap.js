@@ -22,6 +22,14 @@ const SITE_URL = normalizeBaseUrl(
     pickFirstEnv('SITE_URL', 'VITE_SITE_URL')
 ) || 'https://www.mahean.com';
 
+const storyPriority = (story) => {
+    const v = Number(story?.views || 0);
+    if (v > 10000) return '0.95';
+    if (v > 1000) return '0.85';
+    if (v > 100) return '0.75';
+    return '0.65';
+};
+
 const LEGACY_META_START = '__MAHEAN_META__:';
 const LEGACY_META_END = ':__MAHEAN_META_END__';
 const MAX_STORIES = Number.parseInt(String(process.env.SITEMAP_MAX_STORIES || ''), 10) || 10000;
@@ -38,7 +46,8 @@ const SITEMAP_STORY_COLUMNS = [
     'category_id',
     'date',
     'created_at',
-    'updated_at'
+    'updated_at',
+    'views'
 ].join(',');
 
 const STATIC_ROUTES = [
@@ -292,7 +301,7 @@ const buildDynamicSitemap = async () => {
                     path: storyPath,
                     lastmod,
                     changefreq: 'daily',
-                    priority: '0.9'
+                    priority: storyPriority(story)
                 });
             }
 

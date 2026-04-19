@@ -1,9 +1,15 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Allow: /rss.xml
+Allow: /feed.xml
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /author/dashboard
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /profile
 
 # Sitemaps
 Sitemap: https://www.mahean.com/sitemap.xml

@@ -6,6 +6,7 @@ import Skills from '../components/Skills';
 import Contact from '../components/Contact';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
+import SkeletonCard from '../components/SkeletonCard';
 import StoryCard from '../components/StoryCard';
 import StoryCarousel from '../components/StoryCarousel';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
@@ -63,7 +64,15 @@ const HomePage = () => {
             '@type': 'WebSite',
             name: 'Mahean Ahmed',
             url: SITE_URL,
-            inLanguage: 'bn-BD'
+            inLanguage: 'bn-BD',
+            potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                    '@type': 'EntryPoint',
+                    urlTemplate: `${SITE_URL}/stories?q={search_term_string}`
+                },
+                'query-input': 'required name=search_term_string'
+            }
         }
     ];
 
@@ -98,17 +107,21 @@ const HomePage = () => {
                 </div>
 
                 <div className="home-stories-grid">
-                    {stories
-                        .slice()
-                        .sort((a, b) => {
-                            const viewsDiff = (b.views || 0) - (a.views || 0);
-                            if (viewsDiff !== 0) return viewsDiff;
-                            return new Date(b.date).getTime() - new Date(a.date).getTime();
-                        })
-                        .slice(0, 12)
-                        .map((story, index) => (
-                            <StoryCard key={story.id} story={story} index={index} />
-                        ))}
+                    {stories.length === 0 ? (
+                        <SkeletonCard count={6} />
+                    ) : (
+                        stories
+                            .slice()
+                            .sort((a, b) => {
+                                const viewsDiff = (b.views || 0) - (a.views || 0);
+                                if (viewsDiff !== 0) return viewsDiff;
+                                return new Date(b.date).getTime() - new Date(a.date).getTime();
+                            })
+                            .slice(0, 12)
+                            .map((story, index) => (
+                                <StoryCard key={story.id} story={story} index={index} />
+                            ))
+                    )}
                 </div>
             </div>
 

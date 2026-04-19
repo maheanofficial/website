@@ -2,7 +2,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    min-height: clamp(500px, 72vh, 560px);
+    min-height: 0;
     height: 100%;
     overflow: hidden;
     border-radius: 24px;
@@ -40,7 +40,7 @@
 
 .story-card-poster {
     position: relative;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 3 / 4;
     min-height: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
@@ -374,7 +374,7 @@
 
 @media (max-width: 640px) {
     .story-card {
-        min-height: 470px;
+        min-height: 0;
         border-radius: 20px;
     }
 
@@ -418,7 +418,7 @@
 
 @media (max-width: 420px) {
     .story-card {
-        min-height: 438px;
+        min-height: 0;
         border-radius: 18px;
     }
 

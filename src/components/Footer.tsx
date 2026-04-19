@@ -25,6 +25,7 @@ export default function Footer() {
                             <Link to="/categories" className="footer-link">ক্যাটাগরি</Link>
                             <Link to="/tags" className="footer-link">ট্যাগ</Link>
                             <a href="/sitemap.xml" className="footer-link">সাইটম্যাপ</a>
+                            <a href="/rss.xml" className="footer-link">RSS ফিড</a>
                         </div>
                     </div>
 

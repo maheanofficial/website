@@ -13,6 +13,7 @@ import readerStateHandler from './api/reader-state.js';
 import sitemapHandler from './api/sitemap.js';
 import sitemapNewsHandler from './api/sitemap-news.js';
 import storyRedirectHandler from './api/story-redirect.js';
+import rssHandler from './api/rss.js';
 import searchHandler from './api/search.js';
 import syncDataHandler from './api/sync-data.js';
 import uploadImageHandler from './api/upload-image.js';
@@ -667,6 +668,11 @@ const handleRequest = async (req, res) => {
 
     if (pathname === '/sitemap-news.xml') {
         await runHandler(req, res, sitemapNewsHandler);
+        return;
+    }
+
+    if (pathname === '/rss.xml' || pathname === '/feed.xml') {
+        await runHandler(req, res, rssHandler);
         return;
     }
 

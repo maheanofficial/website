@@ -878,9 +878,13 @@ const StoryDetailsPage = () => {
     const seoDescriptionSource = normalizeDisplayText(currentPart.content)
         || normalizeDisplayText(story.excerpt)
         || normalizeDisplayText(story.content);
-    const seoDescription = seoDescriptionSource.length > 170
-        ? `${seoDescriptionSource.slice(0, 167)}...`
-        : seoDescriptionSource;
+    const seoDescription = (() => {
+        const base = seoDescriptionSource.length > 140
+            ? `${seoDescriptionSource.slice(0, 137)}...`
+            : seoDescriptionSource;
+        const readMin = estimateReadMinutes(currentPart.content);
+        return `${base} | পড়তে সময় লাগবে ${readMin} মিনিট`;
+    })();
     const canonicalStoryUrl = `${SITE_URL}/stories/${baseSegment}`;
     const articleWordCount = normalizeDisplayText(currentPart.content).split(/\s+/).filter(Boolean).length;
     const storyCategories = normalizeCategoryFilterList(story.categories, story.category);
