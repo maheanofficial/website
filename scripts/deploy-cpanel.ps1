@@ -14,17 +14,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Require-Command {
+function Assert-Command {
     param([string]$Name)
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "Required command not found: $Name"
     }
 }
 
-Require-Command "ssh"
-Require-Command "scp"
-Require-Command "tar"
-Require-Command "npm"
+Assert-Command "ssh"
+Assert-Command "scp"
+Assert-Command "tar"
+Assert-Command "npm"
 
 if ($BuildFirst) {
     Write-Host "Installing dependencies and building project..."
