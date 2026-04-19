@@ -247,9 +247,22 @@ const writeUsersToJson = async (users) => {
     await fs.writeFile(USERS_FILE, JSON.stringify({ users: normalized }, null, 2), 'utf8');
 };
 
+let _usersCacheData = null;
+let _usersCacheExpiresAt = 0;
+const USERS_CACHE_TTL_MS = 10_000;
+
+const _invalidateUsersCache = () => {
+    _usersCacheData = null;
+    _usersCacheExpiresAt = 0;
+};
+
 export const readUsers = async () => {
     if (dbConfigError) {
         throw new Error(dbConfigError);
+    }
+
+    if (Date.now() < _usersCacheExpiresAt && _usersCacheData !== null) {
+        return _usersCacheData;
     }
 
     if (isD1Enabled) {
@@ -258,11 +271,16 @@ export const readUsers = async () => {
         if (JSON.stringify(normalizedUsers) !== JSON.stringify(sourceUsers)) {
             await writeUsersToD1(normalizedUsers);
         }
+        _usersCacheData = normalizedUsers;
+        _usersCacheExpiresAt = Date.now() + USERS_CACHE_TTL_MS;
         return normalizedUsers;
     }
 
     if (!isMysqlEnabled) {
-        return readUsersFromJson();
+        const users = await readUsersFromJson();
+        _usersCacheData = users;
+        _usersCacheExpiresAt = Date.now() + USERS_CACHE_TTL_MS;
+        return users;
     }
 
     const sourceUsers = await readUsersFromMysql();
@@ -270,6 +288,8 @@ export const readUsers = async () => {
     if (JSON.stringify(normalizedUsers) !== JSON.stringify(sourceUsers)) {
         await writeUsersToMysql(normalizedUsers);
     }
+    _usersCacheData = normalizedUsers;
+    _usersCacheExpiresAt = Date.now() + USERS_CACHE_TTL_MS;
     return normalizedUsers;
 };
 
@@ -278,6 +298,7 @@ export const writeUsers = async (users) => {
         throw new Error(dbConfigError);
     }
 
+    _invalidateUsersCache();
     const normalized = prepareUsersForStore(users);
     if (isD1Enabled) {
         await writeUsersToD1(normalized);

@@ -3,6 +3,21 @@ import { toMysqlDataTableName } from './_db-config.js';
 
 const tableReadyPromises = new Map();
 
+const TABLE_CACHE = new Map();
+const TABLE_CACHE_TTL_MS = 3_000;
+
+const _getTableCache = (table) => {
+    const entry = TABLE_CACHE.get(table);
+    if (entry && Date.now() < entry.expiresAt) return entry.rows;
+    return null;
+};
+const _setTableCache = (table, rows) => {
+    TABLE_CACHE.set(table, { rows, expiresAt: Date.now() + TABLE_CACHE_TTL_MS });
+};
+const _invalidateTableCache = (table) => {
+    TABLE_CACHE.delete(table);
+};
+
 const toSafeTableName = (logicalTable) => toMysqlDataTableName(logicalTable);
 
 const escapeIdentifier = (identifier) => {
@@ -163,8 +178,12 @@ const rowMatchesConflict = (existingRow, incomingRow, columns) =>
 export const listRows = async (table, options = {}) => {
     await ensureTableReady(table);
     const tableIdentifier = toTableIdentifier(table);
-    const dbRows = await mysqlQuery(`SELECT pk, row_json FROM ${tableIdentifier} ORDER BY pk ASC`);
-    const rows = toMemoryRows(dbRows);
+    let rows = _getTableCache(table);
+    if (!rows) {
+        const dbRows = await mysqlQuery(`SELECT pk, row_json FROM ${tableIdentifier} ORDER BY pk ASC`);
+        rows = toMemoryRows(dbRows);
+        _setTableCache(table, rows);
+    }
     const filtered = applyFilters(rows, options.filters);
     const ordered = applyOrder(filtered, options.orderBy);
     const selected = pickColumnsFromRows(ordered.map((entry) => entry.row), options.columns);
@@ -182,6 +201,7 @@ export const insertRows = async (table, values) => {
         return [];
     }
 
+    _invalidateTableCache(table);
     const placeholders = incomingRows.map(() => '(?)').join(', ');
     const params = incomingRows.map((entry) => serializeRowJson(entry));
     await mysqlQuery(`INSERT INTO ${tableIdentifier} (row_json) VALUES ${placeholders}`, params);
@@ -197,6 +217,7 @@ export const upsertRows = async (table, values, onConflict = 'id') => {
         return [];
     }
 
+    _invalidateTableCache(table);
     const changed = [];
 
     await withMysqlTransaction(async (connection) => {
@@ -249,6 +270,7 @@ export const updateRows = async (table, patch, filters = []) => {
             : {};
     const updatedRows = [];
 
+    _invalidateTableCache(table);
     await withMysqlTransaction(async (connection) => {
         const [rawRows] = await connection.query(
             `SELECT pk, row_json FROM ${tableIdentifier} ORDER BY pk ASC FOR UPDATE`
@@ -277,6 +299,7 @@ export const deleteRows = async (table, filters = []) => {
     const tableIdentifier = toTableIdentifier(table);
     const deletedRows = [];
 
+    _invalidateTableCache(table);
     await withMysqlTransaction(async (connection) => {
         const [rawRows] = await connection.query(
             `SELECT pk, row_json FROM ${tableIdentifier} ORDER BY pk ASC FOR UPDATE`

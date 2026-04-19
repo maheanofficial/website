@@ -189,22 +189,13 @@ const findReportById = async (reportId) => {
 };
 
 const syncStoryCommentCount = async (storyId, storySlug, totalComments) => {
-    const stories = await listRows('stories');
-    const rows = Array.isArray(stories) ? stories : [];
-    const matchedStory = rows.find((row) =>
-        String(row?.id ?? '') === storyId
-        || (storySlug && String(row?.slug ?? '') === storySlug)
-    );
+    if (!storyId && !storySlug) return;
 
-    if (!matchedStory) {
-        return;
-    }
+    const filters = storyId
+        ? [{ op: 'eq', column: 'id', value: storyId }]
+        : [{ op: 'eq', column: 'slug', value: storySlug }];
 
-    await updateRows(
-        'stories',
-        { comments: totalComments },
-        [{ op: 'eq', column: 'id', value: matchedStory.id }]
-    );
+    await updateRows('stories', { comments: totalComments }, filters);
 };
 
 export default async function handler(req, res) {

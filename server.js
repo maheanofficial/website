@@ -13,6 +13,7 @@ import readerStateHandler from './api/reader-state.js';
 import sitemapHandler from './api/sitemap.js';
 import sitemapNewsHandler from './api/sitemap-news.js';
 import storyRedirectHandler from './api/story-redirect.js';
+import searchHandler from './api/search.js';
 import syncDataHandler from './api/sync-data.js';
 import uploadImageHandler from './api/upload-image.js';
 import { tryServeStorySeoPage } from './api/_story-seo-page.js';
@@ -113,7 +114,8 @@ const API_HANDLERS = new Map([
     ['/api/reader-state', readerStateHandler],
     ['/api/upload-image', uploadImageHandler],
     ['/api/story-redirect', storyRedirectHandler],
-    ['/api/sync-data', syncDataHandler]
+    ['/api/sync-data', syncDataHandler],
+    ['/api/search', searchHandler]
 ]);
 
 const SPA_EXACT_PATHS = new Set([
@@ -240,6 +242,15 @@ const applySecurityHeaders = (req, res) => {
     }
     if (!res.hasHeader('X-Permitted-Cross-Domain-Policies')) {
         res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    }
+    if (!res.hasHeader('Content-Security-Policy')) {
+        res.setHeader(
+            'Content-Security-Policy',
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-src 'self' https://accounts.google.com; worker-src 'self' blob:; object-src 'none';"
+        );
+    }
+    if (!res.hasHeader('X-Request-ID')) {
+        res.setHeader('X-Request-ID', `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
     }
 };
 
