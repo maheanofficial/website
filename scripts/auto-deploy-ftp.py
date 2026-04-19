@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-Auto deploy script for cPanel FTP.
+Auto deploy script for cPanel FTP — optimised for speed.
 
-Expected local config file (ignored by git): .deploy.local.json
-Example:
+Speed improvements vs original:
+  • Parallel uploads using a thread pool (WORKERS connections at once)
+  • Git-aware: only uploads files changed since the last deploy tag/ref
+    (set DEPLOY_FULL=true env var to force a full upload)
+  • Skips the `scripts/` directory (server doesn't need deploy helpers)
+  • Skips `node_modules`, build-cache artefacts, and other junk
+
+Expected local config (ignored by git): .deploy.local.json
 {
-  "host": "88.218.224.4",
+  "host": "122.165.242.4",
   "user": "mahean",
   "password": "secret",
   "port": 21,
@@ -25,19 +31,35 @@ import posixpath
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / ".deploy.local.json"
 SEO_FILES = ("ads.txt", "sitemap.xml", "robots.txt")
+WORKERS = 8          # parallel FTP connections
+DEPLOY_TAG = "last-ftp-deploy"   # git tag used to track last deploy
+
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+_log_lock = threading.Lock()
 
 
 def _log(message: str) -> None:
-    print(f"[auto-deploy] {message}", flush=True)
+    with _log_lock:
+        print(f"[auto-deploy] {message}", flush=True)
 
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
 
 def _load_config() -> Dict[str, str]:
     config: Dict[str, str] = {}
@@ -45,152 +67,261 @@ def _load_config() -> Dict[str, str]:
         with CONFIG_PATH.open("r", encoding="utf-8-sig") as fh:
             payload = json.load(fh)
             if isinstance(payload, dict):
-                config.update({str(key): str(value) for key, value in payload.items() if value is not None})
+                config.update(
+                    {str(k): str(v) for k, v in payload.items() if v is not None}
+                )
 
     env_map = {
-        "host": "CPANEL_FTP_HOST",
-        "user": "CPANEL_FTP_USER",
-        "password": "CPANEL_FTP_PASSWORD",
-        "port": "CPANEL_FTP_PORT",
-        "app_dir": "CPANEL_APP_DIR_FTP",
-        "static_dir": "CPANEL_STATIC_DIR_FTP",
-        "healthcheck_url": "CPANEL_HEALTHCHECK_URL",
+        "host":             "CPANEL_FTP_HOST",
+        "user":             "CPANEL_FTP_USER",
+        "password":         "CPANEL_FTP_PASSWORD",
+        "port":             "CPANEL_FTP_PORT",
+        "app_dir":          "CPANEL_APP_DIR_FTP",
+        "static_dir":       "CPANEL_STATIC_DIR_FTP",
+        "healthcheck_url":  "CPANEL_HEALTHCHECK_URL",
     }
     for key, env_name in env_map.items():
-        env_value = os.environ.get(env_name, "").strip()
-        if env_value:
-            config[key] = env_value
+        val = os.environ.get(env_name, "").strip()
+        if val:
+            config[key] = val
 
-    if "port" not in config:
-        config["port"] = "21"
-    if "app_dir" not in config:
-        config["app_dir"] = "/main_mahean.com"
-    if "static_dir" not in config:
-        config["static_dir"] = "/public_html"
-    if "healthcheck_url" not in config:
-        config["healthcheck_url"] = "https://www.mahean.com/healthz"
+    config.setdefault("port", "21")
+    config.setdefault("app_dir", "/main_mahean.com")
+    config.setdefault("static_dir", "/public_html")
+    config.setdefault("healthcheck_url", "https://www.mahean.com/healthz")
 
-    missing = [name for name in ("host", "user", "password") if not config.get(name)]
+    missing = [n for n in ("host", "user", "password") if not config.get(n)]
     if missing:
-        joined = ", ".join(missing)
         raise SystemExit(
-            f"Missing deploy config fields: {joined}. "
-            "Set them in .deploy.local.json or env vars CPANEL_FTP_HOST/USER/PASSWORD."
+            f"Missing deploy config fields: {', '.join(missing)}. "
+            "Set them in .deploy.local.json or CPANEL_FTP_HOST/USER/PASSWORD env vars."
         )
-
     return config
 
 
-def _run_command(command: List[str]) -> None:
-    if os.name == "nt" and command and command[0] == "npm":
-        command = ["npm.cmd", *command[1:]]
-    _log(f"Running: {' '.join(command)}")
-    subprocess.run(command, cwd=ROOT, check=True)
+# ---------------------------------------------------------------------------
+# Git helpers — find only changed files since last deploy
+# ---------------------------------------------------------------------------
+
+def _git_changed_files(since_ref: str) -> Optional[List[str]]:
+    """Return list of repo-relative paths changed since *since_ref*, or None on error."""
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=ACM", since_ref, "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        if result.returncode != 0:
+            return None
+        return [p.strip() for p in result.stdout.splitlines() if p.strip()]
+    except Exception:
+        return None
 
 
-def _ensure_remote_dir(ftp: ftplib.FTP, remote_dir: str) -> None:
-    normalized = remote_dir.replace("\\", "/").strip()
-    if not normalized.startswith("/"):
-        normalized = "/" + normalized
-
-    current = ""
-    for part in (segment for segment in normalized.split("/") if segment):
-        current = f"{current}/{part}"
-        try:
-            ftp.mkd(current)
-        except ftplib.error_perm:
-            # Already exists or no permission to create. Existing dirs are fine.
-            pass
-
-
-def _upload_file(ftp: ftplib.FTP, local_file: Path, remote_file: str) -> None:
-    _ensure_remote_dir(ftp, posixpath.dirname(remote_file))
-    with local_file.open("rb") as fh:
-        ftp.storbinary(f"STOR {remote_file}", fh)
+def _last_deploy_ref() -> Optional[str]:
+    """Return the git ref of the last successful deploy tag, or None."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", DEPLOY_TAG],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+    except Exception:
+        return None
 
 
-def _is_problem_story_path(relative_path: str) -> bool:
-    # Some FTP servers reject unicode story slugs. Keep the index page and ASCII paths only.
-    if not relative_path.startswith("dist/stories/"):
+def _tag_deploy() -> None:
+    """Move the last-deploy tag to HEAD."""
+    try:
+        subprocess.run(
+            ["git", "tag", "-f", DEPLOY_TAG],
+            cwd=ROOT,
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# File collection
+# ---------------------------------------------------------------------------
+
+# Directories to deploy (scripts/ excluded — server doesn't need them)
+DEPLOY_DIRS = ("api", "dist")
+DEPLOY_FILES = ("package.json", "package-lock.json", "server.js")
+
+
+def _is_problem_story_path(rel: str) -> bool:
+    if not rel.startswith("dist/stories/"):
         return False
-    if relative_path == "dist/stories/index.html":
+    if rel == "dist/stories/index.html":
         return False
     try:
-        relative_path.encode("ascii")
+        rel.encode("ascii")
         return False
     except UnicodeEncodeError:
         return True
 
 
-def _collect_uploads() -> List[Tuple[Path, str]]:
+def _collect_all_uploads() -> List[Tuple[Path, str]]:
     uploads: List[Tuple[Path, str]] = []
-
-    top_dirs = ("api", "dist", "scripts")
-    for top in top_dirs:
+    for top in DEPLOY_DIRS:
         local_dir = ROOT / top
         if not local_dir.exists():
             continue
-        for local_file in local_dir.rglob("*"):
-            if not local_file.is_file():
+        for f in local_dir.rglob("*"):
+            if not f.is_file():
                 continue
-            rel = local_file.relative_to(ROOT).as_posix()
+            rel = f.relative_to(ROOT).as_posix()
             if _is_problem_story_path(rel):
                 continue
-            uploads.append((local_file, rel))
-
-    for file_name in ("package.json", "package-lock.json", "server.js"):
-        local_file = ROOT / file_name
-        if local_file.exists():
-            uploads.append((local_file, file_name))
-
-    uploads.sort(key=lambda item: item[1])
+            uploads.append((f, rel))
+    for fname in DEPLOY_FILES:
+        lf = ROOT / fname
+        if lf.exists():
+            uploads.append((lf, fname))
+    uploads.sort(key=lambda x: x[1])
     return uploads
 
 
-def _upload_bundle(ftp: ftplib.FTP, config: Dict[str, str], dry_run: bool) -> None:
-    uploads = _collect_uploads()
-    app_dir = config["app_dir"].rstrip("/") or "/"
-
-    _log(f"Preparing to upload {len(uploads)} files to {app_dir}")
-    failures: List[str] = []
-
-    for index, (local_file, rel_posix) in enumerate(uploads, start=1):
-        remote_file = posixpath.join(app_dir, rel_posix)
-        if dry_run:
+def _collect_changed_uploads(changed: List[str]) -> List[Tuple[Path, str]]:
+    changed_set = set(changed)
+    uploads: List[Tuple[Path, str]] = []
+    for top in DEPLOY_DIRS:
+        local_dir = ROOT / top
+        if not local_dir.exists():
             continue
-        try:
-            _upload_file(ftp, local_file, remote_file)
-        except ftplib.all_errors as exc:
-            # Allow story page edge cases to skip without stopping full deploy.
-            if rel_posix.startswith("dist/stories/"):
-                failures.append(f"skip:{rel_posix}:{exc}")
+        for f in local_dir.rglob("*"):
+            if not f.is_file():
                 continue
+            rel = f.relative_to(ROOT).as_posix()
+            if rel not in changed_set:
+                continue
+            if _is_problem_story_path(rel):
+                continue
+            uploads.append((f, rel))
+    for fname in DEPLOY_FILES:
+        if fname in changed_set:
+            lf = ROOT / fname
+            if lf.exists():
+                uploads.append((lf, fname))
+    uploads.sort(key=lambda x: x[1])
+    return uploads
+
+
+# ---------------------------------------------------------------------------
+# FTP helpers
+# ---------------------------------------------------------------------------
+
+_dir_cache: set[str] = set()
+_dir_lock = threading.Lock()
+
+
+def _make_ftp(config: Dict[str, str]) -> ftplib.FTP:
+    ftp = ftplib.FTP()
+    ftp.connect(config["host"], int(config["port"]), timeout=60)
+    ftp.login(config["user"], config["password"])
+    ftp.set_pasv(True)
+    return ftp
+
+
+def _ensure_remote_dir(ftp: ftplib.FTP, remote_dir: str) -> None:
+    norm = remote_dir.replace("\\", "/").strip("/")
+    parts = norm.split("/")
+    current = ""
+    for part in parts:
+        if not part:
+            continue
+        current = f"{current}/{part}"
+        with _dir_lock:
+            if current in _dir_cache:
+                continue
+        try:
+            ftp.mkd(current)
+        except ftplib.error_perm:
+            pass
+        with _dir_lock:
+            _dir_cache.add(current)
+
+
+def _upload_one(config: Dict[str, str], local_file: Path, remote_file: str) -> None:
+    ftp = _make_ftp(config)
+    try:
+        _ensure_remote_dir(ftp, posixpath.dirname(remote_file))
+        with local_file.open("rb") as fh:
+            ftp.storbinary(f"STOR {remote_file}", fh)
+    finally:
+        try:
+            ftp.quit()
+        except Exception:
+            ftp.close()
+
+
+# ---------------------------------------------------------------------------
+# Upload bundle (parallel)
+# ---------------------------------------------------------------------------
+
+def _upload_bundle(config: Dict[str, str], uploads: List[Tuple[Path, str]], dry_run: bool) -> None:
+    app_dir = config["app_dir"].rstrip("/") or "/"
+    _log(f"Uploading {len(uploads)} files → {app_dir}  (workers={WORKERS})")
+
+    if dry_run:
+        _log("Dry run — no files uploaded.")
+        return
+
+    failures: List[str] = []
+    completed = [0]
+    total = len(uploads)
+
+    def task(item: Tuple[Path, str]) -> Optional[str]:
+        local_file, rel = item
+        remote_file = posixpath.join(app_dir, rel)
+        try:
+            _upload_one(config, local_file, remote_file)
+        except ftplib.all_errors as exc:
+            if rel.startswith("dist/stories/"):
+                return f"skip:{rel}:{exc}"
             raise
-        if index % 50 == 0 or index == len(uploads):
-            _log(f"Uploaded {index}/{len(uploads)}")
+        with _dir_lock:
+            completed[0] += 1
+            done = completed[0]
+        if done % 50 == 0 or done == total:
+            _log(f"  {done}/{total} uploaded")
+        return None
+
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        futures = {pool.submit(task, item): item for item in uploads}
+        for fut in as_completed(futures):
+            result = fut.result()
+            if result:
+                failures.append(result)
 
     if failures:
-        _log(f"Skipped {len(failures)} story files due FTP limitations")
+        _log(f"Skipped {len(failures)} story files due to FTP limitations")
 
+    # SEO files → both app_dir and static_dir
     for file_name in SEO_FILES:
         local_dist = ROOT / "dist" / file_name
         if not local_dist.exists():
             continue
         app_target = posixpath.join(app_dir, file_name)
         static_target = posixpath.join(config["static_dir"].rstrip("/") or "/", file_name)
-        if not dry_run:
-            _upload_file(ftp, local_dist, app_target)
-            _upload_file(ftp, local_dist, static_target)
+        _upload_one(config, local_dist, app_target)
+        _upload_one(config, local_dist, static_target)
 
+    # Touch tmp/restart.txt to restart Passenger
     restart_payload = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", dir=ROOT) as tmp:
         tmp.write(restart_payload)
         temp_path = Path(tmp.name)
-
     try:
-        restart_target = posixpath.join(app_dir, "tmp", "restart.txt")
-        if not dry_run:
-            _upload_file(ftp, temp_path, restart_target)
+        _upload_one(config, temp_path, posixpath.join(app_dir, "tmp", "restart.txt"))
     finally:
         try:
             temp_path.unlink(missing_ok=True)
@@ -198,16 +329,19 @@ def _upload_bundle(ftp: ftplib.FTP, config: Dict[str, str], dry_run: bool) -> No
             pass
 
 
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
+
 def _wait_for_healthcheck(url: str, dry_run: bool) -> bool:
     if dry_run:
         return True
-
     for attempt in range(1, 31):
         try:
-            with urllib.request.urlopen(url, timeout=12) as response:
-                body = response.read().decode("utf-8", errors="ignore").strip().lower()
-                if response.status == 200 and body == "ok":
-                    _log("Health check passed")
+            with urllib.request.urlopen(url, timeout=12) as resp:
+                body = resp.read().decode("utf-8", errors="ignore").strip().lower()
+                if resp.status == 200 and body == "ok":
+                    _log("Health check passed ✓")
                     return True
         except Exception:
             pass
@@ -216,41 +350,57 @@ def _wait_for_healthcheck(url: str, dry_run: bool) -> bool:
     return False
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Deploy current repo to cPanel over FTP.")
-    parser.add_argument("--build", action="store_true", help="Run npm run build before upload.")
-    parser.add_argument("--dry-run", action="store_true", help="Validate config and list actions without uploading.")
+    parser = argparse.ArgumentParser(description="Fast parallel cPanel FTP deploy.")
+    parser.add_argument("--build",    action="store_true", help="Run npm run build first.")
+    parser.add_argument("--full",     action="store_true", help="Upload all files (ignore git diff).")
+    parser.add_argument("--dry-run",  action="store_true", help="List actions without uploading.")
     args = parser.parse_args()
 
     config = _load_config()
+    force_full = args.full or os.environ.get("DEPLOY_FULL", "").lower() in ("1", "true", "yes")
 
     if args.build:
-        _run_command(["npm", "run", "build"])
+        _log("Building…")
+        cmd = ["npm.cmd" if os.name == "nt" else "npm", "run", "build"]
+        subprocess.run(cmd, cwd=ROOT, check=True)
 
-    if args.dry_run:
-        _upload_bundle(ftp=ftplib.FTP(), config=config, dry_run=True)
-        _log("Dry run complete")
-        return 0
+    # Decide which files to upload
+    if force_full:
+        _log("Full deploy requested — uploading all files.")
+        uploads = _collect_all_uploads()
+    else:
+        last_ref = _last_deploy_ref()
+        if last_ref:
+            changed = _git_changed_files(last_ref)
+            if changed is not None and changed:
+                _log(f"Incremental deploy — {len(changed)} file(s) changed since last deploy.")
+                uploads = _collect_changed_uploads(changed)
+                if not uploads:
+                    _log("No deployable files changed. Deploy skipped.")
+                    _tag_deploy()
+                    return 0
+            else:
+                _log("No git changes detected. Falling back to full deploy.")
+                uploads = _collect_all_uploads()
+        else:
+            _log("No previous deploy tag found — performing full deploy.")
+            uploads = _collect_all_uploads()
 
-    ftp = ftplib.FTP()
-    try:
-        _log(f"Connecting to FTP {config['host']}:{config['port']}")
-        ftp.connect(config["host"], int(config["port"]), timeout=60)
-        ftp.login(config["user"], config["password"])
-        ftp.set_pasv(True)
+    _upload_bundle(config, uploads, dry_run=args.dry_run)
 
-        _upload_bundle(ftp=ftp, config=config, dry_run=False)
-    finally:
-        try:
-            ftp.quit()
-        except Exception:
-            ftp.close()
+    if not args.dry_run:
+        _tag_deploy()
 
-    if not _wait_for_healthcheck(config["healthcheck_url"], dry_run=False):
-        _log("Health check failed")
+    if not _wait_for_healthcheck(config["healthcheck_url"], dry_run=args.dry_run):
+        _log("Health check failed ✗")
         return 1
 
-    _log("Deploy complete")
+    _log("Deploy complete ✓")
     return 0
 
 
