@@ -17,11 +17,7 @@ import './HomePage.css';
 
 const HomePage = () => {
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
-    const [continueSession, setContinueSession] = useState<ReaderSession | null>(null);
-
-    useEffect(() => {
-        setContinueSession(getReaderSession());
-    }, []);
+    const [continueSession] = useState<ReaderSession | null>(() => getReaderSession());
 
     useEffect(() => {
         let isMounted = true;
