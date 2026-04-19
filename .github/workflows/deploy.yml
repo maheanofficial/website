@@ -110,9 +110,7 @@ jobs:
           CPANEL_HEALTHCHECK_URL: ${{ env.HEALTHCHECK_URL }}
           CPANEL_APP_DIR_FTP: ${{ env.CPANEL_APP_DIR_FTP }}
           CPANEL_STATIC_DIR_FTP: ${{ env.CPANEL_STATIC_DIR_FTP }}
-          # CI runners have no persistent git history between runs, so always
-          # do a full upload. The parallel script (8 workers) keeps it fast.
-          DEPLOY_FULL: "true"
+          # New fast Zip-based deploy script
         run: python3 scripts/auto-deploy-ftp.py
 
       - name: Deploy over SSH
