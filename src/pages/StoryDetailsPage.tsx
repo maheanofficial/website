@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+﻿import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
 import {
@@ -20,7 +20,9 @@ import {
     saveReaderPreferences,
     saveReaderSession,
     toggleReaderBookmark,
-    type ReaderFontScale
+    type ReaderFontScale,
+    type ReaderTheme,
+    type ReaderWidth
 } from '../utils/readerExperience';
 import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
@@ -341,6 +343,8 @@ const StoryDetailsPage = () => {
     const [readingProgress, setReadingProgress] = useState(0);
     const [relatedStories, setRelatedStories] = useState<Story[]>(initialCachedState.relatedStories);
     const [readerFontScale, setReaderFontScale] = useState<ReaderFontScale>(() => getReaderPreferences().fontScale);
+    const [readerTheme, setReaderTheme] = useState<ReaderTheme>(() => getReaderPreferences().theme);
+    const [readerWidth, setReaderWidth] = useState<ReaderWidth>(() => getReaderPreferences().width);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [storyComments, setStoryComments] = useState<StoryComment[]>([]);
@@ -541,8 +545,8 @@ const StoryDetailsPage = () => {
     }, [id, partNumber]);
 
     useEffect(() => {
-        saveReaderPreferences({ fontScale: readerFontScale });
-    }, [readerFontScale]);
+        saveReaderPreferences({ fontScale: readerFontScale, theme: readerTheme, width: readerWidth });
+    }, [readerFontScale, readerTheme, readerWidth]);
 
     // Reading progress tracking
     useEffect(() => {
@@ -1128,27 +1132,22 @@ const StoryDetailsPage = () => {
                         </p>
                     </div>
                     <div className="reader-utility-actions">
-                        <button
-                            type="button"
-                            className={`reader-chip ${readerFontScale === 'compact' ? 'active' : ''}`}
-                            onClick={() => setReaderFontScale('compact')}
-                        >
-                            ছোট
-                        </button>
-                        <button
-                            type="button"
-                            className={`reader-chip ${readerFontScale === 'comfortable' ? 'active' : ''}`}
-                            onClick={() => setReaderFontScale('comfortable')}
-                        >
-                            স্বাভাবিক
-                        </button>
-                        <button
-                            type="button"
-                            className={`reader-chip ${readerFontScale === 'large' ? 'active' : ''}`}
-                            onClick={() => setReaderFontScale('large')}
-                        >
-                            বড়
-                        </button>
+                        <span className="reader-chip-label">আকার</span>
+                        <button type="button" className={`reader-chip ${readerFontScale === 'compact' ? 'active' : ''}`} onClick={() => setReaderFontScale('compact')}>ছোট</button>
+                        <button type="button" className={`reader-chip ${readerFontScale === 'comfortable' ? 'active' : ''}`} onClick={() => setReaderFontScale('comfortable')}>স্বাভাবিক</button>
+                        <button type="button" className={`reader-chip ${readerFontScale === 'large' ? 'active' : ''}`} onClick={() => setReaderFontScale('large')}>বড়</button>
+                        <span className="reader-chip-separator" />
+                        <span className="reader-chip-label">থিম</span>
+                        <button type="button" className={`reader-chip reader-chip-theme theme-dark ${readerTheme === 'dark' ? 'active' : ''}`} onClick={() => setReaderTheme('dark')}>রাত</button>
+                        <button type="button" className={`reader-chip reader-chip-theme theme-sepia ${readerTheme === 'sepia' ? 'active' : ''}`} onClick={() => setReaderTheme('sepia')}>সেপিয়া</button>
+                        <button type="button" className={`reader-chip reader-chip-theme theme-paper ${readerTheme === 'paper' ? 'active' : ''}`} onClick={() => setReaderTheme('paper')}>কাগজ</button>
+                        <button type="button" className={`reader-chip reader-chip-theme theme-night ${readerTheme === 'night' ? 'active' : ''}`} onClick={() => setReaderTheme('night')}>নাইট</button>
+                        <span className="reader-chip-separator" />
+                        <span className="reader-chip-label">প্রস্থ</span>
+                        <button type="button" className={`reader-chip ${readerWidth === 'narrow' ? 'active' : ''}`} onClick={() => setReaderWidth('narrow')}>সরু</button>
+                        <button type="button" className={`reader-chip ${readerWidth === 'standard' ? 'active' : ''}`} onClick={() => setReaderWidth('standard')}>স্বাভাবিক</button>
+                        <button type="button" className={`reader-chip ${readerWidth === 'wide' ? 'active' : ''}`} onClick={() => setReaderWidth('wide')}>চওড়া</button>
+                        <span className="reader-chip-separator" />
                         <button
                             type="button"
                             className={`reader-chip ${isBookmarked ? 'active' : ''}`}
@@ -1171,7 +1170,12 @@ const StoryDetailsPage = () => {
                 <AdComponent slot="story-top-ad" format="horizontal" />
 
                 {/* Story Content */}
-                <div className={`story-content-container ${readerFontClass}`} ref={contentRef}>
+                <div
+                    className={`story-content-container ${readerFontClass}`}
+                    data-reader-theme={readerTheme}
+                    data-reader-width={readerWidth}
+                    ref={contentRef}
+                >
                     <div
                         className="story-prose"
                         dangerouslySetInnerHTML={renderFormattedText(currentPart.content)}

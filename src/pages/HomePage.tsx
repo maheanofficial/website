@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
+import { getReaderSession, type ReaderSession } from '../utils/readerExperience';
 import { ChevronRight } from 'lucide-react';
 import Hero from '../components/Hero';
 import Skills from '../components/Skills';
@@ -15,6 +17,11 @@ import './HomePage.css';
 
 const HomePage = () => {
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
+    const [continueSession, setContinueSession] = useState<ReaderSession | null>(null);
+
+    useEffect(() => {
+        setContinueSession(getReaderSession());
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -88,6 +95,31 @@ const HomePage = () => {
             />
 
             <Hero />
+
+            {/* Continue Reading Section */}
+            {continueSession && (
+                <div className="container">
+                    <div className="continue-reading-card">
+                        {continueSession.coverImage && (
+                            <img src={continueSession.coverImage} alt="" className="continue-reading-cover" />
+                        )}
+                        <div className="continue-reading-info">
+                            <span className="continue-reading-kicker">
+                                <BookOpen size={14} /> যেখানে ছেড়েছিলেন
+                            </span>
+                            <p className="continue-reading-title">{continueSession.storyTitle}</p>
+                            <p className="continue-reading-part">{continueSession.partLabel}</p>
+                            <div className="continue-reading-progress-bar">
+                                <div className="continue-reading-progress-fill" style={{ width: `${continueSession.progress}%` }} />
+                            </div>
+                            <span className="continue-reading-pct">{continueSession.progress}% পড়া হয়েছে</span>
+                        </div>
+                        <Link to={continueSession.path} className="btn btn-primary continue-reading-btn">
+                            পড়তে থাকুন →
+                        </Link>
+                    </div>
+                </div>
+            )}
 
             {/* Featured Stories Section */}
             <div className="container py-12">

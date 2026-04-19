@@ -1,7 +1,11 @@
 export type ReaderFontScale = 'compact' | 'comfortable' | 'large';
+export type ReaderTheme = 'dark' | 'sepia' | 'paper' | 'night';
+export type ReaderWidth = 'narrow' | 'standard' | 'wide';
 
 export type ReaderPreferences = {
     fontScale: ReaderFontScale;
+    theme: ReaderTheme;
+    width: ReaderWidth;
 };
 
 export type ReaderSession = {
@@ -42,7 +46,9 @@ const READER_HISTORY_LIMIT = 12;
 const READER_BOOKMARK_LIMIT = 24;
 
 const DEFAULT_PREFERENCES: ReaderPreferences = {
-    fontScale: 'comfortable'
+    fontScale: 'comfortable',
+    theme: 'dark',
+    width: 'standard'
 };
 
 const canUseStorage = () => typeof window !== 'undefined';
@@ -136,18 +142,28 @@ export const getReaderPreferences = (): ReaderPreferences => {
 
     const parsed = safeJsonParse<Partial<ReaderPreferences>>(localStorage.getItem(READER_PREFERENCES_KEY));
     const fontScale = parsed?.fontScale;
+    const theme = parsed?.theme;
+    const width = parsed?.width;
 
     return {
         fontScale: fontScale === 'compact' || fontScale === 'large' || fontScale === 'comfortable'
             ? fontScale
-            : DEFAULT_PREFERENCES.fontScale
+            : DEFAULT_PREFERENCES.fontScale,
+        theme: theme === 'sepia' || theme === 'paper' || theme === 'night' || theme === 'dark'
+            ? theme
+            : DEFAULT_PREFERENCES.theme,
+        width: width === 'narrow' || width === 'wide' || width === 'standard'
+            ? width
+            : DEFAULT_PREFERENCES.width
     };
 };
 
 export const saveReaderPreferences = (preferences: ReaderPreferences) => {
     if (!canUseStorage()) return;
     localStorage.setItem(READER_PREFERENCES_KEY, JSON.stringify({
-        fontScale: preferences.fontScale
+        fontScale: preferences.fontScale,
+        theme: preferences.theme,
+        width: preferences.width
     }));
 };
 
