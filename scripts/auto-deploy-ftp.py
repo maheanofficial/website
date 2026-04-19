@@ -27,7 +27,7 @@ def _log(msg: str):
 def _load_config() -> Dict[str, str]:
     required = [
         "CPANEL_FTP_HOST", "CPANEL_FTP_USER", "CPANEL_FTP_PASSWORD",
-        "CPANEL_APP_DIR_FTP", "CPANEL_HEALTHCHECK_URL"
+        "CPANEL_APP_DIR_FTP", "CPANEL_STATIC_DIR_FTP", "CPANEL_HEALTHCHECK_URL"
     ]
     conf = {}
     for r in required:
