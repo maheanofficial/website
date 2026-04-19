@@ -144,9 +144,9 @@ jobs:
 
             askpass_path="$RUNNER_TEMP/ssh-askpass.sh"
             cat > "${askpass_path}" <<'EOF'
-#!/usr/bin/env bash
-printf '%s\n' "${CPANEL_SSH_PASSPHRASE}"
-EOF
+          #!/usr/bin/env bash
+          printf '%s\n' "${CPANEL_SSH_PASSPHRASE}"
+          EOF
             chmod 700 "${askpass_path}"
             export SSH_ASKPASS="${askpass_path}"
             export SSH_ASKPASS_REQUIRE=force
@@ -167,49 +167,49 @@ EOF
             RUN_DB_FIX_ENCODING="${RUN_DB_FIX_ENCODING}" \
             CPANEL_USER="${CPANEL_USER}" \
             'bash -s' <<'EOF'
-set -euo pipefail
+          set -euo pipefail
 
-cd "${APP_DIR}"
-tar -xzf "/home/${CPANEL_USER}/deploy.tgz" -C "${APP_DIR}"
-rm -f "/home/${CPANEL_USER}/deploy.tgz"
+          cd "${APP_DIR}"
+          tar -xzf "/home/${CPANEL_USER}/deploy.tgz" -C "${APP_DIR}"
+          rm -f "/home/${CPANEL_USER}/deploy.tgz"
 
-if [ -f "${NODE_VENV_ACTIVATE}" ]; then
-  # shellcheck disable=SC1090
-  source "${NODE_VENV_ACTIVATE}"
-fi
+          if [ -f "${NODE_VENV_ACTIVATE}" ]; then
+            # shellcheck disable=SC1090
+            source "${NODE_VENV_ACTIVATE}"
+          fi
 
-if ! npm install --omit=dev --no-audit --no-fund; then
-  echo "[deploy] warning: npm install failed; continuing with existing node_modules if present."
-  if [ ! -d node_modules ]; then
-    echo "[deploy] node_modules missing and npm install failed."
-    exit 1
-  fi
-fi
+          if ! npm install --omit=dev --no-audit --no-fund; then
+            echo "[deploy] warning: npm install failed; continuing with existing node_modules if present."
+            if [ ! -d node_modules ]; then
+              echo "[deploy] node_modules missing and npm install failed."
+              exit 1
+            fi
+          fi
 
-if [ "${RUN_DB_INIT}" = "true" ]; then
-  npm run db:init || echo "[deploy] warning: db:init failed; continuing."
-fi
+          if [ "${RUN_DB_INIT}" = "true" ]; then
+            npm run db:init || echo "[deploy] warning: db:init failed; continuing."
+          fi
 
-if [ "${RUN_DB_FIX_ENCODING}" = "true" ]; then
-  npm run db:fix-encoding || echo "[deploy] warning: db:fix-encoding failed; continuing."
-fi
+          if [ "${RUN_DB_FIX_ENCODING}" = "true" ]; then
+            npm run db:fix-encoding || echo "[deploy] warning: db:fix-encoding failed; continuing."
+          fi
 
-public_htaccess="/home/${CPANEL_USER}/public_html/.htaccess"
-if [ -f "${public_htaccess}" ] \
-  && grep -q 'PassengerStartupFile server.js' "${public_htaccess}" \
-  && ! grep -q 'PassengerForceMaxConcurrentRequestsPerProcess 0' "${public_htaccess}"; then
-  awk '
-    { print }
-    /PassengerStartupFile server\.js/ {
-      print "PassengerForceMaxConcurrentRequestsPerProcess 0"
-    }
-  ' "${public_htaccess}" > "${public_htaccess}.tmp"
-  mv "${public_htaccess}.tmp" "${public_htaccess}"
-fi
+          public_htaccess="/home/${CPANEL_USER}/public_html/.htaccess"
+          if [ -f "${public_htaccess}" ] \
+            && grep -q 'PassengerStartupFile server.js' "${public_htaccess}" \
+            && ! grep -q 'PassengerForceMaxConcurrentRequestsPerProcess 0' "${public_htaccess}"; then
+            awk '
+              { print }
+              /PassengerStartupFile server\.js/ {
+                print "PassengerForceMaxConcurrentRequestsPerProcess 0"
+              }
+            ' "${public_htaccess}" > "${public_htaccess}.tmp"
+            mv "${public_htaccess}.tmp" "${public_htaccess}"
+          fi
 
-mkdir -p tmp
-touch tmp/restart.txt
-EOF
+          mkdir -p tmp
+          touch tmp/restart.txt
+          EOF
 
           rm -rf .deploy-tmp deploy.tgz
 
