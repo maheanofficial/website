@@ -763,9 +763,29 @@ server.requestTimeout = 60_000;
 server.headersTimeout = 65_000;
 server.keepAliveTimeout = 5_000;
 
+const pingSitemapToSearchEngines = async () => {
+    const https = (await import('node:https')).default;
+    const sitemapUrl = encodeURIComponent('https://www.mahean.com/sitemap.xml');
+    const targets = [
+        { name: 'Google', url: `https://www.google.com/ping?sitemap=${sitemapUrl}` },
+        { name: 'Bing', url: `https://www.bing.com/ping?sitemap=${sitemapUrl}` }
+    ];
+    for (const { name, url } of targets) {
+        try {
+            const req = https.get(url, (res) => {
+                console.log(`[seo] Sitemap ping ${name}: ${res.statusCode}`);
+                res.resume();
+            });
+            req.on('error', () => {});
+            req.end();
+        } catch { /* non-critical */ }
+    }
+};
+
 const port = Number.parseInt(process.env.PORT || '', 10) || 3000;
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
     void ensurePassengerProcessHint();
     void triggerSeoSync(true);
+    void pingSitemapToSearchEngines();
 });

@@ -579,9 +579,21 @@ const buildSeoPayload = ({ story, storySegment, parts, partIndex, isPartRoute })
                 modifiedTime,
                 jsonLd: {
                     '@context': 'https://schema.org',
-                    '@type': 'ItemList',
-                    name: `${storyTitle} - All Parts`,
-                    itemListElement: listItems
+                    '@graph': [
+                        {
+                            '@type': 'ItemList',
+                            name: `${storyTitle} - All Parts`,
+                            itemListElement: listItems
+                        },
+                        {
+                            '@type': 'BreadcrumbList',
+                            itemListElement: [
+                                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mahean.com/' },
+                                { '@type': 'ListItem', position: 2, name: 'Stories', item: 'https://www.mahean.com/stories' },
+                                { '@type': 'ListItem', position: 3, name: storyTitle, item: storyCanonicalUrl }
+                            ]
+                        }
+                    ]
                 }
             },
             partLabel: '',
@@ -618,17 +630,29 @@ const buildSeoPayload = ({ story, storySegment, parts, partIndex, isPartRoute })
             modifiedTime,
             jsonLd: {
                 '@context': 'https://schema.org',
-                '@type': 'Article',
-                headline,
-                description,
-                url: canonicalUrl,
-                datePublished: publishedTime,
-                dateModified: modifiedTime,
-                author: {
-                    '@type': 'Person',
-                    name: storyAuthor
-                },
-                image: [image]
+                '@graph': [
+                    {
+                        '@type': 'Article',
+                        headline,
+                        description,
+                        url: canonicalUrl,
+                        datePublished: publishedTime,
+                        dateModified: modifiedTime,
+                        author: { '@type': 'Person', name: storyAuthor },
+                        image: [image],
+                        publisher: { '@id': 'https://www.mahean.com/#organization' },
+                        isPartOf: { '@type': 'CreativeWorkSeries', name: storyTitle, url: `${SITE_URL}${storyPath}` }
+                    },
+                    {
+                        '@type': 'BreadcrumbList',
+                        itemListElement: [
+                            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mahean.com/' },
+                            { '@type': 'ListItem', position: 2, name: 'Stories', item: 'https://www.mahean.com/stories' },
+                            { '@type': 'ListItem', position: 3, name: storyTitle, item: `${SITE_URL}${storyPath}` },
+                            { '@type': 'ListItem', position: 4, name: partLabel, item: canonicalUrl }
+                        ]
+                    }
+                ]
             }
         },
         partLabel,

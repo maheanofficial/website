@@ -76,39 +76,40 @@ const loadEnvFiles = async () => {
 const staticRouteMeta = [
   {
     path: '/',
-    title: 'Mahean Ahmed - Voice Artist and Bangla Stories',
-    description: 'Listen to Bangla audiobooks, stories, and voice-over content by Mahean Ahmed.',
-    keywords: 'Mahean Ahmed, Bangla Audiobook, Bangla Story, Voice Artist, Audio Story'
+    title: 'Mahean Ahmed — বাংলা গল্প, অডিওবুক ও ভয়েস আর্টিস্ট',
+    description: 'Mahean Ahmed-এর ওয়েবসাইটে বাংলা গল্প পড়ুন, অডিওবুক শুনুন এবং ভয়েস আর্টিস্টের কাজ উপভোগ করুন। থ্রিলার, হরর, রোমান্স সহ বিভিন্ন ধরনের গল্প পাওয়া যায়।',
+    keywords: 'Mahean Ahmed, বাংলা গল্প, Bangla Audiobook, Bangla Story, Voice Artist, বাংলা অডিওবুক, Bengali Story, Audio Story',
+    jsonLd: { '@context': 'https://schema.org', '@type': 'WebPage', '@id': 'https://www.mahean.com/#webpage', url: 'https://www.mahean.com/', name: 'Mahean Ahmed — বাংলা গল্প, অডিওবুক ও ভয়েস আর্টিস্ট', isPartOf: { '@id': 'https://www.mahean.com/#website' }, about: { '@id': 'https://www.mahean.com/#organization' } }
   },
   {
     path: '/stories',
-    title: 'Bangla Stories Collection - Mahean Ahmed',
-    description: 'Read and explore the latest Bangla stories across thriller, horror, and romance genres.',
-    keywords: 'Bangla Story, Bengali Story, Thriller Story, Horror Story, Mahean Ahmed'
+    title: 'বাংলা গল্প সংগ্রহ — Bangla Stories | Mahean Ahmed',
+    description: 'থ্রিলার, হরর, রোমান্স ও অ্যাডভেঞ্চার সহ সেরা বাংলা গল্প পড়ুন। Mahean Ahmed প্ল্যাটফর্মে প্রকাশিত সব গল্পের সংগ্রহ এখানে।',
+    keywords: 'বাংলা গল্প, Bangla Story, Bengali Story, Thriller Story, Horror Story, Romance Story, Mahean Ahmed, বাংলা সাহিত্য'
   },
   {
     path: '/series',
-    title: 'Story Series - Mahean Ahmed',
-    description: 'Browse multi-part and serialized Bangla story collections.',
-    keywords: 'Bangla Series, Story Series, Bengali Serialized Story'
+    title: 'বাংলা ধারাবাহিক গল্প সিরিজ — Story Series | Mahean Ahmed',
+    description: 'একাধিক পর্বে বিভক্ত বাংলা ধারাবাহিক গল্প সিরিজ পড়ুন। প্রতিটি সিরিজ রোমাঞ্চকর ও আকর্ষণীয়।',
+    keywords: 'বাংলা সিরিজ, Bangla Series, Story Series, Bengali Serialized Story, ধারাবাহিক গল্প'
   },
   {
     path: '/authors',
-    title: 'Authors - Mahean Ahmed',
-    description: 'Discover writer profiles and published stories from our authors.',
-    keywords: 'Bangla Authors, Story Writers, Bengali Writers'
+    title: 'লেখক পরিচিতি — Authors | Mahean Ahmed',
+    description: 'Mahean Ahmed প্ল্যাটফর্মের লেখকদের পরিচিতি ও তাদের প্রকাশিত বাংলা গল্প আবিষ্কার করুন।',
+    keywords: 'Bangla Authors, Story Writers, Bengali Writers, বাংলা লেখক, গল্পকার'
   },
   {
     path: '/categories',
-    title: 'Story Categories - Mahean Ahmed',
-    description: 'Find stories by category and genre.',
-    keywords: 'Story Categories, Bangla Story Category, Bengali Story Genres'
+    title: 'গল্পের বিভাগ — Story Categories | Mahean Ahmed',
+    description: 'থ্রিলার, হরর, রোমান্স, অ্যাডভেঞ্চার সহ বিভিন্ন বিভাগ অনুযায়ী বাংলা গল্প খুঁজে নিন।',
+    keywords: 'Story Categories, Bangla Story Category, Bengali Story Genres, থ্রিলার, হরর, রোমান্স, গল্পের বিভাগ'
   },
   {
     path: '/tags',
-    title: 'Story Tags - Mahean Ahmed',
-    description: 'Browse stories by topic tags and themes.',
-    keywords: 'Story Tags, Bangla Tags, Bengali Story Topics'
+    title: 'গল্পের ট্যাগ — Story Tags | Mahean Ahmed',
+    description: 'ট্যাগ ও টপিক অনুযায়ী বাংলা গল্প খুঁজুন। আপনার পছন্দের বিষয়ের গল্প সহজেই খুঁজে পাবেন।',
+    keywords: 'Story Tags, Bangla Tags, Bengali Story Topics, গল্পের ট্যাগ, বাংলা গল্প বিষয়'
   },
   {
     path: '/audiobooks',
@@ -118,15 +119,15 @@ const staticRouteMeta = [
   },
   {
     path: '/skills',
-    title: 'Skills - Mahean Ahmed',
-    description: 'Learn about Mahean Ahmed skills and creative work.',
-    keywords: 'Voice Skills, Narration Skills, Mahean Ahmed'
+    title: 'দক্ষতা ও সেবা — Skills | Mahean Ahmed',
+    description: 'Mahean Ahmed-এর ভয়েস আর্টিস্ট দক্ষতা, নারেশন সেবা এবং ক্রিয়েটিভ কাজ সম্পর্কে জানুন।',
+    keywords: 'Voice Skills, Narration Skills, Mahean Ahmed, ভয়েস আর্টিস্ট, Voice Over Bangladesh'
   },
   {
     path: '/contact',
-    title: 'Contact - Mahean Ahmed',
-    description: 'Contact for voice-over and content collaboration.',
-    keywords: 'Contact Mahean Ahmed, Voice Over Contact'
+    title: 'যোগাযোগ করুন — Contact | Mahean Ahmed',
+    description: 'ভয়েস ওভার প্রজেক্ট, কোলাবরেশন বা যেকোনো বিষয়ে Mahean Ahmed-এর সাথে যোগাযোগ করুন।',
+    keywords: 'Contact Mahean Ahmed, Voice Over Contact, যোগাযোগ, Collaboration, maheanofficial@gmail.com'
   },
   {
     path: '/privacy',
@@ -148,15 +149,15 @@ const staticRouteMeta = [
   },
   {
     path: '/about',
-    title: 'About - Mahean Ahmed',
-    description: 'Learn more about Mahean Ahmed and his voice content journey.',
-    keywords: 'About Mahean Ahmed, Voice Artist Bio'
+    title: 'আমার সম্পর্কে — About Mahean Ahmed | ভয়েস আর্টিস্ট',
+    description: 'Mahean Ahmed একজন বাংলাদেশী ভয়েস আর্টিস্ট ও গল্পকার। বাংলা অডিওবুক, ভয়েস নারেশন ও ডিজিটাল স্টোরিটেলিং-এ তার যাত্রা সম্পর্কে জানুন।',
+    keywords: 'About Mahean Ahmed, Voice Artist Bio, বাংলা ভয়েস আর্টিস্ট, Bangla Storyteller, YouTube Creator'
   },
   {
     path: '/links',
-    title: 'Important Links - Mahean Ahmed',
-    description: 'Find important links and resources from Mahean Ahmed.',
-    keywords: 'Mahean Links, Social Links'
+    title: 'গুরুত্বপূর্ণ লিংক — Important Links | Mahean Ahmed',
+    description: 'Mahean Ahmed-এর অফিশিয়াল YouTube, সোশ্যাল মিডিয়া ও পাবলিক প্রোফাইল লিংক এক জায়গায় পাবেন।',
+    keywords: 'Mahean Links, Social Links, YouTube Channel, Mahean Ahmed Official'
   },
   {
     path: '/login',
@@ -924,14 +925,27 @@ const toStoryLandingSeo = (story) => {
     },
     jsonLd: {
       '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: storyTitle || 'Bangla Story',
-      description: excerpt,
-      url: canonicalUrl,
-      datePublished: publishedTime,
-      dateModified: modifiedTime,
-      author: { '@type': 'Person', name: authorName },
-      image: [toAbsoluteUrl(image)]
+      '@graph': [
+        {
+          '@type': 'Article',
+          headline: storyTitle || 'Bangla Story',
+          description: excerpt,
+          url: canonicalUrl,
+          datePublished: publishedTime,
+          dateModified: modifiedTime,
+          author: { '@type': 'Person', name: authorName },
+          image: [toAbsoluteUrl(image)],
+          publisher: { '@id': 'https://www.mahean.com/#organization' }
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mahean.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Stories', item: 'https://www.mahean.com/stories' },
+            { '@type': 'ListItem', position: 3, name: storyTitle || 'Story', item: canonicalUrl }
+          ]
+        }
+      ]
     }
   };
 };
@@ -1000,17 +1014,29 @@ const toStoryPartSeos = (story) => {
       },
       jsonLd: {
         '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline,
-        description,
-        url: canonicalUrl,
-        datePublished: publishedTime,
-        dateModified: modifiedTime,
-        author: {
-          '@type': 'Person',
-          name: authorName
-        },
-        image: [toAbsoluteUrl(image)]
+        '@graph': [
+          {
+            '@type': 'Article',
+            headline,
+            description,
+            url: canonicalUrl,
+            datePublished: publishedTime,
+            dateModified: modifiedTime,
+            author: { '@type': 'Person', name: authorName },
+            image: [toAbsoluteUrl(image)],
+            publisher: { '@id': 'https://www.mahean.com/#organization' },
+            isPartOf: { '@type': 'CreativeWorkSeries', name: storyTitle, url: `${SITE_URL}/stories/${encodeURIComponent(segment)}` }
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.mahean.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Stories', item: 'https://www.mahean.com/stories' },
+              { '@type': 'ListItem', position: 3, name: storyTitle || 'Story', item: `${SITE_URL}/stories/${encodeURIComponent(segment)}` },
+              { '@type': 'ListItem', position: 4, name: partTitle, item: canonicalUrl }
+            ]
+          }
+        ]
       }
     };
   });
