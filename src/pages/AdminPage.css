@@ -236,8 +236,7 @@
 
 .admin-content-scroll {
     padding: 20px 30px;
-    height: calc(100vh - 60px);
-    overflow-y: auto;
+    min-height: calc(100vh - 60px);
 }
 
 /* Grid Layout */

@@ -814,6 +814,78 @@ const fetchStoryRows = async () => {
   return [];
 };
 
+const toStoryLandingSeo = (story) => {
+  const segment = toStorySegment(story);
+  if (!segment) return null;
+
+  const storyTitle = repairMojibakeText(typeof story.title === 'string' ? story.title : '').trim();
+  const authorName =
+    repairMojibakeText(typeof story.author === 'string' ? story.author : '').trim() || 'Mahean Ahmed';
+  const image = story.cover_image || story.image || '/mahean-3.jpg';
+  const publishedTime = story.date || undefined;
+  const modifiedTime = story.updated_at || story.date || undefined;
+
+  const rawTags = Array.isArray(story.tags)
+    ? story.tags.filter((tag) => typeof tag === 'string').map((tag) => repairMojibakeText(tag).trim())
+    : [];
+  const keywords = [...rawTags, authorName, 'Bangla Story', 'Bengali Story']
+    .filter(Boolean)
+    .join(', ');
+
+  const parts = normalizeStoryParts(story);
+  const partLinks = parts.slice(0, 20).map((part, index) => {
+    const label = normalizeLegacyPartTitle(part.title, index) || buildFallbackPartTitle(index);
+    return {
+      href: `${SITE_URL}/stories/${encodeURIComponent(segment)}/part/${index + 1}`,
+      label
+    };
+  });
+
+  const excerpt = normalizeDescription(normalizeExcerpt(story.excerpt)) ||
+    normalizeDescription(parts[0]?.content) ||
+    normalizeDescription(story.content) ||
+    'বাংলা গল্প পড়ুন - Mahean Ahmed';
+
+  const pathValue = `/stories/${encodeURIComponent(segment)}`;
+  const canonicalUrl = `${SITE_URL}${pathValue}`;
+  const pageTitle = storyTitle ? `${storyTitle} | Mahean Ahmed` : 'Bangla Story | Mahean Ahmed';
+
+  const categoryRaw = typeof story.category === 'string' ? story.category : '';
+  const categoryText = repairMojibakeText(categoryRaw).trim();
+  const paragraphs = [excerpt, `Author: ${authorName}`];
+  if (categoryText) paragraphs.push(`Category: ${categoryText}`);
+  if (parts.length > 1) paragraphs.push(`${parts.length} parts available.`);
+
+  return {
+    path: pathValue,
+    title: pageTitle,
+    description: excerpt,
+    keywords,
+    ogType: 'article',
+    ogImage: image,
+    imageAlt: storyTitle || 'Story cover image',
+    author: authorName,
+    publishedTime,
+    modifiedTime,
+    visibleSnapshot: {
+      heading: storyTitle || 'Bangla Story',
+      paragraphs,
+      links: partLinks
+    },
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: storyTitle || 'Bangla Story',
+      description: excerpt,
+      url: canonicalUrl,
+      datePublished: publishedTime,
+      dateModified: modifiedTime,
+      author: { '@type': 'Person', name: authorName },
+      image: [toAbsoluteUrl(image)]
+    }
+  };
+};
+
 const toStoryPartSeos = (story) => {
   const segment = toStorySegment(story);
   if (!segment) return [];
@@ -1089,6 +1161,17 @@ const run = async () => {
   const uniquePaths = new Set();
   for (const story of stories) {
     if (uniquePaths.size >= MAX_STORY_ROUTES) break;
+
+    // Story landing page (e.g. /stories/slug/)
+    const landingSeo = toStoryLandingSeo(story);
+    if (landingSeo && !uniquePaths.has(landingSeo.path)) {
+      const html = buildSeoHtml(template, landingSeo);
+      await writeRouteHtml(landingSeo.path, html);
+      uniquePaths.add(landingSeo.path);
+      generated += 1;
+    }
+
+    // Story part pages (e.g. /stories/slug/part/1)
     const seoEntries = toStoryPartSeos(story).slice(0, MAX_PARTS_PER_STORY);
     for (const seo of seoEntries) {
       if (!seo || uniquePaths.has(seo.path)) continue;
