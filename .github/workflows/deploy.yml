@@ -1,18 +1,39 @@
-name: Deploy to Cloudflare
+name: Deploy to cPanel
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
+    timeout-minutes: 45
+    env:
+      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+      CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+      CPANEL_FTP_PORT: ${{ secrets.CPANEL_FTP_PORT }}
+      CPANEL_USER: ${{ secrets.CPANEL_USER }}
+      CPANEL_PASSWORD: ${{ secrets.CPANEL_PASSWORD }}
+      CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+      CPANEL_SSH_KEY_B64: ${{ secrets.CPANEL_SSH_KEY_B64 }}
+      CPANEL_SSH_PASSPHRASE: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+      CPANEL_APP_DIR: ${{ secrets.CPANEL_APP_DIR }}
+      CPANEL_NODE_VENV_ACTIVATE: ${{ secrets.CPANEL_NODE_VENV_ACTIVATE }}
+      CPANEL_APP_DIR_FTP: ${{ secrets.CPANEL_APP_DIR_FTP }}
+      CPANEL_STATIC_DIR_FTP: ${{ secrets.CPANEL_STATIC_DIR_FTP }}
+      CPANEL_HEALTHCHECK_URL: ${{ secrets.CPANEL_HEALTHCHECK_URL }}
+      DEPLOY_RUN_DB_INIT: ${{ secrets.DEPLOY_RUN_DB_INIT }}
+      DEPLOY_RUN_DB_FIX_ENCODING: ${{ secrets.DEPLOY_RUN_DB_FIX_ENCODING }}
 
     steps:
       - name: Checkout repository
@@ -27,53 +48,184 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Ensure Cloudflare token exists
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Lint codebase
+        run: npm run lint
+
+      - name: Build production app
+        run: npm run build
+
+      - name: Resolve deploy mode
+        shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-            echo "Missing GitHub secret: CLOUDFLARE_API_TOKEN"
-            exit 1
-          fi
-          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
-            echo "Missing GitHub secret: CLOUDFLARE_ACCOUNT_ID"
+
+          missing=()
+          for key in CPANEL_HOST CPANEL_USER; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required repository secrets: ${missing[*]}"
             exit 1
           fi
 
-      - name: Build Cloudflare assets
-        run: npm run build:cf
+          if [ -n "${CPANEL_PASSWORD:-}" ]; then
+            echo "DEPLOY_MODE=ftp" >> "$GITHUB_ENV"
+          elif [ -n "${CPANEL_SSH_KEY:-}" ] || [ -n "${CPANEL_SSH_KEY_B64:-}" ]; then
+            echo "DEPLOY_MODE=ssh" >> "$GITHUB_ENV"
+          else
+            echo "::error::Missing deploy credentials. Set CPANEL_PASSWORD for FTP or CPANEL_SSH_KEY / CPANEL_SSH_KEY_B64 for SSH."
+            exit 1
+          fi
 
-      - name: Ensure R2 buckets exist
+          app_dir="${CPANEL_APP_DIR:-/home/${CPANEL_USER}/main_mahean.com}"
+          app_name="$(basename "${app_dir}")"
+          node_venv="${CPANEL_NODE_VENV_ACTIVATE:-/home/${CPANEL_USER}/nodevenv/${app_name}/20/bin/activate}"
+          health_url="${CPANEL_HEALTHCHECK_URL:-https://www.mahean.com/healthz}"
+          ssh_port="${CPANEL_PORT:-22}"
+          ftp_port="${CPANEL_FTP_PORT:-21}"
+          run_db_init="${DEPLOY_RUN_DB_INIT:-true}"
+          run_db_fix="${DEPLOY_RUN_DB_FIX_ENCODING:-false}"
+
+          echo "APP_DIR=${app_dir}" >> "$GITHUB_ENV"
+          echo "NODE_VENV_ACTIVATE=${node_venv}" >> "$GITHUB_ENV"
+          echo "HEALTHCHECK_URL=${health_url}" >> "$GITHUB_ENV"
+          echo "SSH_PORT=${ssh_port}" >> "$GITHUB_ENV"
+          echo "FTP_PORT=${ftp_port}" >> "$GITHUB_ENV"
+          echo "RUN_DB_INIT=${run_db_init}" >> "$GITHUB_ENV"
+          echo "RUN_DB_FIX_ENCODING=${run_db_fix}" >> "$GITHUB_ENV"
+
+      - name: Deploy over FTP
+        if: ${{ env.DEPLOY_MODE == 'ftp' }}
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CPANEL_FTP_HOST: ${{ env.CPANEL_HOST }}
+          CPANEL_FTP_USER: ${{ env.CPANEL_USER }}
+          CPANEL_FTP_PASSWORD: ${{ env.CPANEL_PASSWORD }}
+          CPANEL_FTP_PORT: ${{ env.FTP_PORT }}
+          CPANEL_HEALTHCHECK_URL: ${{ env.HEALTHCHECK_URL }}
+          CPANEL_APP_DIR_FTP: ${{ env.CPANEL_APP_DIR_FTP }}
+          CPANEL_STATIC_DIR_FTP: ${{ env.CPANEL_STATIC_DIR_FTP }}
+        run: python3 scripts/auto-deploy-ftp.py
+
+      - name: Deploy over SSH
+        if: ${{ env.DEPLOY_MODE == 'ssh' }}
+        shell: bash
         run: |
           set -euo pipefail
-          ensure_bucket() {
-            local bucket="$1"
-            set +e
-            local output
-            output="$(npx wrangler r2 bucket create "$bucket" 2>&1)"
-            local code=$?
-            set -e
-            if [ "$code" -eq 0 ]; then
-              echo "Created R2 bucket: $bucket"
-              return 0
-            fi
-            if echo "$output" | grep -qi "already exists"; then
-              echo "R2 bucket already exists: $bucket"
-              return 0
-            fi
-            echo "$output"
-            return "$code"
-          }
-          ensure_bucket "mahean-uploads-prod"
-          ensure_bucket "mahean-uploads-preview"
 
-      - name: Deploy to Cloudflare Workers
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy
+          mkdir -p .deploy-tmp
+          cp -R api .deploy-tmp/api
+          cp -R dist .deploy-tmp/dist
+          cp -R scripts .deploy-tmp/scripts
+          cp package.json .deploy-tmp/package.json
+          cp package-lock.json .deploy-tmp/package-lock.json
+          cp server.js .deploy-tmp/server.js
+          tar -czf deploy.tgz -C .deploy-tmp .
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          key_path="$RUNNER_TEMP/cpanel_key"
+          if [ -n "${CPANEL_SSH_KEY_B64:-}" ]; then
+            printf '%s' "${CPANEL_SSH_KEY_B64}" | base64 --decode > "${key_path}"
+          else
+            printf '%s\n' "${CPANEL_SSH_KEY}" > "${key_path}"
+          fi
+          chmod 600 "${key_path}"
+
+          eval "$(ssh-agent -s)"
+          if grep -q "ENCRYPTED" "${key_path}"; then
+            if [ -z "${CPANEL_SSH_PASSPHRASE:-}" ]; then
+              echo "::error::CPANEL_SSH_PASSPHRASE is required for encrypted SSH keys."
+              exit 1
+            fi
+
+            askpass_path="$RUNNER_TEMP/ssh-askpass.sh"
+            cat > "${askpass_path}" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "${CPANEL_SSH_PASSPHRASE}"
+EOF
+            chmod 700 "${askpass_path}"
+            export SSH_ASKPASS="${askpass_path}"
+            export SSH_ASKPASS_REQUIRE=force
+            setsid ssh-add "${key_path}" < /dev/null
+          else
+            ssh-add "${key_path}"
+          fi
+
+          ssh-keyscan -p "${SSH_PORT}" -H "${CPANEL_HOST}" >> "$HOME/.ssh/known_hosts"
+
+          remote_bundle="/home/${CPANEL_USER}/deploy.tgz"
+          scp -P "${SSH_PORT}" deploy.tgz "${CPANEL_USER}@${CPANEL_HOST}:${remote_bundle}"
+
+          ssh -p "${SSH_PORT}" "${CPANEL_USER}@${CPANEL_HOST}" \
+            APP_DIR="${APP_DIR}" \
+            NODE_VENV_ACTIVATE="${NODE_VENV_ACTIVATE}" \
+            RUN_DB_INIT="${RUN_DB_INIT}" \
+            RUN_DB_FIX_ENCODING="${RUN_DB_FIX_ENCODING}" \
+            CPANEL_USER="${CPANEL_USER}" \
+            'bash -s' <<'EOF'
+set -euo pipefail
+
+cd "${APP_DIR}"
+tar -xzf "/home/${CPANEL_USER}/deploy.tgz" -C "${APP_DIR}"
+rm -f "/home/${CPANEL_USER}/deploy.tgz"
+
+if [ -f "${NODE_VENV_ACTIVATE}" ]; then
+  # shellcheck disable=SC1090
+  source "${NODE_VENV_ACTIVATE}"
+fi
+
+if ! npm install --omit=dev --no-audit --no-fund; then
+  echo "[deploy] warning: npm install failed; continuing with existing node_modules if present."
+  if [ ! -d node_modules ]; then
+    echo "[deploy] node_modules missing and npm install failed."
+    exit 1
+  fi
+fi
+
+if [ "${RUN_DB_INIT}" = "true" ]; then
+  npm run db:init || echo "[deploy] warning: db:init failed; continuing."
+fi
+
+if [ "${RUN_DB_FIX_ENCODING}" = "true" ]; then
+  npm run db:fix-encoding || echo "[deploy] warning: db:fix-encoding failed; continuing."
+fi
+
+public_htaccess="/home/${CPANEL_USER}/public_html/.htaccess"
+if [ -f "${public_htaccess}" ] \
+  && grep -q 'PassengerStartupFile server.js' "${public_htaccess}" \
+  && ! grep -q 'PassengerForceMaxConcurrentRequestsPerProcess 0' "${public_htaccess}"; then
+  awk '
+    { print }
+    /PassengerStartupFile server\.js/ {
+      print "PassengerForceMaxConcurrentRequestsPerProcess 0"
+    }
+  ' "${public_htaccess}" > "${public_htaccess}.tmp"
+  mv "${public_htaccess}.tmp" "${public_htaccess}"
+fi
+
+mkdir -p tmp
+touch tmp/restart.txt
+EOF
+
+          rm -rf .deploy-tmp deploy.tgz
+
+      - name: Verify health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            body="$(curl --silent --show-error --location --max-time 20 "${HEALTHCHECK_URL}" || true)"
+            if [ "${body}" = "ok" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Waiting for health check (${attempt}/30)"
+            sleep 4
+          done
+
+          echo "::error::Health check failed for ${HEALTHCHECK_URL}"
+          exit 1

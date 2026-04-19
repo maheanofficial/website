@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import './StoryRating.css';
@@ -27,20 +27,10 @@ const saveRating = (storyId: string, rating: number) => {
 };
 
 export default function StoryRating({ storyId }: StoryRatingProps) {
-    const [userRating, setUserRating] = useState(0);
+    const savedRating = getSavedRating(storyId);
+    const [userRating, setUserRating] = useState(savedRating);
     const [hoverRating, setHoverRating] = useState(0);
-    const [submitted, setSubmitted] = useState(false);
-
-    useEffect(() => {
-        const saved = getSavedRating(storyId);
-        if (saved > 0) {
-            setUserRating(saved);
-            setSubmitted(true);
-        } else {
-            setUserRating(0);
-            setSubmitted(false);
-        }
-    }, [storyId]);
+    const [submitted, setSubmitted] = useState(savedRating > 0);
 
     const handleRate = (rating: number) => {
         setUserRating(rating);

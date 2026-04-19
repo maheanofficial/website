@@ -1191,7 +1191,7 @@ const StoryDetailsPage = () => {
                 )}
 
                 <ShareButtons url={canonicalUrl} title={story.title} />
-                <StoryRating storyId={String(story.id)} />
+                <StoryRating key={String(story.id)} storyId={String(story.id)} />
 
                 <section className="story-comments-box" aria-label="Story comments">
                     <div className="story-comments-head">
