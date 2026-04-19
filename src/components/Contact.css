@@ -141,6 +141,18 @@
     animation: fadeInUp 0.5s ease-out;
 }
 
+.form-status--success {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.form-status--error {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+
 @media (max-width: 968px) {
     .contact-content {
         grid-template-columns: 1fr;

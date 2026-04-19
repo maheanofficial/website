@@ -8,13 +8,29 @@ const Contact = () => {
         message: ''
     });
 
-    const [status, setStatus] = useState('');
+    const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setStatus('মেসেজ পাঠানো হয়েছে! যোগাযোগ করার জন্য ধন্যবাদ।');
-        setFormData({ name: '', email: '', message: '' });
-        setTimeout(() => setStatus(''), 3000);
+        setStatus('sending');
+        try {
+            const res = await fetch('https://formspree.io/f/xpwzgvoj', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ name: formData.name, email: formData.email, message: formData.message })
+            });
+            if (res.ok) {
+                setStatus('success');
+                setFormData({ name: '', email: '', message: '' });
+                setTimeout(() => setStatus('idle'), 5000);
+            } else {
+                setStatus('error');
+                setTimeout(() => setStatus('idle'), 4000);
+            }
+        } catch {
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 4000);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -174,15 +190,18 @@ const Contact = () => {
                             />
                         </div>
 
-                        <button type="submit" className="btn btn-primary btn-block">
-                            <span>মেসেজ পাঠান</span>
+                        <button type="submit" className="btn btn-primary btn-block" disabled={status === 'sending'}>
+                            <span>{status === 'sending' ? 'পাঠানো হচ্ছে...' : 'মেসেজ পাঠান'}</span>
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                                 <path d="M2.5 2.5L17.5 10L2.5 17.5L5.83333 10L2.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
 
-                        {status && (
-                            <div className="form-status">{status}</div>
+                        {status === 'success' && (
+                            <div className="form-status form-status--success">✓ মেসেজ পাঠানো হয়েছে! যোগাযোগ করার জন্য ধন্যবাদ।</div>
+                        )}
+                        {status === 'error' && (
+                            <div className="form-status form-status--error">মেসেজ পাঠানো যায়নি। সরাসরি maheanofficial@gmail.com-এ ইমেইল করুন।</div>
                         )}
                     </form>
                 </div>
