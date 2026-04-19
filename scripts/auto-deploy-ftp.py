@@ -60,20 +60,29 @@ def _create_bundle(zip_path: Path):
             if fpath.exists():
                 zf.write(fpath, fname)
 
-def _create_php_extractor(zip_name: str, app_dir: str) -> str:
+def _create_php_extractor(zip_name: str, app_dir_rel: str) -> str:
     # A simple PHP script to extract the zip and then delete itself and the zip.
     # It also touches tmp/restart.txt to restart the Node app.
     return f"""<?php
 header('Content-Type: text/plain');
-$zipFile = __DIR__ . '/{zip_name}';
+// Path to zip relative to this PHP script (e.g. ../main_mahean.com/zip)
+$zipFile = __DIR__ . '/{app_dir_rel}/{zip_name}';
+$extractTo = __DIR__ . '/{app_dir_rel}';
+
 if (!file_exists($zipFile)) {{
-    die("Error: Zip file not found: $zipFile");
+    // Try absolute path if relative fails (for some cPanel setups)
+    $zipFile = "{app_dir_rel}/" . "{zip_name}";
+    $extractTo = "{app_dir_rel}";
+}}
+
+if (!file_exists($zipFile)) {{
+    die("Error: Zip file not found at $zipFile");
 }}
 
 $zip = new ZipArchive;
 if ($zip->open($zipFile) === TRUE) {{
-    echo "Extracting $zipFile to " . __DIR__ . "\\n";
-    $zip->extractTo(__DIR__);
+    echo "Extracting $zipFile to $extractTo\\n";
+    $zip->extractTo($extractTo);
     $zip->close();
     echo "Extraction successful!\\n";
 }} else {{
@@ -83,13 +92,14 @@ if ($zip->open($zipFile) === TRUE) {{
 // Optional: Run migration if node is available
 $output = [];
 $return_var = 0;
+chdir($extractTo);
 exec('node scripts/migrate-json-to-mysql.cjs 2>&1', $output, $return_var);
 echo "Migration Status: " . ($return_var === 0 ? "Success" : "Failed") . "\\n";
 echo implode("\\n", $output) . "\\n";
 
 // Restart Node app
-$restartFile = __DIR__ . '/tmp/restart.txt';
-if (!is_dir(__DIR__ . '/tmp')) mkdir(__DIR__ . '/tmp', 0755, true);
+$restartFile = $extractTo . '/tmp/restart.txt';
+if (!is_dir($extractTo . '/tmp')) mkdir($extractTo . '/tmp', 0755, true);
 file_put_contents($restartFile, time());
 echo "Restarted Node app via tmp/restart.txt\\n";
 
@@ -122,8 +132,13 @@ def main():
         _create_bundle(zip_path)
         
         # 2. PHP Extractor
+        # We need the relative path from static_dir to app_dir for PHP
+        # E.g. static is /public_html, app is /main_mahean.com
+        # Relative is ../main_mahean.com
+        app_dir_rel = os.path.relpath(config["app_dir_ftp"], config["static_dir_ftp"])
+        
         with open(php_path, "w") as f:
-            f.write(_create_php_extractor(zip_name, config["app_dir_ftp"]))
+            f.write(_create_php_extractor(zip_name, app_dir_rel))
             
         # 3. FTP Upload
         _log(f"Connecting to {config['host']}...")
@@ -132,10 +147,12 @@ def main():
         ftp.login(config["user"], config["password"])
         ftp.set_pasv(True)
         
-        # Change to app directory
+        # Upload Zip to app directory
         ftp.cwd(config["app_dir_ftp"])
-        
         _upload_file(ftp, zip_path, zip_name)
+        
+        # Upload PHP to static directory
+        ftp.cwd(config["static_dir_ftp"])
         _upload_file(ftp, php_path, php_name)
         ftp.quit()
         
