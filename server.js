@@ -21,6 +21,7 @@ const __dirname = path.dirname(__filename);
 
 const DIST_DIR = path.join(__dirname, 'dist');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
 const NOT_FOUND_HTML_PATH = path.join(DIST_DIR, '404.html');
 const HOME_DIR = process.env.HOME || process.env.USERPROFILE || '';
@@ -679,6 +680,14 @@ const handleRequest = async (req, res) => {
     const publicCandidatePath = path.resolve(path.join(PUBLIC_DIR, `.${requestedPath}`));
     if (publicCandidatePath.startsWith(PUBLIC_DIR) && await serveFile(req, res, publicCandidatePath, 200)) {
         return;
+    }
+
+    // Serve uploads stored directly in the root uploads/ directory (not inside dist/)
+    if (pathname.startsWith('/uploads/')) {
+        const uploadsCandidatePath = path.resolve(path.join(UPLOADS_DIR, pathname.slice('/uploads/'.length - 1)));
+        if (uploadsCandidatePath.startsWith(UPLOADS_DIR) && await serveFile(req, res, uploadsCandidatePath, 200)) {
+            return;
+        }
     }
 
     // Serve prerendered route pages such as /about -> dist/about/index.html
