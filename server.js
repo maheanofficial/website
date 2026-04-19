@@ -13,6 +13,7 @@ import readerStateHandler from './api/reader-state.js';
 import sitemapHandler from './api/sitemap.js';
 import sitemapNewsHandler from './api/sitemap-news.js';
 import storyRedirectHandler from './api/story-redirect.js';
+import syncDataHandler from './api/sync-data.js';
 import uploadImageHandler from './api/upload-image.js';
 import { tryServeStorySeoPage } from './api/_story-seo-page.js';
 
@@ -111,7 +112,8 @@ const API_HANDLERS = new Map([
     ['/api/db', dbHandler],
     ['/api/reader-state', readerStateHandler],
     ['/api/upload-image', uploadImageHandler],
-    ['/api/story-redirect', storyRedirectHandler]
+    ['/api/story-redirect', storyRedirectHandler],
+    ['/api/sync-data', syncDataHandler]
 ]);
 
 const SPA_EXACT_PATHS = new Set([
