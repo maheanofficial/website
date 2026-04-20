@@ -78,18 +78,23 @@
     justify-content: center;
     text-align: center;
     padding: 20px 16px;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
     height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .story-card-no-cover-title {
-    font-size: clamp(1.3rem, 4vw, 2rem);
+    font-size: 1.35rem;
     font-weight: 900;
     color: #ff5c00;
-    line-height: 1.25;
+    line-height: 1.3;
+    width: 100%;
+    max-width: 100%;
     word-break: break-word;
     overflow-wrap: break-word;
+    white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
@@ -98,10 +103,15 @@
 }
 
 .story-card-no-cover-author {
-    font-size: clamp(0.75rem, 2vw, 0.95rem);
+    font-size: 0.85rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.75);
     letter-spacing: 0.03em;
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .story-card-poster-image,
