@@ -88,7 +88,7 @@ const SmartImage: React.FC<SmartImageProps> = ({
 
         return (
             <div
-                className={`${className || ''} bg-gradient-to-br ${colorGradient} rounded-md relative select-none overflow-hidden shadow-inner`}
+                className={`${className || ''} bg-gradient-to-br ${colorGradient} rounded-md select-none overflow-hidden shadow-inner`}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -97,28 +97,27 @@ const SmartImage: React.FC<SmartImageProps> = ({
                     textAlign: 'center',
                     width: '100%',
                     height: '100%',
-                    position: 'absolute',
-                    inset: 0,
-                    minHeight: 0,
+                    position: 'relative',
+                    padding: '12px',
+                    boxSizing: 'border-box',
                 }}
             >
-                <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
-
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px', pointerEvents: 'none' }}></div>
                 <span
                     style={{
                         fontSize,
                         fontWeight: 900,
-                        lineHeight: '1.25',
-                        width: '85%',
+                        lineHeight: '1.3',
+                        maxWidth: '100%',
                         zIndex: 1,
                         color: 'white',
                         textShadow: '0 2px 10px rgba(0,0,0,0.5)',
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 5,
-                        WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 6,
+                        WebkitBoxOrient: 'vertical',
                     }}
                 >
                     {text}

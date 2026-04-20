@@ -88,6 +88,10 @@
 
 .story-card-poster-fallback-art {
     object-fit: contain;
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+    inset: auto !important;
 }
 
 .story-card:hover .story-card-poster-image {
