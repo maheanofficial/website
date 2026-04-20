@@ -80,11 +80,11 @@ const SmartImage: React.FC<SmartImageProps> = ({
             );
         }
 
-        let fontSize = '1.15rem';
-        if (text.length > 50) fontSize = '0.75rem';
-        else if (text.length > 30) fontSize = '0.85rem';
-        else if (text.length > 15) fontSize = '1.05rem';
-        else fontSize = 'clamp(1.2rem, 3.8vw, 2.2rem)';
+        const charCount = text.length;
+        let fontSize = 'clamp(1.1rem, 4vw, 1.8rem)';
+        if (charCount > 40) fontSize = 'clamp(0.7rem, 2.5vw, 1rem)';
+        else if (charCount > 25) fontSize = 'clamp(0.85rem, 3vw, 1.2rem)';
+        else if (charCount > 15) fontSize = 'clamp(1rem, 3.5vw, 1.4rem)';
 
         return (
             <div
@@ -95,23 +95,30 @@ const SmartImage: React.FC<SmartImageProps> = ({
                     justifyContent: 'center',
                     flexDirection: 'column',
                     textAlign: 'center',
-                    minHeight: '120px'
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    inset: 0,
+                    minHeight: 0,
                 }}
             >
-                {/* Subtle Dot Pattern Backdrop */}
                 <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
 
                 <span
-                    className="px-4"
                     style={{
-                        fontSize: fontSize,
-                        fontWeight: 900, // Extra Bold for Bangla
-                        lineHeight: '1.2',
-                        width: '90%',
+                        fontSize,
+                        fontWeight: 900,
+                        lineHeight: '1.25',
+                        width: '85%',
                         zIndex: 1,
                         color: 'white',
-                        transform: 'translateY(15px)',
-                        textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                        textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 5,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
                     }}
                 >
                     {text}
