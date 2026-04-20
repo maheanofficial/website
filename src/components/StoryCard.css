@@ -65,6 +65,43 @@
     inset: 0;
     width: 100%;
     height: 100%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.story-card-no-cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px 16px;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+}
+
+.story-card-no-cover-title {
+    font-size: clamp(1.3rem, 4vw, 2rem);
+    font-weight: 900;
+    color: #ff5c00;
+    line-height: 1.25;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 2px 12px rgba(255, 92, 0, 0.3);
+}
+
+.story-card-no-cover-author {
+    font-size: clamp(0.75rem, 2vw, 0.95rem);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.03em;
 }
 
 .story-card-poster-image,

@@ -104,11 +104,10 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                         />
                     ) : (
                         <div className="story-card-poster-fallback">
-                            <SmartImage
-                                alt={story.title}
-                                className="story-card-poster-fallback-art"
-                                showFullText={true}
-                            />
+                            <div className="story-card-no-cover">
+                                <h3 className="story-card-no-cover-title">{story.title}</h3>
+                                <p className="story-card-no-cover-author">{story.author || 'লেখক'}</p>
+                            </div>
                         </div>
                     )}
 
