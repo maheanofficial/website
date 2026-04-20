@@ -8,7 +8,7 @@ const path = require('path');
 const HOST = '122.165.242.4';
 const USER = 'mahean';
 const PASSWORD = 'k4a9W6]8Xsb;EH';
-const REMOTE_BASE = '/mahean_node_app';
+const REMOTE_BASE = '/mahean_node_app/dist';
 const LOCAL_DIST = path.join(__dirname, 'dist');
 
 const client = new FTP();
@@ -115,7 +115,7 @@ async function run() {
     console.log('Restarting app...');
     const tmpContent = Buffer.from('');
     await new Promise((resolve) => {
-        client.put(tmpContent, `${REMOTE_BASE}/tmp/restart.txt`, () => resolve());
+        client.put(tmpContent, `/mahean_node_app/tmp/restart.txt`, () => resolve());
     });
     console.log('  ✓ restart.txt uploaded');
 
