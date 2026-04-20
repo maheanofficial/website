@@ -150,6 +150,7 @@ type StoryEditorDraft = {
     description?: string;
     season?: number;
     status?: Story['status'];
+    completionStatus?: Story['completionStatus'];
     authorMode?: 'existing' | 'new';
     selectedAuthorId?: string;
     newAuthorName?: string;
@@ -216,6 +217,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [tags, setTags] = useState<string[]>([]); // New Tags
     const [description, setDescription] = useState(''); // Maps to excerpt
     const [season, setSeason] = useState('1');
+    const [completionStatus, setCompletionStatus] = useState<Story['completionStatus']>(undefined);
     const [status, setStatus] = useState<Story['status']>(defaultStatus);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newTagName, setNewTagName] = useState('');
@@ -249,6 +251,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setSeason(String(normalizeSeasonValue(draft.season)));
         if (draft.status) {
             setStatus(draft.status);
+        }
+        if (draft.completionStatus === 'completed' || draft.completionStatus === 'ongoing') {
+            setCompletionStatus(draft.completionStatus);
         }
         setAuthorMode(draft.authorMode === 'new' ? 'new' : 'existing');
         setSelectedAuthorId(typeof draft.selectedAuthorId === 'string' ? draft.selectedAuthorId : '');
@@ -302,6 +307,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             description,
             season: normalizeSeasonValue(season),
             status,
+            completionStatus,
             authorMode,
             selectedAuthorId,
             newAuthorName,
@@ -462,6 +468,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 content: part.content || ''
             })));
             setStatus(story.status || defaultStatus);
+            setCompletionStatus(story.completionStatus || undefined);
 
             const matchedAuthor = authors.find(author => author.id === story.authorId)
                 || authors.find(author => author.name === story.author);
@@ -944,6 +951,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             parts: normalizedParts,
             season: normalizeSeasonValue(season),
             status: nextStatus,
+            completionStatus: completionStatus || undefined,
             date: existingStory?.date || new Date().toISOString(),
             author: authorName,
             authorId: authorId,
@@ -1333,6 +1341,23 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 placeholder="১"
                             />
                             <p className="helper-text">Story card-এ এই সিজন নাম্বারটাই দেখাবে।</p>
+                        </div>
+
+                        <div className="mb-8">
+                            <label className="form-label-flat">গল্পের অবস্থা</label>
+                            <div className="relative custom-select-wrapper">
+                                <select
+                                    value={completionStatus || ''}
+                                    onChange={e => setCompletionStatus((e.target.value as Story['completionStatus']) || undefined)}
+                                    className="form-select-flat"
+                                >
+                                    <option value="">নির্ধারিত নয়</option>
+                                    <option value="ongoing">চলমান</option>
+                                    <option value="completed">সমাপ্ত</option>
+                                </select>
+                                <ChevronDown className="select-arrow" size={16} />
+                            </div>
+                            <p className="helper-text">গল্প চলমান না সমাপ্ত তা বাছুন।</p>
                         </div>
 
                         {isAdmin && (

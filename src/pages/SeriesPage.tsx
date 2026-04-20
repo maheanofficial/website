@@ -13,6 +13,7 @@ const SeriesPage = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('latest');
+    const [completionFilter, setCompletionFilter] = useState<'all' | 'completed' | 'ongoing'>('all');
 
     useEffect(() => {
         let isMounted = true;
@@ -29,15 +30,23 @@ const SeriesPage = () => {
     }, []);
 
     const filteredStories = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
-        if (!query) return displayStories;
+        let list = displayStories;
 
-        return displayStories.filter((story) => {
-            const title = story.title.toLowerCase();
-            const author = (story.author || '').toLowerCase();
-            return title.includes(query) || author.includes(query);
-        });
-    }, [displayStories, searchQuery]);
+        if (completionFilter !== 'all') {
+            list = list.filter((story) => story.completionStatus === completionFilter);
+        }
+
+        const query = searchQuery.trim().toLowerCase();
+        if (query) {
+            list = list.filter((story) => {
+                const title = story.title.toLowerCase();
+                const author = (story.author || '').toLowerCase();
+                return title.includes(query) || author.includes(query);
+            });
+        }
+
+        return list;
+    }, [displayStories, searchQuery, completionFilter]);
 
     const sortedStories = useMemo(() => {
         const list = [...filteredStories];
@@ -68,6 +77,18 @@ const SeriesPage = () => {
                     <Link to="/admin/dashboard/golpo/create" className="series-cta">
                         নতুন সিরিজ লিখুন
                     </Link>
+                </div>
+
+                <div className="series-completion-tabs">
+                    {(['all', 'completed', 'ongoing'] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            className={`series-completion-tab ${completionFilter === tab ? 'series-completion-tab--active' : ''}`}
+                            onClick={() => setCompletionFilter(tab)}
+                        >
+                            {tab === 'all' ? 'সব সিরিজ' : tab === 'completed' ? '✓ সমাপ্ত' : '● চলমান'}
+                        </button>
+                    ))}
                 </div>
 
                 <div className="series-filter-bar">

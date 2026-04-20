@@ -68,11 +68,6 @@ export default function StoriesPage() {
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
     const [authors, setAuthors] = useState<Author[]>([]);
 
-    // Search and Filter State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    // sortBy is now declared below with urlParams logic
-
     // Get category and sort from URL params
     const urlParams = new URLSearchParams(location.search);
     const categoryFromUrl = normalizeCategoryFilterValue(urlParams.get('category')) || 'all';
@@ -80,7 +75,12 @@ export default function StoriesPage() {
     const tabFromUrl = urlParams.get('tab');
     const tagFromUrl = normalizeTagFilterValue(urlParams.get('tag')) || null;
     const authorFromUrl = urlParams.get('author')?.trim() || null;
+    const qFromUrl = urlParams.get('q')?.trim() || '';
     const defaultCategoryForPage = authorFromUrl || tagFromUrl ? 'all' : categoryFromUrl;
+
+    // Search and Filter State
+    const [searchQuery, setSearchQuery] = useState(() => qFromUrl);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [authorFilter, setAuthorFilter] = useState<string | null>(authorFromUrl);
     const [selectedCategory, setSelectedCategory] = useState(defaultCategoryForPage);

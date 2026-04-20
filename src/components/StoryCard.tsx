@@ -116,6 +116,11 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                         <span className="story-card-floating-badge">
                             {story.category || 'গল্প'}
                         </span>
+                        {story.completionStatus && (
+                            <span className={`story-card-completion-badge story-card-completion-badge--${story.completionStatus}`}>
+                                {story.completionStatus === 'completed' ? 'সমাপ্ত' : 'চলমান'}
+                            </span>
+                        )}
                     </div>
                 </div>
             </Link>

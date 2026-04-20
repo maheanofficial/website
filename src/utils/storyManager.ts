@@ -32,6 +32,7 @@ export interface Story {
     readTime?: string;
     season?: number;
     status?: 'published' | 'pending' | 'rejected' | 'draft';
+    completionStatus?: 'completed' | 'ongoing';
     submittedBy?: string; // userId of the writer
     updatedAt?: string;
 }
@@ -61,6 +62,7 @@ const STORY_LIST_COLUMNS = [
     'read_time',
     'season',
     'status',
+    'completion_status',
     'submitted_by',
     'date',
     'created_at',
@@ -98,6 +100,7 @@ type StoryRow = {
     read_time?: string | null;
     season?: number | string | null;
     status?: string | null;
+    completion_status?: string | null;
     submitted_by?: string | null;
     date?: string | null;
     created_at?: string | null;
@@ -551,6 +554,9 @@ const mapRowToStory = (row: StoryRow): Story => {
         readTime: row.read_time ?? legacyMeta?.readTime ?? undefined,
         season: normalizeSeasonValue(row.season ?? legacyMeta?.season) || 1,
         status: toStoryStatus(row.status ?? legacyMeta?.status),
+        completionStatus: (row.completion_status === 'completed' || row.completion_status === 'ongoing')
+            ? row.completion_status
+            : undefined,
         submittedBy: row.submitted_by ?? legacyMeta?.submittedBy ?? undefined,
         updatedAt: row.updated_at ?? undefined
     };
@@ -586,6 +592,7 @@ const mapStoryToRow = (story: Story): Record<string, unknown> => {
         read_time: normalizedStory.readTime ?? null,
         season: normalizeSeasonValue(normalizedStory.season) ?? 1,
         status: toStoryStatus(normalizedStory.status),
+        completion_status: normalizedStory.completionStatus ?? null,
         submitted_by: normalizedStory.submittedBy ?? null,
         date: normalizedStory.date ?? new Date().toISOString(),
         updated_at: normalizedStory.updatedAt ?? new Date().toISOString()

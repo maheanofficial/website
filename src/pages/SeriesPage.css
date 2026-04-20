@@ -127,3 +127,35 @@
         font-size: var(--text-4xl);
     }
 }
+
+/* Completion Status Tabs */
+.series-completion-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.series-completion-tab {
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-primary);
+    transition: all 0.2s;
+}
+
+.series-completion-tab:hover {
+    border-color: rgba(255, 92, 0, 0.3);
+    color: var(--text-primary);
+}
+
+.series-completion-tab--active {
+    background: rgba(255, 92, 0, 0.15);
+    border-color: rgba(255, 92, 0, 0.4);
+    color: var(--accent-primary);
+}

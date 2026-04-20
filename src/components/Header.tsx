@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Search } from 'lucide-react';
+import { Moon, Search, X } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
 import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
@@ -12,6 +12,9 @@ export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
     const [headerVisible, setHeaderVisible] = useState(true);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const location = useLocation();
@@ -74,6 +77,33 @@ export default function Header() {
             subscription?.unsubscribe?.();
         };
     }, []);
+
+    useEffect(() => {
+        if (searchOpen) {
+            setTimeout(() => searchInputRef.current?.focus(), 50);
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [searchOpen]);
+
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && searchOpen) setSearchOpen(false);
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [searchOpen]);
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/stories?q=${encodeURIComponent(searchQuery.trim())}`);
+            setSearchOpen(false);
+            setSearchQuery('');
+        }
+    };
 
     const closeMenu = () => {
         setMenuState({ open: false, path: location.pathname });
@@ -155,7 +185,7 @@ export default function Header() {
                                 className="nav-icon-btn"
                                 aria-label="Search stories"
                                 onClick={() => {
-                                    navigate('/stories');
+                                    setSearchOpen(true);
                                     closeMenu();
                                 }}
                             >
@@ -213,6 +243,34 @@ export default function Header() {
                     </div>
                 </nav>
             </div>
+            {searchOpen && (
+                <div className="search-overlay" role="dialog" aria-label="Search" onClick={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}>
+                    <div className="search-overlay-inner">
+                        <button className="search-overlay-close" onClick={() => setSearchOpen(false)} aria-label="Close search">
+                            <X size={24} />
+                        </button>
+                        <p className="search-overlay-hint">গল্পের নাম, লেখক বা ক্যাটাগরি দিয়ে খুঁজুন</p>
+                        <form className="search-overlay-form" onSubmit={handleSearchSubmit}>
+                            <Search size={22} className="search-overlay-icon" />
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                className="search-overlay-input"
+                                placeholder="গল্প খুঁজুন..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoComplete="off"
+                            />
+                            {searchQuery && (
+                                <button type="button" className="search-overlay-clear" onClick={() => setSearchQuery('')}>
+                                    <X size={18} />
+                                </button>
+                            )}
+                        </form>
+                        <p className="search-overlay-esc">ESC চাপুন বা বাইরে ক্লিক করুন বন্ধ করতে</p>
+                    </div>
+                </div>
+            )}
         </header>
     );
 }

@@ -70,6 +70,15 @@ export default function ShareButtons({ url, title }: ShareButtonsProps) {
                 >
                     X / Twitter
                 </a>
+                <a
+                    href={`https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="share-btn share-telegram"
+                    aria-label="Telegram-এ শেয়ার করুন"
+                >
+                    Telegram
+                </a>
                 <button
                     type="button"
                     className={`share-btn share-copy ${copied ? 'is-copied' : ''}`}

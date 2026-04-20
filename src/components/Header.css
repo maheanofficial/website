@@ -400,3 +400,111 @@
         margin-top: 10px;
     }
 }
+
+/* Full-Screen Search Overlay */
+.search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(4, 7, 12, 0.96);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: searchFadeIn 0.2s ease-out;
+}
+
+@keyframes searchFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.search-overlay-inner {
+    width: 100%;
+    max-width: 680px;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.search-overlay-close {
+    align-self: flex-end;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s;
+}
+
+.search-overlay-close:hover {
+    color: var(--text-primary);
+}
+
+.search-overlay-hint {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.search-overlay-form {
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-overlay-icon {
+    position: absolute;
+    left: 20px;
+    color: var(--text-tertiary);
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.search-overlay-input {
+    width: 100%;
+    padding: 18px 56px 18px 56px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-family: var(--font-primary);
+    font-size: var(--text-xl);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-overlay-input:focus {
+    border-color: var(--accent-primary);
+}
+
+.search-overlay-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.search-overlay-clear {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    transition: color 0.2s;
+}
+
+.search-overlay-clear:hover {
+    color: var(--text-primary);
+}
+
+.search-overlay-esc {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+}

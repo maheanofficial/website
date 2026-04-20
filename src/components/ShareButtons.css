@@ -59,6 +59,11 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+.share-telegram {
+    background: #229ED9;
+    color: #fff;
+}
+
 .share-copy {
     background: var(--bg-tertiary);
     color: var(--text-primary);

@@ -54,6 +54,9 @@ export default function Footer() {
                         <div className="footer-links">
                             <a href="https://www.facebook.com/maheanahmedofficial" className="footer-link">Facebook</a>
                             <a href="https://youtube.com/@maheanstoryvoice" className="footer-link">YouTube</a>
+                            <a href="https://t.me/maheanstories" className="footer-link">Telegram</a>
+                            <a href="https://x.com/mahean_ahmed" className="footer-link">Twitter / X</a>
+                            <a href="https://linkedin.com/in/maheanahmed" className="footer-link">LinkedIn</a>
                         </div>
                     </div>
                 </div>
