@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, BookOpen, Check, Eye } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Check, Eye, Facebook, Instagram, Twitter } from 'lucide-react';
 
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
@@ -148,6 +148,29 @@ const AuthorsGrid = () => {
                                     </div>
 
                                     <p className="author-card-bio">{bioText}</p>
+
+                                    {author.links && author.links.length > 0 && (
+                                        <div className="author-card-social-links">
+                                            {author.links.map((link, linkIndex) => {
+                                                const icon = link.name.toLowerCase().includes('facebook') ? <Facebook size={16} /> :
+                                                             link.name.toLowerCase().includes('instagram') ? <Instagram size={16} /> :
+                                                             link.name.toLowerCase().includes('twitter') || link.name.toLowerCase().includes('x') ? <Twitter size={16} /> :
+                                                             null;
+                                                return (
+                                                    <a
+                                                        key={linkIndex}
+                                                        href={link.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="author-card-social-link"
+                                                        title={link.name}
+                                                    >
+                                                        {icon}
+                                                    </a>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
 
                                     <Link to={authorLink} className="author-card-cta">
                                         <span>প্রোফাইল দেখুন</span>

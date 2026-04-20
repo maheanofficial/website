@@ -330,6 +330,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         description,
         season,
         status,
+        completionStatus,
         authorMode,
         selectedAuthorId,
         newAuthorName,

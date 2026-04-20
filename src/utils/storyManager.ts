@@ -35,6 +35,7 @@ export interface Story {
     completionStatus?: 'completed' | 'ongoing';
     submittedBy?: string; // userId of the writer
     updatedAt?: string;
+    rating?: number;
 }
 
 const STORAGE_KEY = 'mahean_stories';
@@ -64,6 +65,7 @@ const STORY_LIST_COLUMNS = [
     'status',
     'completion_status',
     'submitted_by',
+    'rating',
     'date',
     'created_at',
     'updated_at'

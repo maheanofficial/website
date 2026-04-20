@@ -264,6 +264,31 @@
     overflow: hidden;
 }
 
+.author-card-social-links {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.author-card-social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #d1d5db;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.author-card-social-link:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    transform: translateY(-1px);
+}
+
 .author-card-cta {
     margin-top: auto;
     display: inline-flex;

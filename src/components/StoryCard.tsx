@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Clock3, Eye, Layers3 } from 'lucide-react';
+import { ArrowUpRight, Clock3, Eye, Heart, Layers3 } from 'lucide-react';
 
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { formatDate } from '../utils/dateFormatter';
@@ -151,6 +151,12 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                         <Eye size={14} />
                         {toBanglaNumber(story.views || 0)}
                     </span>
+                    {story.rating && story.rating > 0 ? (
+                        <span className="story-stat-pill">
+                            <Heart size={14} />
+                            {toBanglaNumber(story.rating)} হা.
+                        </span>
+                    ) : null}
                 </div>
 
                 <p className="story-excerpt line-clamp-3">

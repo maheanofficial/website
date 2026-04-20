@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Eye, BookMarked } from 'lucide-react';
+import { BookOpen, Eye, Heart, BookMarked } from 'lucide-react';
 import { getReaderSession, type ReaderSession } from '../utils/readerExperience';
 import { ChevronRight } from 'lucide-react';
 import Hero from '../components/Hero';
@@ -196,6 +196,12 @@ const HomePage = () => {
                                     <div className="home-popular-meta">
                                         <Eye size={13} />
                                         <span>{toBanglaNumber(story.views || 0)} বার পড়া</span>
+                                        {story.rating && story.rating > 0 ? (
+                                            <>
+                                                <Heart size={13} />
+                                                <span>{toBanglaNumber(story.rating)} হা.</span>
+                                            </>
+                                        ) : null}
                                         {story.parts?.length ? <><BookMarked size={13} /><span>{toBanglaNumber(story.parts.length)} পর্ব</span></> : null}
                                     </div>
                                 </div>
