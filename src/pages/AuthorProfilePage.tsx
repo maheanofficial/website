@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Eye, ExternalLink, ArrowLeft, Star, CheckCircle } from 'lucide-react';
+import { BookOpen, Eye, ExternalLink, ArrowLeft, Star, CheckCircle, UserPlus, UserCheck } from 'lucide-react';
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { formatLongDate } from '../utils/dateFormatter';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
+import { getCurrentUser } from '../utils/auth';
+import { isReaderFollowingAuthor, toggleReaderAuthorFollow } from '../utils/readerStateManager';
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import './AuthorProfilePage.css';
@@ -33,6 +35,16 @@ const AuthorProfilePage = () => {
     const [authorStories, setAuthorStories] = useState<Story[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'series' | 'standalone'>('all');
+    const [userId, setUserId] = useState<string | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
+
+    useEffect(() => {
+        getCurrentUser().then((u) => {
+            if (u?.id) {
+                setUserId(u.id);
+            }
+        });
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -57,6 +69,18 @@ const AuthorProfilePage = () => {
         void load();
         return () => { isMounted = false; };
     }, [username]);
+
+    useEffect(() => {
+        if (userId && author?.name) {
+            setIsFollowing(isReaderFollowingAuthor(userId, author.name));
+        }
+    }, [userId, author]);
+
+    const handleFollowToggle = () => {
+        if (!userId || !author?.name) return;
+        toggleReaderAuthorFollow(userId, author.name);
+        setIsFollowing(isReaderFollowingAuthor(userId, author.name));
+    };
 
     if (isLoading) {
         return (
@@ -159,6 +183,19 @@ const AuthorProfilePage = () => {
                                 <span>{toBanglaNumber(totalViews)} পাঠক</span>
                             </div>
                         </div>
+
+                        {userId && (
+                            <button
+                                className={`author-follow-btn ${isFollowing ? 'following' : ''}`}
+                                onClick={handleFollowToggle}
+                            >
+                                {isFollowing ? (
+                                    <><UserCheck size={15} /><span>অনুসরণ করছেন</span></>
+                                ) : (
+                                    <><UserPlus size={15} /><span>অনুসরণ করুন</span></>
+                                )}
+                            </button>
+                        )}
 
                         {author.links && author.links.length > 0 && (
                             <div className="author-profile-links">

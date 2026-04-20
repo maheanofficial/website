@@ -141,6 +141,39 @@
     font-weight: 600;
 }
 
+.author-follow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(245, 158, 11, 0.5);
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.author-follow-btn:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+}
+
+.author-follow-btn.following {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #4ade80;
+}
+
+.author-follow-btn.following:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+}
+
 .author-profile-links {
     display: flex;
     flex-wrap: wrap;
@@ -250,6 +283,7 @@
 .author-story-cover {
     aspect-ratio: 16 / 9;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .author-story-cover img {

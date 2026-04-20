@@ -40,7 +40,7 @@
 
 .story-card-poster {
     position: relative;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 16 / 9;
     min-height: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;

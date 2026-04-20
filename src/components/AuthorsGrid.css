@@ -58,7 +58,7 @@
 .author-card-media {
     position: relative;
     display: block;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     background: #090909;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -126,8 +126,8 @@
 }
 
 .author-card-avatar {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     padding: 2px;
     background: linear-gradient(145deg, rgba(245, 158, 11, 0.5), rgba(255, 92, 0, 0.18));

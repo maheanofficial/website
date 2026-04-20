@@ -216,6 +216,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [tags, setTags] = useState<string[]>([]); // New Tags
     const [description, setDescription] = useState(''); // Maps to excerpt
     const [season, setSeason] = useState('1');
+    const [seasonsJson, setSeasonsJson] = useState('');
+    const [seasonsJsonError, setSeasonsJsonError] = useState('');
     const [status, setStatus] = useState<Story['status']>(defaultStatus);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newTagName, setNewTagName] = useState('');
@@ -453,6 +455,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             setNewCategoryName('');
             setDescription(story.excerpt || '');
             setSeason(String(normalizeSeasonValue(story.season)));
+            setSeasonsJson(story.seasons?.length ? JSON.stringify(story.seasons, null, 2) : '');
+            setSeasonsJsonError('');
             setCoverImage(story.cover_image || story.image || '');
             const storyParts = story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }];
             setParts(storyParts.map((part, index) => ({
@@ -932,6 +936,19 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             authorId = newAuthor.id;
         }
 
+        let parsedSeasons: Story['seasons'] = undefined;
+        if (seasonsJson.trim()) {
+            try {
+                const parsed = JSON.parse(seasonsJson);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    parsedSeasons = parsed;
+                }
+            } catch {
+                setSeasonsJsonError('Seasons JSON invalid — সেভ হয়নি। সঠিক JSON দিন।');
+                return;
+            }
+        }
+
         const newStory: Story = {
             id: storyId,
             title,
@@ -942,6 +959,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             tags: normalizedTags,
             cover_image: coverImage,
             parts: normalizedParts,
+            seasons: parsedSeasons,
             season: normalizeSeasonValue(season),
             status: nextStatus,
             date: existingStory?.date || new Date().toISOString(),
@@ -1333,6 +1351,20 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                                 placeholder="১"
                             />
                             <p className="helper-text">Story card-এ এই সিজন নাম্বারটাই দেখাবে।</p>
+                        </div>
+
+                        <div className="mb-8">
+                            <label className="form-label-flat">মাল্টি-সিজন (Seasons JSON) <span style={{fontWeight:400,color:'var(--text-tertiary,#888)',fontSize:'0.8rem'}}>— ঐচ্ছিক</span></label>
+                            <textarea
+                                value={seasonsJson}
+                                onChange={(e) => { setSeasonsJson(e.target.value); setSeasonsJsonError(''); }}
+                                className="form-input-flat"
+                                rows={6}
+                                style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
+                                placeholder={`[\n  {\n    "id": "s1",\n    "title": "সিজন ১",\n    "parts": [\n      { "id": "p1", "title": "পর্ব ০১", "content": "..." }\n    ]\n  }\n]`}
+                            />
+                            {seasonsJsonError && <p style={{color:'#f87171',fontSize:'0.82rem',marginTop:4}}>{seasonsJsonError}</p>}
+                            <p className="helper-text">একাধিক সিজন থাকলে এখানে JSON দিন। খালি রাখলে parts[] ব্যবহার হবে।</p>
                         </div>
 
                         {isAdmin && (
