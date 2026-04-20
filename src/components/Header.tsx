@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Search } from 'lucide-react';
+import { Moon, Search, Bell, X } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
 import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
+import {
+    buildReaderNotifications,
+    markReaderNotificationsSeen,
+    dismissReaderNotification,
+    type ReaderNotification
+} from '../utils/readerStateManager';
+import { getCachedStories } from '../utils/storyManager';
 import type { User } from '../utils/userManager';
 import BrandLogo from './BrandLogo';
 import './Header.css';
@@ -14,6 +21,9 @@ export default function Header() {
     const [headerVisible, setHeaderVisible] = useState(true);
     const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [notifications, setNotifications] = useState<ReaderNotification[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notifRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
     const navigate = useNavigate();
     const isMenuOpen = menuState.open && menuState.path === location.pathname;
@@ -74,6 +84,38 @@ export default function Header() {
             subscription?.unsubscribe?.();
         };
     }, []);
+
+    useEffect(() => {
+        if (!currentUser?.id) { setNotifications([]); return; }
+        const stories = getCachedStories();
+        const notifs = buildReaderNotifications(currentUser.id, stories);
+        setNotifications(notifs);
+    }, [currentUser]);
+
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const unreadCount = notifications.length;
+
+    const handleOpenNotifications = () => {
+        setShowNotifications((v) => !v);
+        if (!showNotifications && currentUser?.id) {
+            markReaderNotificationsSeen(currentUser.id);
+        }
+    };
+
+    const handleDismissNotif = (storyId: string) => {
+        if (!currentUser?.id) return;
+        dismissReaderNotification(currentUser.id, storyId);
+        setNotifications((prev) => prev.filter((n) => n.storyId !== storyId));
+    };
 
     const closeMenu = () => {
         setMenuState({ open: false, path: location.pathname });
@@ -155,7 +197,7 @@ export default function Header() {
                                 className="nav-icon-btn"
                                 aria-label="Search stories"
                                 onClick={() => {
-                                    navigate('/stories');
+                                    navigate('/search');
                                     closeMenu();
                                 }}
                             >
@@ -170,6 +212,55 @@ export default function Header() {
                             >
                                 <Moon size={18} />
                             </button>
+                            {currentUser && (
+                                <div className="nav-notif-wrap" ref={notifRef}>
+                                    <button
+                                        type="button"
+                                        className="nav-icon-btn nav-notif-btn"
+                                        aria-label="Notifications"
+                                        onClick={handleOpenNotifications}
+                                    >
+                                        <Bell size={18} />
+                                        {unreadCount > 0 && (
+                                            <span className="nav-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                        )}
+                                    </button>
+                                    {showNotifications && (
+                                        <div className="nav-notif-dropdown">
+                                            <div className="nav-notif-header">
+                                                <span>বিজ্ঞপ্তি</span>
+                                            </div>
+                                            {notifications.length === 0 ? (
+                                                <p className="nav-notif-empty">কোনো নতুন বিজ্ঞপ্তি নেই।</p>
+                                            ) : (
+                                                <div className="nav-notif-list">
+                                                    {notifications.slice(0, 8).map((n) => (
+                                                        <div key={n.storyId} className="nav-notif-item unread">
+                                                            <Link
+                                                                to={n.storyPath}
+                                                                className="nav-notif-link"
+                                                                onClick={() => setShowNotifications(false)}
+                                                            >
+                                                                <span className="nav-notif-title">{n.storyTitle}</span>
+                                                                <span className="nav-notif-msg">
+                                                                    {n.reason === 'author' ? 'অনুসৃত লেখকের নতুন গল্প' : n.reason === 'category' ? 'পছন্দের ক্যাটাগরিতে নতুন গল্প' : 'পছন্দের ট্যাগে নতুন গল্প'}
+                                                                </span>
+                                                            </Link>
+                                                            <button
+                                                                className="nav-notif-dismiss"
+                                                                onClick={() => handleDismissNotif(n.storyId)}
+                                                                aria-label="dismiss"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             <span className="nav-action-divider" aria-hidden="true" />
                             {currentUser ? (
                                 <>

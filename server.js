@@ -143,7 +143,8 @@ const SPA_EXACT_PATHS = new Set([
     '/disclaimer',
     '/about',
     '/links',
-    '/author-portal'
+    '/author-portal',
+    '/search'
 ]);
 
 const SPA_PREFIX_PATHS = [

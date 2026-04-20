@@ -35,6 +35,7 @@ const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const SeriesDetailPage = lazy(() => import('./pages/SeriesDetailPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const SkillsPage = lazy(() => import('./pages/SkillsPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
 const StoriesPage = lazy(() => import('./pages/StoriesPage'));
 const StoryDetailsPage = lazy(() => import('./pages/StoryDetailsPage'));
 const StoryPartsPage = lazy(() => import('./pages/StoryPartsPage'));
@@ -171,6 +172,7 @@ function App() {
               <Route path="/series/:slug" element={<SeriesDetailPage />} />
               <Route path="/authors" element={<AuthorsPage />} />
               <Route path="/author/:username" element={<AuthorProfilePage />} />
+              <Route path="/search" element={<SearchPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/tags" element={<TagsPage />} />
               <Route path="/stories/:id/s/:seasonNum/part/:partNumber" element={<StoryDetailsPage />} />

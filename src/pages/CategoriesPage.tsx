@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Bell, BellOff } from 'lucide-react';
 import SEO from '../components/SEO';
 import SmartImage from '../components/SmartImage';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { SITE_URL } from '../utils/siteMeta';
+import { getCurrentUser } from '../utils/auth';
+import { isReaderFollowingCategory, toggleReaderCategoryFollow } from '../utils/readerStateManager';
 import {
     buildCategoryFilterPath,
     normalizeCategoryFilterKey,
@@ -14,6 +17,12 @@ import './CategoriesPage.css';
 
 const CategoriesPage = () => {
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
+    const [userId, setUserId] = useState<string | null>(null);
+    const [followedCategories, setFollowedCategories] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        getCurrentUser().then((u) => { if (u?.id) setUserId(u.id); });
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -105,9 +114,13 @@ const CategoriesPage = () => {
                 </div>
 
                 <div className="categories-grid">
-                    {categories.map((category) => (
+                    {categories.map((category) => {
+                        const isFollowed = userId
+                            ? (followedCategories.has(category.name) || isReaderFollowingCategory(userId, category.name))
+                            : false;
+                        return (
+                        <div key={category.name} className="category-card-wrap">
                         <Link
-                            key={category.name}
                             to={buildCategoryFilterPath(category.name)}
                             className="category-card"
                         >
@@ -135,7 +148,26 @@ const CategoriesPage = () => {
                                 </div>
                             </div>
                         </Link>
-                    ))}
+                        {userId && (
+                            <button
+                                className={`category-follow-btn ${isFollowed ? 'followed' : ''}`}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleReaderCategoryFollow(userId, category.name);
+                                    setFollowedCategories((prev) => {
+                                        const next = new Set(prev);
+                                        if (isFollowed) next.delete(category.name);
+                                        else next.add(category.name);
+                                        return next;
+                                    });
+                                }}
+                            >
+                                {isFollowed ? <><BellOff size={13} /> অনুসরণ বন্ধ</> : <><Bell size={13} /> অনুসরণ করুন</>}
+                            </button>
+                        )}
+                        </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
