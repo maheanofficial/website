@@ -177,7 +177,11 @@ export default function Header() {
                                         <Link to="/admin/dashboard" className="nav-action-link" onClick={closeMenu}>
                                             Dashboard
                                         </Link>
-                                    ) : null}
+                                    ) : (
+                                        <Link to="/author-portal" className="nav-action-link" onClick={closeMenu}>
+                                            লেখক পোর্টাল
+                                        </Link>
+                                    )}
                                     <Link to="/profile" className="nav-user-chip" onClick={closeMenu}>
                                         <span className="nav-user-avatar">
                                             {currentUser.photoURL ? (

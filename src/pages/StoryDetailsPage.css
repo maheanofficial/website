@@ -1,3 +1,37 @@
+/* Season tabs */
+.seasons-selector-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 0 8px;
+    border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+    margin-bottom: 12px;
+}
+
+.season-tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle, rgba(255,255,255,0.15));
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.season-tab:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.season-tab.active {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+    font-weight: 600;
+}
+
 .story-details-page {
     background: var(--bg-primary);
     min-height: 100vh;

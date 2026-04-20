@@ -8,7 +8,8 @@ import {
     getStories,
     incrementViews,
     type Story,
-    type StoryPart
+    type StoryPart,
+    type StorySeason
 } from '../utils/storyManager';
 import { getAuthorByName, type Author } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
@@ -181,6 +182,18 @@ const getReadableParts = (entry: Story): StoryPart[] => {
     }];
 };
 
+const getSeasonParts = (story: Story, seasonNum: number): StoryPart[] => {
+    if (Array.isArray(story.seasons) && story.seasons.length > 0) {
+        const idx = Math.max(0, seasonNum - 1);
+        const season = story.seasons[Math.min(idx, story.seasons.length - 1)];
+        if (season?.parts?.length) return season.parts;
+    }
+    return getReadableParts(story);
+};
+
+const getSeasonLabel = (season: StorySeason | undefined, idx: number) =>
+    normalizeDisplayText(season?.title) || `সিজন ${toBanglaNumber(idx + 1)}`;
+
 const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
     return normalizePartTitleForDisplay(part?.title, partIndex);
 };
@@ -332,9 +345,10 @@ const getCachedStoryPageState = (storyId?: string) => {
 };
 
 const StoryDetailsPage = () => {
-    // Routes can be /stories/:id/:partNumber or legacy /stories/:id/part/:partNumber
+    // Routes: /stories/:id/s/:seasonNum/part/:partNumber OR /stories/:id/part/:partNumber OR /stories/:id/:partNumber
     const navigate = useNavigate();
-    const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
+    const { id, partNumber, seasonNum } = useParams<{ id: string; partNumber?: string; seasonNum?: string }>();
+    const activeSeasonNum = parseRequestedPartNumber(seasonNum) ?? 1;
     const [initialCachedState] = useState(() => getCachedStoryPageState(id));
     const [story, setStory] = useState<Story | null>(initialCachedState.story);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
@@ -464,15 +478,20 @@ const StoryDetailsPage = () => {
         }
     }, [story, id, partNumber, navigate]);
 
-    const goToPart = (nextPartNumber: number) => {
+    const goToPart = (nextPartNumber: number, targetSeasonNum?: number) => {
         if (!story) return;
-        const parts = story.parts || [];
-        const totalParts = Math.max(1, parts.length || 0);
-        const safePartIndex = clamp(nextPartNumber, 1, totalParts) - 1;
-        const partSegment = toUrlSegment(getPartSegment(parts[safePartIndex], safePartIndex));
+        const seasonToUse = targetSeasonNum ?? activeSeasonNum;
+        const currentParts = hasSeasons ? getSeasonParts(story, seasonToUse) : (story.parts || []);
+        const totalPts = Math.max(1, currentParts.length || 0);
+        const safePartIndex = clamp(nextPartNumber, 1, totalPts) - 1;
+        const partSegment = toUrlSegment(getPartSegment(currentParts[safePartIndex], safePartIndex));
         const baseSegment = resolveStoryRouteSegment(story, id);
         if (!baseSegment) return;
-        navigate(`/stories/${toUrlSegment(baseSegment)}/${partSegment}`);
+        if (hasSeasons) {
+            navigate(`/stories/${toUrlSegment(baseSegment)}/s/${seasonToUse}/part/${partSegment}`);
+        } else {
+            navigate(`/stories/${toUrlSegment(baseSegment)}/${partSegment}`);
+        }
     };
 
     useEffect(() => {
@@ -682,7 +701,9 @@ const StoryDetailsPage = () => {
         );
     }
 
-    const parts = story.parts ?? [];
+    const hasSeasons = Array.isArray(story.seasons) && story.seasons.length > 1;
+    const parts = hasSeasons ? getSeasonParts(story, activeSeasonNum) : (story.parts ?? []);
+    const totalSeasons = hasSeasons ? story.seasons!.length : 1;
     const totalParts = Math.max(1, parts.length);
     const activePartIndex = resolvePartIndexFromParam(parts, partNumber);
     const activePartNumber = activePartIndex + 1;
@@ -1085,10 +1106,23 @@ const StoryDetailsPage = () => {
 
                 {/* Parts Navigation Controls */}
                 <div className="parts-navigation-box">
+                    {hasSeasons && (
+                        <div className="seasons-selector-row">
+                            {story.seasons!.map((season, idx) => (
+                                <button
+                                    key={season.id || `season-${idx}`}
+                                    className={`season-tab ${idx + 1 === activeSeasonNum ? 'active' : ''}`}
+                                    onClick={() => goToPart(1, idx + 1)}
+                                >
+                                    {getSeasonLabel(season, idx)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div className="parts-header">
                         <h2 className="current-part-title">
                             {partLabel}
-                            <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)})</span>
+                            <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)}{hasSeasons ? ` · সিজন ${toBanglaNumber(activeSeasonNum)}/${toBanglaNumber(totalSeasons)}` : ''})</span>
                         </h2>
 
                         <button

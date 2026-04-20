@@ -5,6 +5,49 @@
     padding-bottom: calc(var(--spacing-xl) + var(--sab));
 }
 
+/* Season tabs */
+.story-seasons-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+}
+
+.story-season-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 24px;
+    border: 1px solid var(--border-subtle, rgba(255,255,255,0.12));
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.story-season-tab:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.story-season-tab.active {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.season-tab-count {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    background: rgba(255,255,255,0.15);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
 .story-parts-back {
     display: inline-flex;
     align-items: center;

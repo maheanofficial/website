@@ -21,6 +21,8 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const AdminSignupPage = lazy(() => import('./pages/AdminSignupPage'));
 const AudiobooksPage = lazy(() => import('./pages/AudiobooksPage'));
 const AuthorsPage = lazy(() => import('./pages/AuthorsPage'));
+const AuthorProfilePage = lazy(() => import('./pages/AuthorProfilePage'));
+const AuthorPortalPage = lazy(() => import('./pages/AuthorPortalPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const DisclaimerPage = lazy(() => import('./pages/DisclaimerPage'));
@@ -30,6 +32,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SeriesPage = lazy(() => import('./pages/SeriesPage'));
+const SeriesDetailPage = lazy(() => import('./pages/SeriesDetailPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const SkillsPage = lazy(() => import('./pages/SkillsPage'));
 const StoriesPage = lazy(() => import('./pages/StoriesPage'));
@@ -78,7 +81,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin')
     || location.pathname.startsWith('/dashboard')
-    || location.pathname.startsWith('/author/dashboard');
+    || location.pathname.startsWith('/author/dashboard')
+    || location.pathname.startsWith('/author-portal');
   const isAuthRoute = location.pathname === '/login'
     || location.pathname === '/signup'
     || location.pathname === '/admin/login'
@@ -164,9 +168,12 @@ function App() {
               <Route path="/audiobooks" element={<AudiobooksPage />} />
               <Route path="/stories" element={<StoriesPage />} />
               <Route path="/series" element={<SeriesPage />} />
+              <Route path="/series/:slug" element={<SeriesDetailPage />} />
               <Route path="/authors" element={<AuthorsPage />} />
+              <Route path="/author/:username" element={<AuthorProfilePage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/tags" element={<TagsPage />} />
+              <Route path="/stories/:id/s/:seasonNum/part/:partNumber" element={<StoryDetailsPage />} />
               <Route path="/stories/:id/:partNumber" element={<StoryDetailsPage />} />
               <Route path="/stories/:id/part/:partNumber" element={<StoryDetailsPage />} />
               <Route path="/stories/:id" element={<StoryPartsPage />} />
@@ -178,6 +185,7 @@ function App() {
               <Route path="/admin/signup" element={<AdminSignupPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin/dashboard/*" element={<AdminPage />} />
+              <Route path="/author-portal/*" element={<AuthorPortalPage />} />
               <Route path="/author/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
