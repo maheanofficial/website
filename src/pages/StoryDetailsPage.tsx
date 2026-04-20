@@ -1,6 +1,6 @@
 ﻿import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck, ThumbsUp } from 'lucide-react';
 import {
     getCachedStories,
     getCachedStoryByIdOrSlug,
@@ -38,6 +38,7 @@ import {
     createStoryComment,
     deleteStoryComment,
     getStoryComments,
+    toggleCommentLike,
     updateStoryComment,
     type StoryComment
 } from '../utils/commentManager';
@@ -863,6 +864,18 @@ const StoryDetailsPage = () => {
         }
     };
 
+    const handleCommentLike = async (comment: StoryComment) => {
+        if (!currentUser?.id || !story) return;
+        try {
+            const { likes } = await toggleCommentLike({ storyId: String(story.id), commentId: comment.id });
+            setStoryComments((prev) =>
+                prev.map((c) => (c.id === comment.id ? { ...c, likes } : c))
+            );
+        } catch {
+            // silently ignore like errors
+        }
+    };
+
     // Format content with simplistic formatter matching demo
     const escapeHtml = (raw: string) => raw
         .replace(/&/g, '&amp;')
@@ -1334,26 +1347,38 @@ const StoryDetailsPage = () => {
                                         ) : (
                                             <p>{comment.content}</p>
                                         )}
-                                        {isCommentOwner && !isEditingThisComment ? (
-                                            <div className="story-comment-owner-actions">
+                                        <div className="story-comment-footer">
+                                            {currentUser && !isEditingThisComment && (
                                                 <button
                                                     type="button"
-                                                    className="story-comment-inline-btn"
-                                                    onClick={() => handleStartCommentEdit(comment)}
-                                                    disabled={isCommentSubmitting}
+                                                    className={`story-comment-like-btn ${comment.likes?.includes(currentUser.id) ? 'liked' : ''}`}
+                                                    onClick={() => void handleCommentLike(comment)}
                                                 >
-                                                    সম্পাদনা
+                                                    <ThumbsUp size={13} />
+                                                    <span>{comment.likes?.length || 0}</span>
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    className="story-comment-inline-btn danger"
-                                                    onClick={() => void handleCommentDelete(comment)}
-                                                    disabled={isCommentSubmitting}
-                                                >
-                                                    মুছুন
-                                                </button>
-                                            </div>
-                                        ) : null}
+                                            )}
+                                            {isCommentOwner && !isEditingThisComment ? (
+                                                <div className="story-comment-owner-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="story-comment-inline-btn"
+                                                        onClick={() => handleStartCommentEdit(comment)}
+                                                        disabled={isCommentSubmitting}
+                                                    >
+                                                        সম্পাদনা
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="story-comment-inline-btn danger"
+                                                        onClick={() => void handleCommentDelete(comment)}
+                                                        disabled={isCommentSubmitting}
+                                                    >
+                                                        মুছুন
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
                                 </article>
                                 );
