@@ -1,8 +1,6 @@
 name: Deploy to cPanel
 
 on:
-  push:
-    branches: [claude/review-site-updates-qaTrB, main]
   workflow_dispatch:
 
 concurrency:
