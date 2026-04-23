@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, BookOpen, Check, Eye } from 'lucide-react';
+import { Instagram, Facebook } from 'lucide-react';
 
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
-import { toBanglaNumber } from '../utils/numberFormatter';
 import SmartImage from './SmartImage';
+import BrandLogo from './BrandLogo';
 import './AuthorsGrid.css';
 
 const normalizeValue = (value?: string | null) => (value ?? '').trim().toLowerCase();
@@ -25,25 +25,26 @@ const isStoryOwnedByAuthor = (story: Story, author: Author) => {
     return storyKeys.some((key) => authorKeys.has(key));
 };
 
+const AuthorDefaultAvatar = () => (
+    <div className="author-default-avatar">
+        <BrandLogo size="sm" />
+    </div>
+);
+
 const AuthorsGrid = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
     const [allStories, setAllStories] = useState<Story[]>([]);
 
     useEffect(() => {
         let isMounted = true;
-
         const loadData = async () => {
             const [authorData, storyData] = await Promise.all([getAllAuthors(), getStories()]);
             if (!isMounted) return;
             setAuthors(authorData);
             setAllStories(storyData);
         };
-
         void loadData();
-
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, []);
 
     const authorsWithStats = authors
@@ -51,21 +52,16 @@ const AuthorsGrid = () => {
             const authorStories = allStories.filter((story) => isStoryOwnedByAuthor(story, author));
             const storyCount = authorStories.length;
             const totalViews = authorStories.reduce((sum, story) => sum + (story.views || 0), 0);
-
-            return {
-                ...author,
-                storyCount,
-                totalViews
-            };
+            return { ...author, storyCount, totalViews };
         })
         .filter((author) => author.storyCount > 0)
-        .sort((left, right) => right.totalViews - left.totalViews);
+        .sort((a, b) => b.totalViews - a.totalViews);
 
     if (!authorsWithStats.length) {
         return (
             <section className="authors-grid-section">
                 <div className="authors-empty-state">
-                    <h2>এখনও কোনো লেখক প্রোফাইল পাওয়া যায়নি</h2>
+                    <h2>এখনও কোনো লেখক প্রোফাইল পাওয়া যায়নি</h2>
                     <p>নতুন লেখকদের প্রোফাইল শিগগিরই এখানে দেখা যাবে।</p>
                 </div>
             </section>
@@ -77,83 +73,54 @@ const AuthorsGrid = () => {
             <div className="authors-grid-shell">
                 <div className="authors-grid">
                     {authorsWithStats.map((author, index) => {
-                        const authorLink = `/stories?author=${encodeURIComponent(author.name)}`;
-                        const profileMeta = author.username ? `@${author.username}` : 'গল্পকার';
-                        const bioText = author.bio?.trim() || 'নিয়মিত লেখালেখির মাধ্যমে নতুন গল্পের ভুবন তৈরি করছেন।';
+                        const authorLink = `/authors/${encodeURIComponent(author.username || author.name)}`;
+                        const bioText = author.bio?.trim() || '';
+                        const hasAvatar = Boolean(author.avatar?.trim());
+                        const links = author.links || [];
+                        const hasInstagram = links.some((l) => l.name?.toLowerCase().includes('instagram'));
+                        const hasFacebook = links.some((l) => l.name?.toLowerCase().includes('facebook'));
 
                         return (
                             <article
                                 key={author.id || author.username || author.name}
                                 className="author-card fade-in-up"
-                                style={{ animationDelay: `${index * 0.08}s` }}
+                                style={{ animationDelay: `${index * 0.07}s` }}
                             >
-                                <Link to={authorLink} className="author-card-media">
-                                    <SmartImage
-                                        src={author.avatar}
-                                        alt={author.name}
-                                        className="author-card-cover-image"
-                                        showFullText={true}
-                                    />
-                                    <div className="author-card-media-overlay"></div>
-                                    {index < 3 && (
-                                        <div className="author-card-rank">
-                                            <span>#{toBanglaNumber(index + 1)} জনপ্রিয়</span>
-                                        </div>
-                                    )}
-                                </Link>
-
-                                <div className="author-card-body">
-                                    <Link to={authorLink} className="author-card-identity">
-                                        <div className="author-card-avatar">
+                                <Link to={authorLink} className="author-card-inner">
+                                    <div className="author-card-avatar-wrap">
+                                        {hasAvatar ? (
                                             <SmartImage
                                                 src={author.avatar}
                                                 alt={author.name}
-                                                className="author-card-avatar-image"
+                                                className="author-card-avatar-img"
                                                 isRound={true}
                                             />
-                                        </div>
-                                        <div className="author-card-identity-copy">
-                                            <div className="author-card-meta-row">
-                                                <span className="author-card-handle">{profileMeta}</span>
-                                                <span
-                                                    className="author-card-verified-badge"
-                                                    aria-label="Verified profile"
-                                                    title="Verified profile"
-                                                >
-                                                    <Check size={10} strokeWidth={3} />
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
-
-                                    <Link to={authorLink} className="author-card-name-link">
-                                        <h3 className="author-card-name">{author.name}</h3>
-                                    </Link>
-
-                                    <div className="author-card-stats">
-                                        <div className="author-card-stat">
-                                            <BookOpen size={14} />
-                                            <div>
-                                                <strong>{toBanglaNumber(author.storyCount)}</strong>
-                                                <span>টি গল্প</span>
-                                            </div>
-                                        </div>
-                                        <div className="author-card-stat">
-                                            <Eye size={14} />
-                                            <div>
-                                                <strong>{toBanglaNumber(author.totalViews)}</strong>
-                                                <span>বার পঠিত</span>
-                                            </div>
-                                        </div>
+                                        ) : (
+                                            <AuthorDefaultAvatar />
+                                        )}
                                     </div>
 
-                                    <p className="author-card-bio">{bioText}</p>
+                                    {(hasInstagram || hasFacebook) && (
+                                        <div className="author-card-socials">
+                                            {hasInstagram && (
+                                                <span className="author-card-social-icon" aria-label="Instagram">
+                                                    <Instagram size={15} />
+                                                </span>
+                                            )}
+                                            {hasFacebook && (
+                                                <span className="author-card-social-icon" aria-label="Facebook">
+                                                    <Facebook size={15} />
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
-                                    <Link to={authorLink} className="author-card-cta">
-                                        <span>প্রোফাইল দেখুন</span>
-                                        <ArrowUpRight size={16} />
-                                    </Link>
-                                </div>
+                                    <h3 className="author-card-name">{author.name}</h3>
+
+                                    {bioText && (
+                                        <p className="author-card-bio">{bioText}</p>
+                                    )}
+                                </Link>
                             </article>
                         );
                     })}
