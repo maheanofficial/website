@@ -618,8 +618,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
 
         const canvas = document.createElement('canvas');
-        const width = 1280;
-        const height = 720;
+        const width = 800;
+        const height = 450;
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
@@ -648,10 +648,10 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const coverAuthor = resolveCoverAuthor();
         const titleFontFamily = '"Li Subha Letterpress Unicode", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
         const authorFontFamily = '"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
-        const maxTitleWidth = width - 240;
-        const maxTitleHeight = height * 0.46;
-        const maxLines = 4;
-        let titleFontSize = 84;
+        const maxTitleWidth = width - 220;
+        const maxTitleHeight = height * 0.44;
+        const maxLines = 3;
+        let titleFontSize = 78;
         let titleLines: string[] = [];
         let titleLineHeight = Math.round(titleFontSize * 1.15);
 
@@ -659,7 +659,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#FF5C00';
 
-        for (let size = 84; size >= 56; size -= 4) {
+        for (let size = 78; size >= 48; size -= 4) {
             ctx.font = `700 ${size}px ${titleFontFamily}`;
             const lines = wrapCanvasText(ctx, coverTitle, maxTitleWidth);
             const lineHeight = Math.round(size * 1.15);
@@ -670,7 +670,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 titleLineHeight = lineHeight;
                 break;
             }
-            if (size === 56) {
+            if (size === 48) {
                 titleFontSize = size;
                 titleLines = lines;
                 titleLineHeight = lineHeight;

@@ -4,12 +4,12 @@ const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const STORY_DATA_PATH = path.join(ROOT_DIR, 'data-export', 'table-stories-final.json');
-const FONT_PATH = path.join(ROOT_DIR, 'public', 'assets', 'fonts', 'LiSubhaLetterpressUnicodeItalic.ttf');
+const FONT_PATH = path.join(ROOT_DIR, 'public', 'assets', 'fonts', 'LiSubhaLetterpressUnicode.ttf');
 const LOGO_PATH = path.join(ROOT_DIR, 'public', 'assets', 'thumbnail-logo.png');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 
-const canvasWidth = 1280;
-const canvasHeight = 720;
+const canvasWidth = 800;
+const canvasHeight = 450;
 
 const wrapCanvasText = (ctx, text, maxWidth) => {
   const words = String(text || '').trim().split(/\s+/);
@@ -95,11 +95,11 @@ const generateCover = async (title, author) => {
   const coverAuthor = String(author || '\u09b2\u09c7\u0995\u09a4');
   const titleFontFamily = 'Li Subha Letterpress Unicode';
   const authorFontFamily = 'Hind Siliguri, Noto Sans Bengali, Nirmala UI, Vrinda, sans-serif';
-  const maxTitleWidth = canvasWidth - 240;
-  const maxTitleHeight = canvasHeight * 0.46;
-  const maxLines = 4;
+  const maxTitleWidth = canvasWidth - 220;
+  const maxTitleHeight = canvasHeight * 0.44;
+  const maxLines = 3;
 
-  let titleFontSize = 84;
+  let titleFontSize = 78;
   let titleLines = [];
   let titleLineHeight = Math.round(titleFontSize * 1.15);
 
@@ -107,7 +107,7 @@ const generateCover = async (title, author) => {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#FF5C00';
 
-  for (let size = 84; size >= 56; size -= 4) {
+  for (let size = 78; size >= 48; size -= 4) {
     ctx.font = `700 ${size}px ${titleFontFamily}`;
     const lines = wrapCanvasText(ctx, coverTitle, maxTitleWidth);
     const lineHeight = Math.round(size * 1.15);
@@ -118,7 +118,7 @@ const generateCover = async (title, author) => {
       titleLineHeight = lineHeight;
       break;
     }
-    if (size === 56) {
+    if (size === 48) {
       titleFontSize = size;
       titleLines = lines;
       titleLineHeight = lineHeight;

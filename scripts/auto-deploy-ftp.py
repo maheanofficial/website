@@ -105,7 +105,7 @@ def main():
     else:
         _log(f"Uploading {len(to_upload)} changed files...")
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             futures = []
             for rel in to_upload:
                 local_path = ROOT / rel
