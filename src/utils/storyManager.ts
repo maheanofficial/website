@@ -10,6 +10,12 @@ export interface StoryPart {
     content: string;
 }
 
+export interface StorySeason {
+    id?: string;
+    title?: string;
+    parts: StoryPart[];
+}
+
 export interface Story {
     id: string;
     title: string;
@@ -27,15 +33,14 @@ export interface Story {
     cover_image?: string;
     tags?: string[];
     parts?: StoryPart[];
+    seasons?: StorySeason[];
     comments?: number;
     is_featured?: boolean;
     readTime?: string;
     season?: number;
     status?: 'published' | 'pending' | 'rejected' | 'draft';
-    completionStatus?: 'completed' | 'ongoing';
-    submittedBy?: string; // userId of the writer
+    submittedBy?: string;
     updatedAt?: string;
-    rating?: number;
 }
 
 const STORAGE_KEY = 'mahean_stories';
@@ -58,14 +63,13 @@ const STORY_LIST_COLUMNS = [
     'slug',
     'tags',
     'parts',
+    'seasons',
     'comments',
     'is_featured',
     'read_time',
     'season',
     'status',
-    'completion_status',
     'submitted_by',
-    'rating',
     'date',
     'created_at',
     'updated_at'
@@ -97,12 +101,12 @@ type StoryRow = {
     slug?: string | null;
     tags?: unknown;
     parts?: unknown;
+    seasons?: unknown;
     comments?: number | null;
     is_featured?: boolean | null;
     read_time?: string | null;
     season?: number | string | null;
     status?: string | null;
-    completion_status?: string | null;
     submitted_by?: string | null;
     date?: string | null;
     created_at?: string | null;
@@ -344,6 +348,21 @@ const toStoryParts = (value: unknown): StoryPart[] => {
         .filter(Boolean) as StoryPart[];
 };
 
+const toStorySeasons = (value: unknown): StorySeason[] | undefined => {
+    if (!Array.isArray(value) || value.length === 0) return undefined;
+    const seasons = value
+        .map((entry) => {
+            if (!isRecord(entry)) return null;
+            const id = typeof entry.id === 'string' ? entry.id : undefined;
+            const title = typeof entry.title === 'string' ? repairMojibakeText(entry.title) : undefined;
+            const parts = toStoryParts(entry.parts);
+            if (!parts.length) return null;
+            return { id, title, parts };
+        })
+        .filter(Boolean) as StorySeason[];
+    return seasons.length > 0 ? seasons : undefined;
+};
+
 const toLegacyMetaParts = (storyParts: StoryPart[], includeContent: boolean): StoryPart[] =>
     storyParts
         .map((part) => {
@@ -551,14 +570,12 @@ const mapRowToStory = (row: StoryRow): Story => {
         cover_image: row.cover_image ?? legacyMeta?.coverImage ?? undefined,
         tags: rowTags.length ? rowTags : (legacyMeta?.tags ?? []),
         parts,
+        seasons: toStorySeasons(row.seasons),
         comments: row.comments ?? legacyMeta?.comments ?? 0,
         is_featured: row.is_featured ?? legacyMeta?.isFeatured ?? false,
         readTime: row.read_time ?? legacyMeta?.readTime ?? undefined,
         season: normalizeSeasonValue(row.season ?? legacyMeta?.season) || 1,
         status: toStoryStatus(row.status ?? legacyMeta?.status),
-        completionStatus: (row.completion_status === 'completed' || row.completion_status === 'ongoing')
-            ? row.completion_status
-            : undefined,
         submittedBy: row.submitted_by ?? legacyMeta?.submittedBy ?? undefined,
         updatedAt: row.updated_at ?? undefined
     };
@@ -589,12 +606,12 @@ const mapStoryToRow = (story: Story): Record<string, unknown> => {
         slug: normalizedStory.slug ?? null,
         tags: normalizedStory.tags ?? [],
         parts: normalizedStory.parts ?? [],
+        seasons: normalizedStory.seasons ?? null,
         comments: normalizedStory.comments ?? 0,
         is_featured: normalizedStory.is_featured ?? false,
         read_time: normalizedStory.readTime ?? null,
         season: normalizeSeasonValue(normalizedStory.season) ?? 1,
         status: toStoryStatus(normalizedStory.status),
-        completion_status: normalizedStory.completionStatus ?? null,
         submitted_by: normalizedStory.submittedBy ?? null,
         date: normalizedStory.date ?? new Date().toISOString(),
         updated_at: normalizedStory.updatedAt ?? new Date().toISOString()
@@ -646,6 +663,7 @@ const normalizeStory = (story: Story): Story => {
         author: repairMojibakeText(story.author ?? story.submittedBy ?? ''),
         tags: toStringArray(story.tags),
         parts: toStoryParts(story.parts),
+        seasons: toStorySeasons(story.seasons),
         updatedAt: story.updatedAt
     };
 };

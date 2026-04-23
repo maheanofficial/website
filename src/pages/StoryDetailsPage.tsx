@@ -1,6 +1,6 @@
 ﻿import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck, ThumbsUp } from 'lucide-react';
 import {
     getCachedStories,
     getCachedStoryByIdOrSlug,
@@ -8,7 +8,8 @@ import {
     getStories,
     incrementViews,
     type Story,
-    type StoryPart
+    type StoryPart,
+    type StorySeason
 } from '../utils/storyManager';
 import { getAuthorByName, type Author } from '../utils/authorManager';
 import { formatLongDate } from '../utils/dateFormatter';
@@ -37,6 +38,7 @@ import {
     createStoryComment,
     deleteStoryComment,
     getStoryComments,
+    toggleCommentLike,
     updateStoryComment,
     type StoryComment
 } from '../utils/commentManager';
@@ -180,6 +182,18 @@ const getReadableParts = (entry: Story): StoryPart[] => {
         content: entry.content || ''
     }];
 };
+
+const getSeasonParts = (story: Story, seasonNum: number): StoryPart[] => {
+    if (Array.isArray(story.seasons) && story.seasons.length > 0) {
+        const idx = Math.max(0, seasonNum - 1);
+        const season = story.seasons[Math.min(idx, story.seasons.length - 1)];
+        if (season?.parts?.length) return season.parts;
+    }
+    return getReadableParts(story);
+};
+
+const getSeasonLabel = (season: StorySeason | undefined, idx: number) =>
+    normalizeDisplayText(season?.title) || `সিজন ${toBanglaNumber(idx + 1)}`;
 
 const getPartLabel = (part: StoryPart | undefined, partIndex: number) => {
     return normalizePartTitleForDisplay(part?.title, partIndex);
@@ -332,9 +346,10 @@ const getCachedStoryPageState = (storyId?: string) => {
 };
 
 const StoryDetailsPage = () => {
-    // Routes can be /stories/:id/:partNumber or legacy /stories/:id/part/:partNumber
+    // Routes: /stories/:id/s/:seasonNum/part/:partNumber OR /stories/:id/part/:partNumber OR /stories/:id/:partNumber
     const navigate = useNavigate();
-    const { id, partNumber } = useParams<{ id: string; partNumber?: string }>();
+    const { id, partNumber, seasonNum } = useParams<{ id: string; partNumber?: string; seasonNum?: string }>();
+    const activeSeasonNum = parseRequestedPartNumber(seasonNum) ?? 1;
     const [initialCachedState] = useState(() => getCachedStoryPageState(id));
     const [story, setStory] = useState<Story | null>(initialCachedState.story);
     const [authorDetails, setAuthorDetails] = useState<Author | null>(null);
@@ -464,15 +479,20 @@ const StoryDetailsPage = () => {
         }
     }, [story, id, partNumber, navigate]);
 
-    const goToPart = (nextPartNumber: number) => {
+    const goToPart = (nextPartNumber: number, targetSeasonNum?: number) => {
         if (!story) return;
-        const parts = story.parts || [];
-        const totalParts = Math.max(1, parts.length || 0);
-        const safePartIndex = clamp(nextPartNumber, 1, totalParts) - 1;
-        const partSegment = toUrlSegment(getPartSegment(parts[safePartIndex], safePartIndex));
+        const seasonToUse = targetSeasonNum ?? activeSeasonNum;
+        const currentParts = hasSeasons ? getSeasonParts(story, seasonToUse) : (story.parts || []);
+        const totalPts = Math.max(1, currentParts.length || 0);
+        const safePartIndex = clamp(nextPartNumber, 1, totalPts) - 1;
+        const partSegment = toUrlSegment(getPartSegment(currentParts[safePartIndex], safePartIndex));
         const baseSegment = resolveStoryRouteSegment(story, id);
         if (!baseSegment) return;
-        navigate(`/stories/${toUrlSegment(baseSegment)}/${partSegment}`);
+        if (hasSeasons) {
+            navigate(`/stories/${toUrlSegment(baseSegment)}/s/${seasonToUse}/part/${partSegment}`);
+        } else {
+            navigate(`/stories/${toUrlSegment(baseSegment)}/${partSegment}`);
+        }
     };
 
     useEffect(() => {
@@ -682,7 +702,9 @@ const StoryDetailsPage = () => {
         );
     }
 
-    const parts = story.parts ?? [];
+    const hasSeasons = Array.isArray(story.seasons) && story.seasons.length > 1;
+    const parts = hasSeasons ? getSeasonParts(story, activeSeasonNum) : (story.parts ?? []);
+    const totalSeasons = hasSeasons ? story.seasons!.length : 1;
     const totalParts = Math.max(1, parts.length);
     const activePartIndex = resolvePartIndexFromParam(parts, partNumber);
     const activePartNumber = activePartIndex + 1;
@@ -839,6 +861,18 @@ const StoryDetailsPage = () => {
             setCommentError(error instanceof Error ? error.message : 'মন্তব্য মুছতে পারা যায়নি।');
         } finally {
             setIsCommentSubmitting(false);
+        }
+    };
+
+    const handleCommentLike = async (comment: StoryComment) => {
+        if (!currentUser?.id || !story) return;
+        try {
+            const { likes } = await toggleCommentLike({ storyId: String(story.id), commentId: comment.id });
+            setStoryComments((prev) =>
+                prev.map((c) => (c.id === comment.id ? { ...c, likes } : c))
+            );
+        } catch {
+            // silently ignore like errors
         }
     };
 
@@ -1085,10 +1119,23 @@ const StoryDetailsPage = () => {
 
                 {/* Parts Navigation Controls */}
                 <div className="parts-navigation-box">
+                    {hasSeasons && (
+                        <div className="seasons-selector-row">
+                            {story.seasons!.map((season, idx) => (
+                                <button
+                                    key={season.id || `season-${idx}`}
+                                    className={`season-tab ${idx + 1 === activeSeasonNum ? 'active' : ''}`}
+                                    onClick={() => goToPart(1, idx + 1)}
+                                >
+                                    {getSeasonLabel(season, idx)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div className="parts-header">
                         <h2 className="current-part-title">
                             {partLabel}
-                            <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)})</span>
+                            <span className="part-counter">({toBanglaNumber(activePartNumber)}/{toBanglaNumber(totalParts)}{hasSeasons ? ` · সিজন ${toBanglaNumber(activeSeasonNum)}/${toBanglaNumber(totalSeasons)}` : ''})</span>
                         </h2>
 
                         <button
@@ -1300,26 +1347,38 @@ const StoryDetailsPage = () => {
                                         ) : (
                                             <p>{comment.content}</p>
                                         )}
-                                        {isCommentOwner && !isEditingThisComment ? (
-                                            <div className="story-comment-owner-actions">
+                                        <div className="story-comment-footer">
+                                            {currentUser && !isEditingThisComment && (
                                                 <button
                                                     type="button"
-                                                    className="story-comment-inline-btn"
-                                                    onClick={() => handleStartCommentEdit(comment)}
-                                                    disabled={isCommentSubmitting}
+                                                    className={`story-comment-like-btn ${comment.likes?.includes(currentUser.id) ? 'liked' : ''}`}
+                                                    onClick={() => void handleCommentLike(comment)}
                                                 >
-                                                    সম্পাদনা
+                                                    <ThumbsUp size={13} />
+                                                    <span>{comment.likes?.length || 0}</span>
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    className="story-comment-inline-btn danger"
-                                                    onClick={() => void handleCommentDelete(comment)}
-                                                    disabled={isCommentSubmitting}
-                                                >
-                                                    মুছুন
-                                                </button>
-                                            </div>
-                                        ) : null}
+                                            )}
+                                            {isCommentOwner && !isEditingThisComment ? (
+                                                <div className="story-comment-owner-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="story-comment-inline-btn"
+                                                        onClick={() => handleStartCommentEdit(comment)}
+                                                        disabled={isCommentSubmitting}
+                                                    >
+                                                        সম্পাদনা
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="story-comment-inline-btn danger"
+                                                        onClick={() => void handleCommentDelete(comment)}
+                                                        disabled={isCommentSubmitting}
+                                                    >
+                                                        মুছুন
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
                                 </article>
                                 );

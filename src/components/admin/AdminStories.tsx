@@ -150,7 +150,6 @@ type StoryEditorDraft = {
     description?: string;
     season?: number;
     status?: Story['status'];
-    completionStatus?: Story['completionStatus'];
     authorMode?: 'existing' | 'new';
     selectedAuthorId?: string;
     newAuthorName?: string;
@@ -217,7 +216,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
     const [tags, setTags] = useState<string[]>([]); // New Tags
     const [description, setDescription] = useState(''); // Maps to excerpt
     const [season, setSeason] = useState('1');
-    const [completionStatus, setCompletionStatus] = useState<Story['completionStatus']>(undefined);
+    const [seasonsJson, setSeasonsJson] = useState('');
+    const [seasonsJsonError, setSeasonsJsonError] = useState('');
     const [status, setStatus] = useState<Story['status']>(defaultStatus);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newTagName, setNewTagName] = useState('');
@@ -251,9 +251,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         setSeason(String(normalizeSeasonValue(draft.season)));
         if (draft.status) {
             setStatus(draft.status);
-        }
-        if (draft.completionStatus === 'completed' || draft.completionStatus === 'ongoing') {
-            setCompletionStatus(draft.completionStatus);
         }
         setAuthorMode(draft.authorMode === 'new' ? 'new' : 'existing');
         setSelectedAuthorId(typeof draft.selectedAuthorId === 'string' ? draft.selectedAuthorId : '');
@@ -307,7 +304,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             description,
             season: normalizeSeasonValue(season),
             status,
-            completionStatus,
             authorMode,
             selectedAuthorId,
             newAuthorName,
@@ -330,7 +326,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         description,
         season,
         status,
-        completionStatus,
         authorMode,
         selectedAuthorId,
         newAuthorName,
@@ -460,6 +455,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             setNewCategoryName('');
             setDescription(story.excerpt || '');
             setSeason(String(normalizeSeasonValue(story.season)));
+            setSeasonsJson(story.seasons?.length ? JSON.stringify(story.seasons, null, 2) : '');
+            setSeasonsJsonError('');
             setCoverImage(story.cover_image || story.image || '');
             const storyParts = story.parts?.length ? story.parts : [{ id: '1', title: buildPartTitle(1), slug: '', content: '' }];
             setParts(storyParts.map((part, index) => ({
@@ -469,7 +466,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 content: part.content || ''
             })));
             setStatus(story.status || defaultStatus);
-            setCompletionStatus(story.completionStatus || undefined);
 
             const matchedAuthor = authors.find(author => author.id === story.authorId)
                 || authors.find(author => author.name === story.author);
@@ -940,6 +936,19 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             authorId = newAuthor.id;
         }
 
+        let parsedSeasons: Story['seasons'] = undefined;
+        if (seasonsJson.trim()) {
+            try {
+                const parsed = JSON.parse(seasonsJson);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    parsedSeasons = parsed;
+                }
+            } catch {
+                setSeasonsJsonError('Seasons JSON invalid — সেভ হয়নি। সঠিক JSON দিন।');
+                return;
+            }
+        }
+
         const newStory: Story = {
             id: storyId,
             title,
@@ -950,9 +959,9 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             tags: normalizedTags,
             cover_image: coverImage,
             parts: normalizedParts,
+            seasons: parsedSeasons,
             season: normalizeSeasonValue(season),
             status: nextStatus,
-            completionStatus: completionStatus || undefined,
             date: existingStory?.date || new Date().toISOString(),
             author: authorName,
             authorId: authorId,
@@ -1345,20 +1354,17 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                         </div>
 
                         <div className="mb-8">
-                            <label className="form-label-flat">গল্পের অবস্থা</label>
-                            <div className="relative custom-select-wrapper">
-                                <select
-                                    value={completionStatus || ''}
-                                    onChange={e => setCompletionStatus((e.target.value as Story['completionStatus']) || undefined)}
-                                    className="form-select-flat"
-                                >
-                                    <option value="">নির্ধারিত নয়</option>
-                                    <option value="ongoing">চলমান</option>
-                                    <option value="completed">সমাপ্ত</option>
-                                </select>
-                                <ChevronDown className="select-arrow" size={16} />
-                            </div>
-                            <p className="helper-text">গল্প চলমান না সমাপ্ত তা বাছুন।</p>
+                            <label className="form-label-flat">মাল্টি-সিজন (Seasons JSON) <span style={{fontWeight:400,color:'var(--text-tertiary,#888)',fontSize:'0.8rem'}}>— ঐচ্ছিক</span></label>
+                            <textarea
+                                value={seasonsJson}
+                                onChange={(e) => { setSeasonsJson(e.target.value); setSeasonsJsonError(''); }}
+                                className="form-input-flat"
+                                rows={6}
+                                style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
+                                placeholder={`[\n  {\n    "id": "s1",\n    "title": "সিজন ১",\n    "parts": [\n      { "id": "p1", "title": "পর্ব ০১", "content": "..." }\n    ]\n  }\n]`}
+                            />
+                            {seasonsJsonError && <p style={{color:'#f87171',fontSize:'0.82rem',marginTop:4}}>{seasonsJsonError}</p>}
+                            <p className="helper-text">একাধিক সিজন থাকলে এখানে JSON দিন। খালি রাখলে parts[] ব্যবহার হবে।</p>
                         </div>
 
                         {isAdmin && (

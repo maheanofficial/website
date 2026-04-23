@@ -5,7 +5,8 @@ import {
     getCachedStoryByIdOrSlug,
     getPublishedStoryByIdOrSlug,
     type Story,
-    type StoryPart
+    type StoryPart,
+    type StorySeason
 } from '../utils/storyManager';
 import { formatLongDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
@@ -127,6 +128,9 @@ const toPartSegment = (part: StoryPart | undefined, partIndex: number) => {
     return normalizedCustomSlug || normalizedTitleSlug || buildFallbackPartSlug(partIndex);
 };
 
+const getSeasonLabel = (season: StorySeason | undefined, idx: number) =>
+    normalizeDisplayText(season?.title) || `সিজন ${toBanglaNumber(idx + 1)}`;
+
 const StoryPartsPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -134,6 +138,7 @@ const StoryPartsPage = () => {
     const initialCachedStory = getCachedStoryByIdOrSlug(id, { requireContent: true });
     const [story, setStory] = useState<Story | null>(initialCachedStory);
     const [isLoading, setIsLoading] = useState(() => !initialCachedStory);
+    const [activeSeason, setActiveSeason] = useState(0);
 
     useEffect(() => {
         let isMounted = true;
@@ -197,11 +202,18 @@ const StoryPartsPage = () => {
         );
     }
 
-    const parts = story.parts || [];
-    const totalParts = Math.max(1, parts.length);
-    const totalReadMinutes = estimateTotalReadMinutes(parts);
+    const hasSeasons = Array.isArray(story.seasons) && story.seasons.length > 1;
+    const currentSeasonData: StorySeason | undefined = hasSeasons ? story.seasons![activeSeason] : undefined;
+    const parts = hasSeasons ? (currentSeasonData?.parts || []) : (story.parts || []);
+    const allParts = hasSeasons
+        ? story.seasons!.flatMap((s) => s.parts || [])
+        : (story.parts || []);
+    const totalParts = Math.max(1, allParts.length);
+    const totalReadMinutes = estimateTotalReadMinutes(allParts);
     const baseSegment = toUrlSegment(story.slug || story.id);
-    const firstPartPath = `/stories/${baseSegment}/${toUrlSegment(toPartSegment(parts[0], 0))}`;
+    const firstPartPath = hasSeasons
+        ? `/stories/${baseSegment}/s/1/part/${toUrlSegment(toPartSegment(parts[0], 0))}`
+        : `/stories/${baseSegment}/${toUrlSegment(toPartSegment(parts[0], 0))}`;
     const matchedReaderSession = readerSession && (
         readerSession.storyId === String(story.id || '') ||
         (readerSession.storySlug && readerSession.storySlug === story.slug)
@@ -311,10 +323,27 @@ const StoryPartsPage = () => {
                         <span>{toBanglaNumber(totalParts)}টি পর্ব</span>
                     </div>
 
+                    {hasSeasons && (
+                        <div className="story-seasons-tabs">
+                            {story.seasons!.map((season, sIdx) => (
+                                <button
+                                    key={season.id || `s-${sIdx}`}
+                                    className={`story-season-tab ${sIdx === activeSeason ? 'active' : ''}`}
+                                    onClick={() => setActiveSeason(sIdx)}
+                                >
+                                    {getSeasonLabel(season, sIdx)}
+                                    <span className="season-tab-count">{toBanglaNumber(season.parts?.length || 0)}টি</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="story-parts-list-grid">
                         {parts.map((part, index) => {
                             const label = getPartLabel(part, index);
-                            const partPath = `/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`;
+                            const partPath = hasSeasons
+                                ? `/stories/${baseSegment}/s/${activeSeason + 1}/part/${toUrlSegment(toPartSegment(part, index))}`
+                                : `/stories/${baseSegment}/${toUrlSegment(toPartSegment(part, index))}`;
                             const isResumeTarget = matchedReaderSession?.path === partPath;
                             return (
                                 <Link

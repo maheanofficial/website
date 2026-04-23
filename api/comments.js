@@ -57,6 +57,13 @@ const normalizeReportDetails = (value) =>
         .trim()
         .slice(0, REPORT_DETAILS_MAX_LENGTH);
 
+const normalizeLikes = (value) => {
+    if (typeof value === 'string') {
+        try { value = JSON.parse(value); } catch { return []; }
+    }
+    return Array.isArray(value) ? value.map(toTrimmedString).filter(Boolean) : [];
+};
+
 const mapCommentRow = (row) => ({
     id: toTrimmedString(row?.id),
     storyId: normalizeStoryId(row?.storyId),
@@ -67,6 +74,7 @@ const mapCommentRow = (row) => ({
     authorName: toTrimmedString(row?.authorName) || 'Reader',
     authorAvatar: toTrimmedString(row?.authorAvatar) || '',
     content: normalizeCommentBody(row?.content),
+    likes: normalizeLikes(row?.likes),
     createdAt: toTrimmedString(row?.createdAt) || new Date().toISOString(),
     updatedAt: toTrimmedString(row?.updatedAt) || ''
 });
@@ -466,6 +474,35 @@ export default async function handler(req, res) {
 
             await insertRows('comment_reports', report);
             json(res, 200, { success: true, report });
+            return;
+        }
+
+        if (action === 'like') {
+            const commentId = normalizeCommentId(body.commentId);
+            if (!commentId) {
+                json(res, 400, { error: 'commentId is required.' });
+                return;
+            }
+
+            const existingComment = await findCommentById(commentId);
+            if (!existingComment || existingComment.storyId !== storyId) {
+                json(res, 404, { error: 'Comment not found.' });
+                return;
+            }
+
+            const currentLikes = normalizeLikes(existingComment.likes);
+            const alreadyLiked = currentLikes.includes(actor.id);
+            const nextLikes = alreadyLiked
+                ? currentLikes.filter((uid) => uid !== actor.id)
+                : [...currentLikes, actor.id];
+
+            await updateRows(
+                'comments',
+                { likes: JSON.stringify(nextLikes) },
+                [{ op: 'eq', column: 'id', value: commentId }]
+            );
+
+            json(res, 200, { likes: nextLikes, liked: !alreadyLiked });
             return;
         }
 

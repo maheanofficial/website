@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import adminUsersHandler from './api/admin-users.js';
 import authHandler from './api/auth.js';
+import authorPortalHandler from './api/author-portal.js';
 import cleanupTrashHandler from './api/cleanup-trash.js';
 import commentsHandler from './api/comments.js';
 import dbHandler from './api/db.js';
@@ -109,6 +110,7 @@ const MIME_TYPES = {
 const API_HANDLERS = new Map([
     ['/api/admin-users', adminUsersHandler],
     ['/api/auth', authHandler],
+    ['/api/author-portal', authorPortalHandler],
     ['/api/cleanup-trash', cleanupTrashHandler],
     ['/api/comments', commentsHandler],
     ['/api/db', dbHandler],
@@ -140,13 +142,18 @@ const SPA_EXACT_PATHS = new Set([
     '/terms',
     '/disclaimer',
     '/about',
-    '/links'
+    '/links',
+    '/author-portal',
+    '/search'
 ]);
 
 const SPA_PREFIX_PATHS = [
     '/stories/',
+    '/series/',
+    '/author/',
     '/admin/',
     '/dashboard/',
+    '/author-portal/',
     '/author/dashboard/'
 ];
 
@@ -658,6 +665,11 @@ const handleRequest = async (req, res) => {
     const directApiHandler = API_HANDLERS.get(pathname);
     if (directApiHandler) {
         await runHandler(req, res, directApiHandler);
+        return;
+    }
+
+    if (pathname.startsWith('/api/author-portal/') || pathname === '/api/author-portal') {
+        await runHandler(req, res, authorPortalHandler);
         return;
     }
 

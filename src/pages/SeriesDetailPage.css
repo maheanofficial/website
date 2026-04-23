@@ -1,0 +1,585 @@
+.series-detail-page {
+    min-height: 100vh;
+    background: #000000;
+    padding-bottom: 80px;
+}
+
+.series-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    color: rgba(255, 255, 255, 0.45);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.88rem;
+    font-family: inherit;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.series-back-btn:hover {
+    color: #f59e0b;
+}
+
+/* ===== Two-column layout ===== */
+.series-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 32px;
+    align-items: start;
+}
+
+/* ===== Left: Main content ===== */
+.series-detail-main {
+    min-width: 0;
+}
+
+.series-main-header {
+    margin-bottom: 24px;
+}
+
+.series-main-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.series-main-title {
+    margin: 0;
+    font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.25;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-main-count {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+}
+
+.series-main-excerpt {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.93rem;
+    line-height: 1.7;
+}
+
+/* ===== Season Tabs ===== */
+.series-seasons-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.series-season-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.88rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.series-season-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+}
+
+.series-season-tab.active {
+    background: #f59e0b;
+    color: #111111;
+    border-color: #f59e0b;
+    font-weight: 700;
+}
+
+.series-season-count {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+/* ===== Parts list ===== */
+.series-parts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.series-part-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.series-part-item:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.series-part-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.series-part-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.series-part-body h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #ffffff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.series-part-read {
+    font-size: 0.82rem;
+    color: #f59e0b;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.series-part-arrow {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.series-part-item:hover .series-part-arrow {
+    color: #f59e0b;
+}
+
+/* ===== Right: Sidebar ===== */
+.series-detail-sidebar {
+    position: sticky;
+    top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Cover card */
+.series-sidebar-cover {
+    aspect-ratio: 3 / 4;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.series-sidebar-cover__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.series-sidebar-cover__text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background: #111111;
+}
+
+.series-sidebar-cover__watermark {
+    opacity: 0.6;
+}
+
+.series-sidebar-cover__title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #f59e0b;
+    text-align: center;
+    line-height: 1.4;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-sidebar-cover__author {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+}
+
+.series-sidebar-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.35;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-sidebar-author {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.series-sidebar-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    width: fit-content;
+}
+
+.series-sidebar-status.completed {
+    background: rgba(22, 163, 74, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.series-sidebar-status.ongoing {
+    background: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+/* Stats grid */
+.series-sidebar-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.series-sidebar-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.series-sidebar-stat__label {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.series-sidebar-stat__value {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-left: auto;
+}
+
+.series-sidebar-stat__icon {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Start btn */
+.series-sidebar-start-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #f59e0b;
+    color: #111111;
+    text-decoration: none;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    transition: background 0.15s;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-sidebar-start-btn:hover {
+    background: #fbbf24;
+}
+
+/* Pills */
+.series-sidebar-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.series-sidebar-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.series-sidebar-pill--cat {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.series-sidebar-pill--cat:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #f59e0b;
+}
+
+.series-sidebar-pill--tag {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.series-sidebar-pill--tag:hover {
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .series-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .series-detail-sidebar {
+        position: static;
+        order: -1;
+    }
+
+    .series-sidebar-cover {
+        aspect-ratio: 16 / 9;
+        max-height: 300px;
+    }
+
+    .series-sidebar-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .series-sidebar-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ===== Feedback button ===== */
+.series-sidebar-feedback-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    margin-top: 4px;
+}
+
+.series-sidebar-feedback-btn:hover {
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.06);
+}
+
+/* ===== Feedback Modal ===== */
+.series-feedback-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fb-fade 0.15s ease;
+}
+
+@keyframes fb-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.series-feedback-modal {
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.series-feedback-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.series-feedback-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-feedback-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.series-feedback-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.series-feedback-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.series-feedback-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.series-feedback-field label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-feedback-field label span {
+    color: #f59e0b;
+}
+
+.series-feedback-field input,
+.series-feedback-field textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.series-feedback-field input:focus,
+.series-feedback-field textarea:focus {
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+.series-feedback-field input::placeholder,
+.series-feedback-field textarea::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.series-feedback-submit-btn {
+    background: #f59e0b;
+    color: #111111;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.series-feedback-submit-btn:hover:not(:disabled) {
+    background: #fbbf24;
+}
+
+.series-feedback-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.series-feedback-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.series-feedback-success p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    margin: 0;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.series-feedback-done-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 10px 24px;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.series-feedback-done-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}

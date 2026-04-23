@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { BookOpen, Bookmark, Clock3, LayoutDashboard, MessageSquare, Save, UserRound, X } from 'lucide-react';
+import { BookOpen, Bookmark, Clock3, FolderPlus, FolderOpen, LayoutDashboard, MessageSquare, Save, Trash2, UserRound, X } from 'lucide-react';
 import SEO from '../components/SEO';
 import SmartImage from '../components/SmartImage';
 import { buildAuthPageLink } from '../utils/authRedirect';
@@ -15,6 +15,12 @@ import {
     type ReaderBookmark,
     type ReaderSession
 } from '../utils/readerExperience';
+import {
+    getReaderCollections,
+    createReaderCollection,
+    deleteReaderCollection,
+    type ReaderCollection
+} from '../utils/readerStateManager';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import type { User } from '../utils/userManager';
 import './ProfilePage.css';
@@ -122,6 +128,9 @@ const ProfilePage = () => {
     const [photoURL, setPhotoURL] = useState('');
     const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [collections, setCollections] = useState<ReaderCollection[]>([]);
+    const [newCollectionName, setNewCollectionName] = useState('');
+    const collectionInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -172,6 +181,7 @@ const ProfilePage = () => {
 
         setReaderHistory(getReaderHistory(currentUser.id));
         setReaderBookmarks(getReaderBookmarks(currentUser.id));
+        setCollections(getReaderCollections(currentUser.id));
         setActiveSession(getReaderSession());
         setDashboardError('');
         setIsDashboardLoading(true);
@@ -248,6 +258,20 @@ const ProfilePage = () => {
         if (!currentUser?.id) return;
         const nextBookmarks = removeReaderBookmark(currentUser.id, storyId);
         setReaderBookmarks(nextBookmarks);
+    };
+
+    const handleCreateCollection = () => {
+        if (!currentUser?.id || !newCollectionName.trim()) return;
+        const updated = createReaderCollection(currentUser.id, newCollectionName.trim());
+        setCollections(updated);
+        setNewCollectionName('');
+        collectionInputRef.current?.focus();
+    };
+
+    const handleDeleteCollection = (collectionId: string) => {
+        if (!currentUser?.id) return;
+        const updated = deleteReaderCollection(currentUser.id, collectionId);
+        setCollections(updated);
     };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -535,6 +559,64 @@ const ProfilePage = () => {
                             ) : (
                                 <div className="profile-empty">
                                     Your comments will show up here after you join a story discussion.
+                                </div>
+                            )}
+                        </section>
+
+                        <section className="profile-panel">
+                            <div className="profile-panel-head">
+                                <div>
+                                    <span className="profile-panel-kicker">Reading lists</span>
+                                    <h2>আমার কালেকশন</h2>
+                                </div>
+                                <span className="profile-panel-count">{collections.length}</span>
+                            </div>
+
+                            <div className="profile-collections-create">
+                                <input
+                                    ref={collectionInputRef}
+                                    type="text"
+                                    className="profile-collection-input"
+                                    placeholder="নতুন কালেকশনের নাম..."
+                                    value={newCollectionName}
+                                    onChange={(e) => setNewCollectionName(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCollection(); }}
+                                    maxLength={80}
+                                />
+                                <button
+                                    type="button"
+                                    className="profile-collection-add-btn"
+                                    onClick={handleCreateCollection}
+                                    disabled={!newCollectionName.trim()}
+                                >
+                                    <FolderPlus size={16} />
+                                    <span>তৈরি করুন</span>
+                                </button>
+                            </div>
+
+                            {collections.length > 0 ? (
+                                <div className="profile-collections-list">
+                                    {collections.map((col) => (
+                                        <div key={col.id} className="profile-collection-item">
+                                            <FolderOpen size={18} className="profile-collection-icon" />
+                                            <div className="profile-collection-info">
+                                                <strong>{col.name}</strong>
+                                                <span>{col.storyIds.length} টি গল্প</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="profile-collection-delete"
+                                                onClick={() => handleDeleteCollection(col.id)}
+                                                aria-label="Delete collection"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="profile-empty">
+                                    কোনো কালেকশন নেই। উপরে নাম দিয়ে নতুন কালেকশন তৈরি করুন।
                                 </div>
                             )}
                         </section>

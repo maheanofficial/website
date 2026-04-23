@@ -1,22 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Search, X } from 'lucide-react';
+import { Search, Bell, X, Sun, Moon, Monitor } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
 import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
+import SearchOverlay from './SearchOverlay';
+import {
+    buildReaderNotifications,
+    markReaderNotificationsSeen,
+    dismissReaderNotification,
+    type ReaderNotification
+} from '../utils/readerStateManager';
+import { getCachedStories } from '../utils/storyManager';
 import type { User } from '../utils/userManager';
 import BrandLogo from './BrandLogo';
 import './Header.css';
 
+type ThemeMode = 'light' | 'dark' | 'system';
+
+const getStoredTheme = (): ThemeMode => {
+    const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    return 'system';
+};
+
 export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
     const [headerVisible, setHeaderVisible] = useState(true);
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const searchInputRef = useRef<HTMLInputElement>(null);
     const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [notifications, setNotifications] = useState<ReaderNotification[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showThemeMenu, setShowThemeMenu] = useState(false);
+    const [activeTheme, setActiveTheme] = useState<ThemeMode>(getStoredTheme);
+    const notifRef = useRef<HTMLDivElement>(null);
+    const themeRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
     const navigate = useNavigate();
     const isMenuOpen = menuState.open && menuState.path === location.pathname;
@@ -25,14 +45,12 @@ export default function Header() {
     const signupPath = buildAuthPageLink('/signup', currentPath);
     const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'moderator';
     const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.username || '';
-    const userBadgeLabel = isStaff ? 'Dashboard access' : 'Reader account';
     const userInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
 
     useEffect(() => {
         const handleScroll = () => {
             const currentY = window.scrollY;
             setScrolled(currentY > 50);
-
             if (currentY < 80) {
                 setHeaderVisible(true);
             } else if (currentY > lastScrollY.current + 8) {
@@ -42,7 +60,6 @@ export default function Header() {
             }
             lastScrollY.current = currentY;
         };
-
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -50,28 +67,20 @@ export default function Header() {
     useEffect(() => {
         if (window.innerWidth > 768) return;
         document.body.style.overflow = isMenuOpen ? 'hidden' : '';
-        return () => {
-            document.body.style.overflow = '';
-        };
+        return () => { document.body.style.overflow = ''; };
     }, [isMenuOpen]);
 
     useEffect(() => {
         let isMounted = true;
-
         const loadUser = async () => {
             const user = await getCurrentUser();
-            if (isMounted) {
-                setCurrentUser(user);
-            }
+            if (isMounted) setCurrentUser(user);
         };
-
         void loadUser();
-
         const subscription = onAuthStateChange((_event, session) => {
             if (!isMounted) return;
             setCurrentUser(session?.user ?? null);
         });
-
         return () => {
             isMounted = false;
             subscription?.unsubscribe?.();
@@ -79,35 +88,41 @@ export default function Header() {
     }, []);
 
     useEffect(() => {
-        if (searchOpen) {
-            setTimeout(() => searchInputRef.current?.focus(), 50);
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-        return () => { document.body.style.overflow = ''; };
-    }, [searchOpen]);
+        if (!currentUser?.id) { setNotifications([]); return; }
+        const stories = getCachedStories();
+        const notifs = buildReaderNotifications(currentUser.id, stories);
+        setNotifications(notifs);
+    }, [currentUser]);
 
     useEffect(() => {
-        const handleKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && searchOpen) setSearchOpen(false);
+        const handleClick = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+            if (themeRef.current && !themeRef.current.contains(e.target as Node)) {
+                setShowThemeMenu(false);
+            }
         };
-        window.addEventListener('keydown', handleKey);
-        return () => window.removeEventListener('keydown', handleKey);
-    }, [searchOpen]);
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            navigate(`/stories?q=${encodeURIComponent(searchQuery.trim())}`);
-            setSearchOpen(false);
-            setSearchQuery('');
+    const unreadCount = notifications.length;
+
+    const handleOpenNotifications = () => {
+        setShowNotifications((v) => !v);
+        if (!showNotifications && currentUser?.id) {
+            markReaderNotificationsSeen(currentUser.id);
         }
     };
 
-    const closeMenu = () => {
-        setMenuState({ open: false, path: location.pathname });
+    const handleDismissNotif = (storyId: string) => {
+        if (!currentUser?.id) return;
+        dismissReaderNotification(currentUser.id, storyId);
+        setNotifications((prev) => prev.filter((n) => n.storyId !== storyId));
     };
+
+    const closeMenu = () => setMenuState({ open: false, path: location.pathname });
 
     const toggleMenu = () => {
         setMenuState((prev) =>
@@ -117,41 +132,49 @@ export default function Header() {
         );
     };
 
+    const setTheme = (mode: ThemeMode) => {
+        setActiveTheme(mode);
+        setShowThemeMenu(false);
+        if (mode === 'system') {
+            localStorage.removeItem(APPEARANCE_STORAGE_KEY);
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(prefersDark ? 'dark' : 'light');
+        } else {
+            localStorage.setItem(APPEARANCE_STORAGE_KEY, mode);
+            applyTheme(mode);
+        }
+    };
+
     const isActive = (path: string) => (path === '/' ? location.pathname === '/' : location.pathname.startsWith(path));
 
     const navigation = [
-        { name: 'Home', path: '/', label: 'হোম' },
-        { name: 'Audiobooks', path: '/audiobooks', label: 'অডিওবুক' },
-        { name: 'Stories', path: '/stories', label: 'গল্প' },
-        { name: 'Series', path: '/series', label: 'সিরিজ' },
-        { name: 'Authors', path: '/authors', label: 'লেখক' },
-        { name: 'Skills', path: '/skills', label: 'দক্ষতা' },
-        { name: 'Links', path: '/links', label: 'লিংক' },
-        { name: 'Contact', path: '/contact', label: 'যোগাযোগ' }
+        { name: 'home', path: '/', label: 'হোম' },
+        { name: 'series', path: '/series', label: 'সিরিজ' },
+        { name: 'authors', path: '/authors', label: 'লেখক' },
+        { name: 'about', path: '/about', label: 'আমাদের সম্পর্কে' }
     ];
-
-    const handleThemeToggle = () => {
-        const root = document.documentElement;
-        const current = root.getAttribute('data-theme');
-        const resolved = current === 'light' || current === 'dark' ? current : 'dark';
-        const next = resolved === 'light' ? 'dark' : 'light';
-        localStorage.setItem(APPEARANCE_STORAGE_KEY, next);
-        applyTheme(next);
-    };
 
     const handleLogout = async () => {
         closeMenu();
         await signOut();
         setCurrentUser(null);
-        navigate('/stories');
+        navigate('/');
     };
 
+    const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode }[] = [
+        { mode: 'light', label: 'লাইট', icon: <Sun size={15} /> },
+        { mode: 'dark', label: 'ডার্ক', icon: <Moon size={15} /> },
+        { mode: 'system', label: 'সিস্টেম', icon: <Monitor size={15} /> }
+    ];
+
     return (
+        <>
+        <SearchOverlay open={showSearch} onClose={() => setShowSearch(false)} />
         <header className={`header ${scrolled ? 'header-scrolled' : ''} ${!headerVisible ? 'header-hidden' : ''}`}>
             <div className="container">
                 <nav className="nav">
-                    <Link to="/" className="logo">
-                        <BrandLogo alt="মাহিয়ানের গল্পকথা" className="site-logo" />
+                    <Link to="/" className="logo" onClick={closeMenu}>
+                        <BrandLogo size="md" />
                     </Link>
 
                     <button
@@ -183,94 +206,118 @@ export default function Header() {
                             <button
                                 type="button"
                                 className="nav-icon-btn"
-                                aria-label="Search stories"
-                                onClick={() => {
-                                    setSearchOpen(true);
-                                    closeMenu();
-                                }}
+                                aria-label="Search"
+                                onClick={() => { setShowSearch(true); closeMenu(); }}
                             >
                                 <Search size={18} />
                             </button>
+
+                            <div className="nav-theme-wrap" ref={themeRef}>
+                                <button
+                                    type="button"
+                                    className="nav-icon-btn"
+                                    aria-label="Toggle theme"
+                                    onClick={() => setShowThemeMenu((v) => !v)}
+                                >
+                                    {activeTheme === 'light' ? <Sun size={18} /> : activeTheme === 'dark' ? <Moon size={18} /> : <Monitor size={18} />}
+                                </button>
+                                {showThemeMenu && (
+                                    <div className="nav-theme-dropdown">
+                                        {themeOptions.map((opt) => (
+                                            <button
+                                                key={opt.mode}
+                                                type="button"
+                                                className={`nav-theme-option ${activeTheme === opt.mode ? 'active' : ''}`}
+                                                onClick={() => setTheme(opt.mode)}
+                                            >
+                                                <span className="nav-theme-icon">{opt.icon}</span>
+                                                <span>{opt.label}</span>
+                                                {activeTheme === opt.mode && <span className="nav-theme-check">✓</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {currentUser && (
+                                <div className="nav-notif-wrap" ref={notifRef}>
+                                    <button
+                                        type="button"
+                                        className="nav-icon-btn nav-notif-btn"
+                                        aria-label="Notifications"
+                                        onClick={handleOpenNotifications}
+                                    >
+                                        <Bell size={18} />
+                                        {unreadCount > 0 && (
+                                            <span className="nav-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                        )}
+                                    </button>
+                                    {showNotifications && (
+                                        <div className="nav-notif-dropdown">
+                                            <div className="nav-notif-header"><span>বিজ্ঞপ্তি</span></div>
+                                            {notifications.length === 0 ? (
+                                                <p className="nav-notif-empty">কোনো নতুন বিজ্ঞপ্তি নেই।</p>
+                                            ) : (
+                                                <div className="nav-notif-list">
+                                                    {notifications.slice(0, 8).map((n) => (
+                                                        <div key={n.storyId} className="nav-notif-item unread">
+                                                            <Link
+                                                                to={n.storyPath}
+                                                                className="nav-notif-link"
+                                                                onClick={() => setShowNotifications(false)}
+                                                            >
+                                                                <span className="nav-notif-title">{n.storyTitle}</span>
+                                                                <span className="nav-notif-msg">
+                                                                    {n.reason === 'author' ? 'অনুসৃত লেখকের নতুন গল্প' : n.reason === 'category' ? 'পছন্দের ক্যাটাগরিতে নতুন গল্প' : 'পছন্দের ট্যাগে নতুন গল্প'}
+                                                                </span>
+                                                            </Link>
+                                                            <button
+                                                                className="nav-notif-dismiss"
+                                                                onClick={() => handleDismissNotif(n.storyId)}
+                                                                aria-label="dismiss"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <span className="nav-action-divider" aria-hidden="true" />
-                            <button
-                                type="button"
-                                className="nav-icon-btn"
-                                aria-label="Toggle theme"
-                                onClick={handleThemeToggle}
-                            >
-                                <Moon size={18} />
-                            </button>
-                            <span className="nav-action-divider" aria-hidden="true" />
+
                             {currentUser ? (
                                 <>
                                     {isStaff ? (
-                                        <Link to="/admin/dashboard" className="nav-action-link" onClick={closeMenu}>
-                                            Dashboard
-                                        </Link>
-                                    ) : null}
+                                        <Link to="/admin/dashboard" className="nav-action-link" onClick={closeMenu}>Dashboard</Link>
+                                    ) : (
+                                        <Link to="/author-portal" className="nav-action-link" onClick={closeMenu}>লেখক পোর্টাল</Link>
+                                    )}
                                     <Link to="/profile" className="nav-user-chip" onClick={closeMenu}>
                                         <span className="nav-user-avatar">
                                             {currentUser.photoURL ? (
                                                 <img src={currentUser.photoURL} alt={displayName || 'User'} />
-                                            ) : (
-                                                userInitial
-                                            )}
-                                        </span>
-                                        <span className="nav-user-copy">
-                                            <strong>{displayName || 'Profile'}</strong>
-                                            <small>{userBadgeLabel}</small>
+                                            ) : userInitial}
                                         </span>
                                     </Link>
-                                    <button
-                                        type="button"
-                                        className="nav-action-link nav-logout-btn"
-                                        onClick={() => void handleLogout()}
-                                    >
-                                        Log out
+                                    <button type="button" className="nav-action-link nav-logout-btn" onClick={() => void handleLogout()}>
+                                        লগ আউট
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <Link to={loginPath} className="nav-action-link" onClick={closeMenu}>
-                                        লগ ইন
-                                    </Link>
-                                    <Link to={signupPath} className="nav-btn-pill" onClick={closeMenu}>
-                                        সাইন আপ
-                                    </Link>
+                                    <Link to={loginPath} className="nav-action-link" onClick={closeMenu}>লগ ইন</Link>
+                                    <Link to={signupPath} className="nav-btn-pill" onClick={closeMenu}>সাইন আপ</Link>
                                 </>
                             )}
                         </div>
                     </div>
                 </nav>
             </div>
-            {searchOpen && (
-                <div className="search-overlay" role="dialog" aria-label="Search" onClick={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}>
-                    <div className="search-overlay-inner">
-                        <button className="search-overlay-close" onClick={() => setSearchOpen(false)} aria-label="Close search">
-                            <X size={24} />
-                        </button>
-                        <p className="search-overlay-hint">গল্পের নাম, লেখক বা ক্যাটাগরি দিয়ে খুঁজুন</p>
-                        <form className="search-overlay-form" onSubmit={handleSearchSubmit}>
-                            <Search size={22} className="search-overlay-icon" />
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                className="search-overlay-input"
-                                placeholder="গল্প খুঁজুন..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                autoComplete="off"
-                            />
-                            {searchQuery && (
-                                <button type="button" className="search-overlay-clear" onClick={() => setSearchQuery('')}>
-                                    <X size={18} />
-                                </button>
-                            )}
-                        </form>
-                        <p className="search-overlay-esc">ESC চাপুন বা বাইরে ক্লিক করুন বন্ধ করতে</p>
-                    </div>
-                </div>
-            )}
         </header>
+        </>
     );
 }

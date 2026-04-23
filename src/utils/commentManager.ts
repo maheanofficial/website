@@ -10,6 +10,7 @@ export type StoryComment = {
     authorName: string;
     authorAvatar?: string;
     content: string;
+    likes: string[];
     createdAt: string;
     updatedAt?: string;
 };
@@ -35,6 +36,8 @@ type CommentApiResponse = {
     report?: CommentReport;
     totalComments?: number;
     deletedCommentId?: string;
+    likes?: string[];
+    liked?: boolean;
     error?: string;
 };
 
@@ -66,6 +69,7 @@ const normalizeComment = (value: unknown): StoryComment | null => {
         authorName: toTrimmedString(record.authorName) || 'Reader',
         authorAvatar: toTrimmedString(record.authorAvatar) || undefined,
         content,
+        likes: Array.isArray(record.likes) ? (record.likes as unknown[]).map(String).filter(Boolean) : [],
         createdAt: toTrimmedString(record.createdAt) || new Date().toISOString(),
         updatedAt: toTrimmedString(record.updatedAt) || undefined
     };
@@ -336,5 +340,33 @@ export const resolveCommentReport = async (input: {
     return {
         success: true,
         reportId: input.reportId
+    };
+};
+
+export const toggleCommentLike = async (input: {
+    storyId: string;
+    commentId: string;
+}): Promise<{ likes: string[]; liked: boolean }> => {
+    const response = await fetch('/api/comments', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: buildServerAuthHeaders({
+            'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify({
+            action: 'like',
+            storyId: input.storyId,
+            commentId: input.commentId
+        })
+    });
+
+    const payload = await readJson(response);
+    if (!response.ok) {
+        throw new Error(payload.error || 'Failed to toggle like.');
+    }
+
+    return {
+        likes: Array.isArray(payload.likes) ? (payload.likes as string[]) : [],
+        liked: Boolean(payload.liked)
     };
 };

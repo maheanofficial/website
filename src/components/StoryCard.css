@@ -1,585 +1,253 @@
-.story-card {
-    position: relative;
+/* ===== GolpoHub-style Story Card ===== */
+
+.gh-card-wrapper {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background:
-        radial-gradient(circle at top right, rgba(255, 92, 0, 0.12), transparent 30%),
-        linear-gradient(180deg, rgba(11, 15, 22, 0.98), rgba(4, 7, 12, 0.98));
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
-    transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
-    isolation: isolate;
+    gap: 0;
 }
 
-.story-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(150deg, rgba(255, 255, 255, 0.025), transparent 24%, transparent 76%, rgba(255, 92, 0, 0.06)),
-        radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.04), transparent 28%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-.story-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 92, 0, 0.28);
-    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
-}
-
-.story-card-cover-link {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-}
-
-.story-card-poster {
+.gh-badge-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: -1px;
     position: relative;
-    aspect-ratio: 16 / 9;
-    min-height: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    overflow: hidden;
-    background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 54%),
-        linear-gradient(180deg, rgba(7, 12, 20, 0.96), rgba(3, 6, 12, 0.98));
-}
-
-.story-card-poster::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(180deg, rgba(3, 8, 16, 0.04), rgba(3, 8, 16, 0.18)),
-        radial-gradient(circle at center, rgba(3, 8, 16, 0), rgba(3, 8, 16, 0.22));
-    pointer-events: none;
-    z-index: 1;
-}
-
-.story-card-poster-fallback {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.story-card-no-cover {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px 16px;
-    gap: 12px;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-.story-card-no-cover-title {
-    font-size: 1.35rem;
-    font-weight: 900;
-    color: #ff5c00;
-    line-height: 1.3;
-    width: 100%;
-    max-width: 100%;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-shadow: 0 2px 12px rgba(255, 92, 0, 0.3);
-}
-
-.story-card-no-cover-author {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.75);
-    letter-spacing: 0.03em;
-    width: 100%;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.story-card-poster-image,
-.story-card-poster-fallback-art {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-position: center center;
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.24));
-    transition: transform 0.7s ease;
     z-index: 2;
 }
 
-.story-card-poster-image {
-    object-fit: cover;
-    object-position: center top;
-    transform: scale(1);
-}
-
-.story-card-poster-fallback-art {
-    object-fit: contain;
-    width: 100% !important;
-    height: 100% !important;
-    position: relative !important;
-    inset: auto !important;
-}
-
-.story-card:hover .story-card-poster-image {
-    transform: scale(1);
-}
-
-.story-card-poster-fallback {
-    display: grid;
-    place-items: center;
-}
-
-.story-card:hover .story-card-poster-fallback-art {
-    transform: scale(1);
-}
-
-.story-card-poster-top {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    right: 16px;
-    z-index: 3;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 6px;
-}
-
-.story-card-completion-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 4px 10px;
+.gh-status-badge {
+    display: inline-block;
+    padding: 4px 16px;
     border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    backdrop-filter: blur(8px);
-    flex-shrink: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
 }
 
-.story-card-completion-badge--completed {
-    background: rgba(34, 197, 94, 0.2);
-    border: 1px solid rgba(34, 197, 94, 0.4);
-    color: #86efac;
+.gh-badge--completed { background: #16a34a; }
+.gh-badge--ongoing { background: #2563eb; }
+
+/* Card (cover area) */
+.gh-card {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #111111;
+    transition: border-color 0.2s, transform 0.2s;
 }
 
-.story-card-completion-badge--ongoing {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #93c5fd;
+.gh-card:hover {
+    border-color: rgba(245, 158, 11, 0.3);
+    transform: translateY(-3px);
 }
 
-.golpo-corner-badge {
+.gh-card__cover-link {
+    display: block;
+    text-decoration: none;
+}
+
+.gh-card__cover {
+    position: relative;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d0d0d;
+    padding: 20px 16px 28px;
+}
+
+.gh-card__cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    inset: 0;
+}
+
+.gh-card__cover-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    text-align: center;
+}
+
+.gh-card__title-in-cover {
+    font-size: clamp(1.3rem, 3vw, 1.7rem);
+    font-weight: 700;
+    color: #f59e0b;
+    line-height: 1.3;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    word-break: break-word;
+}
+
+.gh-card__author-in-cover {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #e5e7eb;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+/* Watermark */
+.gh-watermark {
     position: absolute;
     top: 10px;
     right: 12px;
-    z-index: 4;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    pointer-events: none;
+    gap: 2px;
+    z-index: 2;
+    opacity: 0.9;
 }
 
-.golpo-logo-badge {
-    width: auto;
-    height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.42));
-}
-
-.story-card-floating-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(255, 92, 0, 0.2);
-    border: 1px solid rgba(255, 92, 0, 0.3);
-    color: #fff1e8;
+.gh-watermark__golpo {
     font-size: 0.72rem;
-    font-weight: 800;
-    backdrop-filter: blur(8px);
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'Hind Siliguri', sans-serif;
 }
 
-.story-card-content {
-    position: relative;
-    z-index: 1;
+.gh-watermark__hub {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: #f59e0b;
+    padding: 1px 4px;
+    border-radius: 3px;
+    line-height: 1.3;
+    font-family: sans-serif;
+}
+
+/* Below card */
+.gh-card__below {
+    padding: 14px 4px 4px;
     display: flex;
-    flex: 1;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: 8px;
 }
 
-.story-card-meta-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    min-height: 26px;
-}
-
-.story-card-season-pill {
-    display: inline-flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #cbd5e1;
-    font-size: 0.72rem;
-    font-weight: 800;
-}
-
-.story-card-date {
-    flex: 0 0 auto;
-    color: #9fb0c7;
-    font-size: 0.74rem;
-    font-weight: 800;
-    letter-spacing: 0.015em;
-}
-
-.story-card-title-link {
+.gh-card__title-link {
     text-decoration: none;
 }
 
-.card-title-small {
+.gh-card__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary, #fff);
+    line-height: 1.35;
     margin: 0;
-    color: #ffffff;
-    font-size: clamp(1.08rem, 1.2vw, 1.25rem);
-    font-weight: 800;
-    line-height: 1.3;
-    min-height: calc(1.3em * 2);
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.gh-card__title:hover {
+    color: #f59e0b;
+}
+
+.gh-card__excerpt {
+    font-size: 0.84rem;
+    color: var(--text-secondary, #9ca3af);
+    line-height: 1.6;
+    margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
-    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-.story-card-title-link:hover .card-title-small {
-    color: #ffd6bf;
-}
-
-.story-card-quick-stats {
+/* Pills */
+.gh-card__pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 
-.story-excerpt {
-    margin: 0;
-    color: #a8b3c7;
-    font-size: 0.92rem;
-    line-height: 1.7;
-    min-height: calc(1.7em * 2.6);
-}
-
-.line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.story-tags {
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    gap: 8px;
-    min-height: 34px;
-}
-
-.tag {
-    display: inline-flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 5px 10px;
+.gh-pill {
+    display: inline-block;
+    padding: 3px 10px;
     border-radius: 999px;
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    color: #cbd5e1;
-    font-size: 0.73rem;
-    font-weight: 700;
-    text-decoration: none;
-    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.tag:hover {
-    transform: translateY(-1px);
-    background: rgba(255, 92, 0, 0.12);
-    border-color: rgba(255, 92, 0, 0.2);
-    color: #ffffff;
-}
-
-.story-card-author-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.author-avatar-small {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex: 0 0 auto;
-    background: #243041;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-.author-avatar-small-image {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-}
-
-.story-card-author-copy {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.author-name-small {
-    color: #f8fafc;
-    font-size: 0.94rem;
-    font-weight: 700;
-    line-height: 1.35;
-}
-
-.author-role-small {
-    color: #94a3b8;
     font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.15s;
+    white-space: nowrap;
 }
 
-.card-divider {
-    width: 100%;
-    height: 1px;
-    margin: auto 0 0;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 92, 0, 0.2), rgba(255, 255, 255, 0.06));
+.gh-pill:hover { opacity: 0.75; }
+
+.gh-pill--cat {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary, #9ca3af);
 }
 
-.story-card-footer-stats {
+.gh-pill--tag {
+    color: var(--text-secondary, #9ca3af);
+    font-size: 0.78rem;
+}
+
+/* Meta row */
+.gh-card__meta-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding-top: 14px;
-}
-
-.stats-left {
-    display: flex;
-    flex-wrap: wrap;
     gap: 8px;
+    margin-top: 2px;
+    flex-wrap: wrap;
 }
 
-.story-stat-pill {
-    display: inline-flex;
+.gh-card__author-cell {
+    display: flex;
     align-items: center;
     gap: 6px;
-    min-height: 30px;
-    padding: 5px 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    color: #dbe6f5;
-    font-size: 0.72rem;
-    font-weight: 800;
+    min-width: 0;
 }
 
-.story-card-read-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    gap: 7px;
-    min-height: 42px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: #ff5c00;
-    border: 1px solid rgba(255, 92, 0, 0.4);
-    color: #0f172a;
+.gh-card__author-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.gh-card__author-name {
     font-size: 0.8rem;
-    font-weight: 900;
-    text-decoration: none;
-    transition: transform 0.2s ease, background 0.2s ease;
+    color: var(--text-secondary, #9ca3af);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
 }
 
-.story-card-read-link:hover {
-    transform: translateY(-1px);
-    background: #ff7a28;
+.gh-card__stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
-.story-card-read-link svg {
-    transition: transform 0.2s ease;
+.gh-stat {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.78rem;
+    color: var(--text-secondary, #9ca3af);
+    white-space: nowrap;
 }
 
-.story-card-read-link:hover svg {
-    transform: translate(2px, -1px);
+/* Fade in animation */
+.fade-in-up {
+    animation: fadeInUp 0.4s ease both;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 640px) {
-    .story-card {
-        min-height: 0;
-        border-radius: 20px;
-    }
-
-    .story-card-poster {
-        min-height: 0;
-    }
-
-    .story-card-poster-top {
-        top: 14px;
-        left: 14px;
-    }
-
-    .golpo-corner-badge {
-        top: 10px;
-        right: 11px;
-    }
-
-    .golpo-logo-badge {
-        height: 35px;
-    }
-
-    .story-card-content {
-        padding: 15px;
-    }
-
-    .story-card-meta-strip {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .story-card-read-link {
-        min-height: 40px;
-    }
-
-    .story-excerpt {
-        min-height: auto;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-    }
-}
-
-@media (max-width: 420px) {
-    .story-card {
-        min-height: 0;
-        border-radius: 18px;
-    }
-
-    .story-card-poster {
-        min-height: 0;
-    }
-
-    .golpo-corner-badge {
-        right: 8px;
-    }
-
-    .golpo-logo-badge {
-        height: 31px;
-    }
-}
-
-:root[data-theme='light'] .story-card {
-    border-color: rgba(148, 163, 184, 0.18);
-    background:
-        radial-gradient(circle at top right, rgba(255, 92, 0, 0.08), transparent 28%),
-        linear-gradient(180deg, #ffffff, #f8fafc);
-    box-shadow: 0 16px 35px rgba(15, 23, 42, 0.08);
-}
-
-:root[data-theme='light'] .story-card::before {
-    background:
-        linear-gradient(150deg, rgba(15, 23, 42, 0.01), transparent 26%, transparent 74%, rgba(255, 92, 0, 0.04)),
-        radial-gradient(circle at 20% 0%, rgba(255, 92, 0, 0.04), transparent 26%);
-}
-
-:root[data-theme='light'] .story-card:hover {
-    border-color: rgba(255, 92, 0, 0.24);
-    box-shadow: 0 22px 40px rgba(15, 23, 42, 0.12);
-}
-
-:root[data-theme='light'] .story-card-poster {
-    border-bottom-color: rgba(148, 163, 184, 0.18);
-}
-
-:root[data-theme='light'] .story-card-season-pill,
-:root[data-theme='light'] .story-stat-pill {
-    background: rgba(255, 255, 255, 0.72);
-    border-color: rgba(148, 163, 184, 0.2);
-    color: #0f172a;
-}
-
-:root[data-theme='light'] .story-card-date,
-:root[data-theme='light'] .author-role-small {
-    color: #64748b;
-}
-
-:root[data-theme='light'] .card-title-small,
-:root[data-theme='light'] .author-name-small {
-    color: #0f172a;
-}
-
-:root[data-theme='light'] .story-card-title-link:hover .card-title-small {
-    color: #ea580c;
-}
-
-:root[data-theme='light'] .story-excerpt {
-    color: #475569;
-}
-
-:root[data-theme='light'] .tag,
-:root[data-theme='light'] .story-card-author-row,
-:root[data-theme='light'] .story-card-season-pill {
-    background: rgba(248, 250, 252, 0.96);
-    border-color: rgba(148, 163, 184, 0.18);
-    color: #334155;
-}
-
-:root[data-theme='light'] .tag:hover {
-    background: rgba(255, 92, 0, 0.08);
-    border-color: rgba(255, 92, 0, 0.18);
-    color: #0f172a;
-}
-
-:root[data-theme='light'] .author-avatar-small {
-    background: #e2e8f0;
-}
-
-:root[data-theme='light'] .card-divider {
-    background: linear-gradient(90deg, rgba(148, 163, 184, 0.15), rgba(255, 92, 0, 0.24), rgba(148, 163, 184, 0.15));
+    .gh-card__cover { min-height: 160px; }
+    .gh-card__title-in-cover { font-size: 1.15rem; }
 }

@@ -1,44 +1,17 @@
-import { useState } from 'react';
-import { SITE_LOGO_SRC } from '../utils/brandAssets';
 import './BrandLogo.css';
 
 interface BrandLogoProps {
     alt?: string;
     className?: string;
-    src?: string;
     style?: React.CSSProperties;
-    fallbackText?: string;
+    size?: 'sm' | 'md' | 'lg';
 }
 
-const DEFAULT_LABEL = 'মাহিয়ানের গল্পকথা';
-const BrandLogo = ({
-    alt = DEFAULT_LABEL,
-    className = '',
-    src = SITE_LOGO_SRC,
-    style,
-    fallbackText
-}: BrandLogoProps) => {
-    const [hasError, setHasError] = useState(false);
-    const resolvedFallbackText = fallbackText || alt || DEFAULT_LABEL;
-    const rootClassName = ['brand-logo', className].filter(Boolean).join(' ');
-
-    if (hasError) {
-        return (
-            <span className={rootClassName} style={style} role="img" aria-label={alt}>
-                <span className="brand-logo__fallback">{resolvedFallbackText}</span>
-            </span>
-        );
-    }
-
+const BrandLogo = ({ className = '', style, size = 'md' }: BrandLogoProps) => {
     return (
-        <span className={rootClassName} style={style}>
-            <img
-                src={src}
-                alt={alt}
-                className="brand-logo__image"
-                decoding="async"
-                onError={() => setHasError(true)}
-            />
+        <span className={`brand-logo brand-logo--${size} ${className}`} style={style}>
+            <span className="brand-logo__golpo">গল্প</span>
+            <span className="brand-logo__hub">Hub</span>
         </span>
     );
 };

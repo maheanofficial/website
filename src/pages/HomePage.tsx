@@ -196,10 +196,10 @@ const HomePage = () => {
                                     <div className="home-popular-meta">
                                         <Eye size={13} />
                                         <span>{toBanglaNumber(story.views || 0)} বার পড়া</span>
-                                        {story.rating && story.rating > 0 ? (
+                                        {(story as unknown as Record<string, number>)['rating'] > 0 ? (
                                             <>
                                                 <Heart size={13} />
-                                                <span>{toBanglaNumber(story.rating)} হা.</span>
+                                                <span>{toBanglaNumber((story as unknown as Record<string, number>)['rating'])} হা.</span>
                                             </>
                                         ) : null}
                                         {story.parts?.length ? <><BookMarked size={13} /><span>{toBanglaNumber(story.parts.length)} পর্ব</span></> : null}

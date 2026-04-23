@@ -8,6 +8,8 @@ export interface Author {
     avatar?: string;
     username?: string;
     links?: { name: string; url: string; }[];
+    is_featured?: boolean;
+    verified?: boolean;
 }
 
 const STORAGE_KEY = 'mahean_authors';
@@ -25,6 +27,8 @@ type AuthorRow = {
     avatar?: string | null;
     username?: string | null;
     links?: unknown;
+    is_featured?: boolean | null;
+    verified?: boolean | null;
 };
 
 type SupabaseErrorLike = {
@@ -81,7 +85,9 @@ const normalizeAuthor = (author: Author): Author => ({
             name: typeof link?.name === 'string' ? repairMojibakeText(link.name).trim() : '',
             url: typeof link?.url === 'string' ? link.url.trim() : ''
         }))
-        .filter((link) => Boolean(link.name || link.url))
+        .filter((link) => Boolean(link.name || link.url)),
+    is_featured: author.is_featured ?? undefined,
+    verified: author.verified ?? undefined
 });
 
 const getAuthorAliases = (author?: Partial<Author> | null) => {
@@ -207,7 +213,9 @@ const mapRowToAuthor = (row: AuthorRow): Author =>
         bio: repairMojibakeText(row.bio ?? '') || undefined,
         avatar: row.avatar ?? undefined,
         username: repairMojibakeText(row.username ?? '') || undefined,
-        links: toArray<{ name: string; url: string }>(row.links)
+        links: toArray<{ name: string; url: string }>(row.links),
+        is_featured: row.is_featured ?? undefined,
+        verified: row.verified ?? undefined
     });
 
 const mapAuthorToRow = (author: Author) => {
