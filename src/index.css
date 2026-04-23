@@ -1,4 +1,13 @@
 /* Design Tokens & Variables */
+
+@font-face {
+  font-family: 'Li Subha Letterpress Unicode';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/assets/fonts/LiSubhaLetterpressUnicodeItalic.ttf') format('truetype');
+}
+
 :root {
   /* Reader-Friendly Premium Palette */
 

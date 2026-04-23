@@ -609,6 +609,13 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         if (typeof document !== 'undefined' && document.fonts?.ready) {
             await document.fonts.ready;
         }
+        if (typeof document !== 'undefined' && document.fonts?.load) {
+            try {
+                await document.fonts.load('700 84px "Li Subha Letterpress Unicode"');
+            } catch {
+                // ignore font loading errors
+            }
+        }
 
         const canvas = document.createElement('canvas');
         const width = 1280;
@@ -639,7 +646,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
         const coverTitle = title.trim() || '\u0997\u09b2\u09cd\u09aa\u09c7\u09b0 \u09b6\u09bf\u09b0\u09cb\u09a8\u09be\u09ae';
         const coverAuthor = resolveCoverAuthor();
-        const fontFamily = '"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
+        const titleFontFamily = '"Li Subha Letterpress Unicode", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
+        const authorFontFamily = '"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
         const maxTitleWidth = width - 240;
         const maxTitleHeight = height * 0.46;
         const maxLines = 4;
@@ -652,7 +660,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         ctx.fillStyle = '#FF5C00';
 
         for (let size = 84; size >= 56; size -= 4) {
-            ctx.font = `700 ${size}px ${fontFamily}`;
+            ctx.font = `700 ${size}px ${titleFontFamily}`;
             const lines = wrapCanvasText(ctx, coverTitle, maxTitleWidth);
             const lineHeight = Math.round(size * 1.15);
             const totalHeight = lines.length * lineHeight;
@@ -678,7 +686,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
 
         const authorFontSize = Math.max(28, Math.round(titleFontSize * 0.4));
         ctx.fillStyle = '#e5e7eb';
-        ctx.font = `500 ${authorFontSize}px ${fontFamily}`;
+        ctx.font = `500 ${authorFontSize}px ${authorFontFamily}`;
         ctx.fillText(coverAuthor, width / 2, startY + totalTitleHeight + Math.round(authorFontSize * 1.35));
 
         return canvas.toDataURL('image/png');
