@@ -1,83 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
 import { resetPasswordForEmail } from '../utils/auth';
 import SEO from '../components/SEO';
-import './SubmitStoryPage.css'; // Reusing the login/signup CSS
-
-// Constellation Effect Component
-const ConstellationCanvas = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
-        let height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
-
-        const stars: { x: number, y: number, vx: number, vy: number }[] = [];
-        const numStars = 80;
-
-        for (let i = 0; i < numStars; i++) {
-            stars.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3
-            });
-        }
-
-        const animate = () => {
-            ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-
-            stars.forEach((star, i) => {
-                star.x += star.vx;
-                star.y += star.vy;
-
-                if (star.x < 0 || star.x > width) star.vx *= -1;
-                if (star.y < 0 || star.y > height) star.vy *= -1;
-
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, 1.5, 0, Math.PI * 2);
-                ctx.fill();
-
-                stars.forEach((otherStar, j) => {
-                    if (i === j) return;
-                    const dx = star.x - otherStar.x;
-                    const dy = star.y - otherStar.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 150) {
-                        ctx.beginPath();
-                        ctx.moveTo(star.x, star.y);
-                        ctx.lineTo(otherStar.x, otherStar.y);
-                        ctx.stroke();
-                    }
-                });
-            });
-
-            requestAnimationFrame(animate);
-        };
-
-        animate();
-
-        const handleResize = () => {
-            width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
-            height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    return <canvas ref={canvasRef} className="constellation-canvas" />;
-};
+import './SubmitStoryPage.css';
 
 const ForgotPasswordPage = () => {
     const [email, setEmail] = useState('');
@@ -111,16 +38,9 @@ const ForgotPasswordPage = () => {
                 noFollow
             />
 
-            <ConstellationCanvas />
-
             <div className="portal-content-wrapper">
-                {/* Header Section */}
-                <div className="portal-header">
-                    <div className="portal-brand-center">
-                        <Link to="/">
-                            <BrandLogo alt="মাহিয়ানের গল্পকথা" className="portal-logo" />
-                        </Link>
-                    </div>
+                <div className="portal-brand-center">
+                    <Link to="/"><BrandLogo size="lg" /></Link>
                 </div>
 
                 {/* Reset Form Section */}

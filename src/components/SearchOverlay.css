@@ -1,0 +1,204 @@
+.search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 120px;
+    padding-bottom: 40px;
+    animation: so-fade-in 0.15s ease;
+}
+
+@keyframes so-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.search-overlay__inner {
+    width: 100%;
+    max-width: 660px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+}
+
+.search-overlay__form {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: #111111;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.search-overlay__form:focus-within {
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+.search-overlay__icon {
+    flex-shrink: 0;
+    margin-left: 18px;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+}
+
+.search-overlay__input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    padding: 18px 16px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.search-overlay__input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.search-overlay__input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.search-overlay__submit {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    margin: 6px;
+    border-radius: 8px;
+    border: none;
+    background: #f59e0b;
+    color: #111111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.search-overlay__submit:hover {
+    background: #fbbf24;
+}
+
+.search-overlay__hint {
+    text-align: center;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+}
+
+.search-overlay__hint kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Results */
+.search-overlay__results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.search-overlay__result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+    width: 100%;
+    font-family: inherit;
+}
+
+.search-overlay__result-item:last-child {
+    border-bottom: none;
+}
+
+.search-overlay__result-item:hover {
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.search-overlay__result-title {
+    font-size: 0.97rem;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-overlay__result-author {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.search-overlay__no-results {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.9rem;
+    margin: 8px 0 0;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+.search-overlay__close {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.search-overlay__close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+@media (max-width: 560px) {
+    .search-overlay {
+        padding-top: 80px;
+    }
+
+    .search-overlay__input {
+        font-size: 1rem;
+        padding: 15px 12px;
+    }
+}

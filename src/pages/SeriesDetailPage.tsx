@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Eye, Play, ChevronRight } from 'lucide-react';
+import { ArrowLeft, BookOpen, Eye, Play, ChevronRight, MessageSquare, X } from 'lucide-react';
 import {
     getCachedStoryByIdOrSlug,
     getPublishedStoryByIdOrSlug,
@@ -41,6 +41,39 @@ const SeriesDetailPage = () => {
     const [story, setStory] = useState<Story | null>(cached);
     const [isLoading, setIsLoading] = useState(!cached);
     const [activeSeason, setActiveSeason] = useState(0);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [fbName, setFbName] = useState('');
+    const [fbEmail, setFbEmail] = useState('');
+    const [fbMessage, setFbMessage] = useState('');
+    const [fbSent, setFbSent] = useState(false);
+    const [fbLoading, setFbLoading] = useState(false);
+    const fbRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!showFeedback) return;
+        const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowFeedback(false); };
+        document.addEventListener('keydown', handleKey);
+        document.body.style.overflow = 'hidden';
+        return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = ''; };
+    }, [showFeedback]);
+
+    const handleFeedbackSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!fbName.trim() || !fbMessage.trim()) return;
+        setFbLoading(true);
+        try {
+            await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: fbName, email: fbEmail, message: `[মতামত: ${story?.title || slug}] ${fbMessage}` })
+            });
+            setFbSent(true);
+        } catch (_) {
+            setFbSent(true);
+        } finally {
+            setFbLoading(false);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -271,9 +304,54 @@ const SeriesDetailPage = () => {
                                 ))}
                             </div>
                         )}
+
+                        {/* Feedback button */}
+                        <button className="series-sidebar-feedback-btn" onClick={() => { setShowFeedback(true); setFbSent(false); }}>
+                            <MessageSquare size={15} />
+                            <span>মতামত জমা দিন</span>
+                        </button>
                     </aside>
                 </div>
             </div>
+
+            {/* Feedback Modal */}
+            {showFeedback && (
+                <div className="series-feedback-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowFeedback(false); }}>
+                    <div className="series-feedback-modal" ref={fbRef}>
+                        <div className="series-feedback-header">
+                            <h3>মতামত জমা দিন</h3>
+                            <button className="series-feedback-close" onClick={() => setShowFeedback(false)} aria-label="Close">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {fbSent ? (
+                            <div className="series-feedback-success">
+                                <p>আপনার মতামত পাঠানো হয়েছে। ধন্যবাদ! 🙏</p>
+                                <button className="series-feedback-done-btn" onClick={() => setShowFeedback(false)}>বন্ধ করুন</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={(e) => void handleFeedbackSubmit(e)} className="series-feedback-form">
+                                <div className="series-feedback-field">
+                                    <label>আপনার নাম <span>*</span></label>
+                                    <input type="text" value={fbName} onChange={(e) => setFbName(e.target.value)} placeholder="নাম লিখুন" required />
+                                </div>
+                                <div className="series-feedback-field">
+                                    <label>ইমেইল</label>
+                                    <input type="email" value={fbEmail} onChange={(e) => setFbEmail(e.target.value)} placeholder="email@example.com" />
+                                </div>
+                                <div className="series-feedback-field">
+                                    <label>মতামত <span>*</span></label>
+                                    <textarea value={fbMessage} onChange={(e) => setFbMessage(e.target.value)} placeholder="আপনার মতামত লিখুন..." rows={4} required />
+                                </div>
+                                <button type="submit" className="series-feedback-submit-btn" disabled={fbLoading}>
+                                    {fbLoading ? 'পাঠানো হচ্ছে...' : 'জমা দিন'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </article>
     );
 };

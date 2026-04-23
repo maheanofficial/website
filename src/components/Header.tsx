@@ -4,6 +4,7 @@ import { Search, Bell, X, Sun, Moon, Monitor } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
 import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
+import SearchOverlay from './SearchOverlay';
 import {
     buildReaderNotifications,
     markReaderNotificationsSeen,
@@ -26,6 +27,7 @@ const getStoredTheme = (): ThemeMode => {
 export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
     const [headerVisible, setHeaderVisible] = useState(true);
     const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -166,6 +168,8 @@ export default function Header() {
     ];
 
     return (
+        <>
+        <SearchOverlay open={showSearch} onClose={() => setShowSearch(false)} />
         <header className={`header ${scrolled ? 'header-scrolled' : ''} ${!headerVisible ? 'header-hidden' : ''}`}>
             <div className="container">
                 <nav className="nav">
@@ -203,7 +207,7 @@ export default function Header() {
                                 type="button"
                                 className="nav-icon-btn"
                                 aria-label="Search"
-                                onClick={() => { navigate('/search'); closeMenu(); }}
+                                onClick={() => { setShowSearch(true); closeMenu(); }}
                             >
                                 <Search size={18} />
                             </button>
@@ -314,5 +318,6 @@ export default function Header() {
                 </nav>
             </div>
         </header>
+        </>
     );
 }
