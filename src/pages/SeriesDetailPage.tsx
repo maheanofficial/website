@@ -9,10 +9,10 @@ import {
     type StorySeason
 } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
-import { formatLongDate } from '../utils/dateFormatter';
 import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
-import SmartImage from '../components/SmartImage';
+import { buildTagFilterPath } from '../utils/storyFilters';
+import BrandLogo from '../components/BrandLogo';
 import SEO from '../components/SEO';
 import './SeriesDetailPage.css';
 
@@ -22,12 +22,6 @@ const toPartSegment = (part: StoryPart | undefined, idx: number) => {
     const titleSlug = slugify(normalizeText(part?.title));
     const customSlug = slugify(normalizeText(part?.slug));
     return customSlug || titleSlug || `part-${String(idx + 1).padStart(2, '0')}`;
-};
-
-const getPartPreview = (part: StoryPart | undefined) => {
-    const text = normalizeText(part?.content).replace(/\s+/g, ' ');
-    if (!text) return 'এই পর্বটি পড়তে ক্লিক করুন।';
-    return text.length > 120 ? `${text.slice(0, 120)}...` : text;
 };
 
 const estimateReadMinutes = (parts: StoryPart[]) => {
@@ -105,6 +99,16 @@ const SeriesDetailPage = () => {
 
     const coverImage = story.cover_image || story.image || DEFAULT_OG_IMAGE;
     const canonicalUrl = `${SITE_URL}/series/${baseSegment}`;
+    const hasRealCover = Boolean(story.cover_image || story.image);
+
+    const statusRaw = String(story.status || '');
+    const statusLabel = statusRaw === 'completed' || statusRaw === 'সমাপ্ত' ? 'সমাপ্ত'
+        : statusRaw === 'ongoing' || statusRaw === 'চলমান' ? 'চলমান'
+        : null;
+
+    const displayCategories = (story.categories || (story.category ? [story.category] : [])).filter(Boolean).slice(0, 5);
+    const displayTags = (story.tags || []).filter(Boolean).slice(0, 8);
+    const storySeason = Number.isFinite(story.season) ? Math.max(1, Math.floor(story.season as number)) : 1;
 
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
@@ -133,117 +137,142 @@ const SeriesDetailPage = () => {
                     <span>সব সিরিজ</span>
                 </button>
 
-                {/* Hero */}
-                <section className="series-detail-hero">
-                    <div className="series-detail-cover">
-                        <SmartImage
-                            src={story.cover_image || story.image}
-                            alt={story.title}
-                            showFullText={true}
-                            loading="eager"
-                            fetchPriority="high"
-                        />
-                    </div>
-
-                    <div className="series-detail-meta">
-                        <div className="series-detail-badge">
-                            <BookOpen size={14} />
-                            <span>ধারাবাহিক সিরিজ</span>
+                <div className="series-detail-layout">
+                    {/* Left: Parts list */}
+                    <div className="series-detail-main">
+                        {/* Season heading */}
+                        <div className="series-main-header">
+                            <div className="series-main-title-row">
+                                <h1 className="series-main-title">
+                                    {hasSeasons ? getSeasonLabel(currentSeason, activeSeason) : story.title}
+                                </h1>
+                                <span className="series-main-count">
+                                    {toBanglaNumber(currentParts.length)} পর্ব
+                                </span>
+                            </div>
+                            {story.excerpt && (
+                                <p className="series-main-excerpt">{story.excerpt}</p>
+                            )}
                         </div>
 
-                        <h1 className="series-detail-title">{story.title}</h1>
-
-                        <p className="series-detail-author">
-                            {story.author || 'অজানা লেখক'} &middot; {formatLongDate(story.date)}
-                        </p>
-
-                        <div className="series-detail-stats">
-                            <span>
-                                <BookOpen size={13} />
-                                {toBanglaNumber(totalParts)}টি পর্ব
-                            </span>
-                            <span>
-                                <Eye size={13} />
-                                {toBanglaNumber(story.views || 0)} পাঠক
-                            </span>
-                            <span>আনু. {toBanglaNumber(totalMinutes)} মিনিট</span>
-                        </div>
-
-                        {story.excerpt && (
-                            <p className="series-detail-excerpt">{story.excerpt}</p>
+                        {/* Season tabs */}
+                        {hasSeasons && (
+                            <div className="series-seasons-tabs">
+                                {story.seasons!.map((season, sIdx) => (
+                                    <button
+                                        key={season.id || `s-${sIdx}`}
+                                        className={`series-season-tab ${sIdx === activeSeason ? 'active' : ''}`}
+                                        onClick={() => setActiveSeason(sIdx)}
+                                    >
+                                        {getSeasonLabel(season, sIdx)}
+                                        <span className="series-season-count">
+                                            {toBanglaNumber(season.parts?.length || 0)}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
                         )}
 
-                        {story.tags && story.tags.length > 0 && (
-                            <div className="series-detail-tags">
-                                {story.tags.map((tag) => (
+                        {/* Parts list */}
+                        <div className="series-parts-list">
+                            {currentParts.map((part, idx) => {
+                                const partPath = hasSeasons
+                                    ? `/stories/${baseSegment}/s/${activeSeason + 1}/part/${toPartSegment(part, idx)}`
+                                    : `/stories/${baseSegment}/${toPartSegment(part, idx)}`;
+                                const label = normalizeText(part?.title) || `পর্ব ${toBanglaNumber(idx + 1)}`;
+                                return (
                                     <Link
-                                        key={tag}
-                                        to={`/tags/${encodeURIComponent(tag)}`}
-                                        className="series-tag-pill"
+                                        key={part.id || `part-${idx}`}
+                                        to={partPath}
+                                        className="series-part-item"
                                     >
-                                        {tag}
+                                        <div className="series-part-num">{toBanglaNumber(idx + 1)}</div>
+                                        <div className="series-part-body">
+                                            <h3>{label}</h3>
+                                        </div>
+                                        <span className="series-part-read">পড়ুন</span>
+                                        <ChevronRight className="series-part-arrow" size={16} />
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Right: Sticky sidebar */}
+                    <aside className="series-detail-sidebar">
+                        {/* Text-only cover card */}
+                        <div className="series-sidebar-cover">
+                            {hasRealCover ? (
+                                <img src={story.cover_image || story.image} alt={story.title} className="series-sidebar-cover__img" />
+                            ) : (
+                                <div className="series-sidebar-cover__text">
+                                    <BrandLogo size="sm" className="series-sidebar-cover__watermark" />
+                                    <span className="series-sidebar-cover__title">{story.title}</span>
+                                    <span className="series-sidebar-cover__author">{story.author || 'লেখক'}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Title + Author */}
+                        <h2 className="series-sidebar-title">{story.title}</h2>
+                        <p className="series-sidebar-author">{story.author || 'লেখক'}</p>
+
+                        {/* Status badge */}
+                        {statusLabel && (
+                            <span className={`series-sidebar-status ${statusLabel === 'সমাপ্ত' ? 'completed' : 'ongoing'}`}>
+                                {statusLabel}
+                            </span>
+                        )}
+
+                        {/* Stats grid */}
+                        <div className="series-sidebar-stats">
+                            <div className="series-sidebar-stat">
+                                <span className="series-sidebar-stat__label">সিজন</span>
+                                <span className="series-sidebar-stat__value">{toBanglaNumber(storySeason)}</span>
+                            </div>
+                            <div className="series-sidebar-stat">
+                                <span className="series-sidebar-stat__label">পর্ব</span>
+                                <span className="series-sidebar-stat__value">{toBanglaNumber(totalParts)}</span>
+                            </div>
+                            <div className="series-sidebar-stat">
+                                <Eye size={13} className="series-sidebar-stat__icon" />
+                                <span className="series-sidebar-stat__value">{toBanglaNumber(story.views || 0)}</span>
+                            </div>
+                            <div className="series-sidebar-stat">
+                                <BookOpen size={13} className="series-sidebar-stat__icon" />
+                                <span className="series-sidebar-stat__value">{toBanglaNumber(totalMinutes)} মিনিট</span>
+                            </div>
+                        </div>
+
+                        {/* Start reading button */}
+                        <Link to={firstPartPath} className="series-sidebar-start-btn">
+                            <Play size={14} />
+                            <span>পড়া শুরু করুন</span>
+                        </Link>
+
+                        {/* Categories */}
+                        {displayCategories.length > 0 && (
+                            <div className="series-sidebar-pills">
+                                {displayCategories.map((cat) => (
+                                    <Link key={cat} to={`/categories/${encodeURIComponent(cat)}`} className="series-sidebar-pill series-sidebar-pill--cat">
+                                        {cat}
                                     </Link>
                                 ))}
                             </div>
                         )}
 
-                        <Link to={firstPartPath} className="series-detail-start-btn">
-                            <Play size={15} />
-                            <span>প্রথম পর্ব পড়া শুরু করুন</span>
-                        </Link>
-                    </div>
-                </section>
-
-                {/* Season tabs */}
-                {hasSeasons && (
-                    <div className="series-seasons-tabs">
-                        {story.seasons!.map((season, sIdx) => (
-                            <button
-                                key={season.id || `s-${sIdx}`}
-                                className={`series-season-tab ${sIdx === activeSeason ? 'active' : ''}`}
-                                onClick={() => setActiveSeason(sIdx)}
-                            >
-                                {getSeasonLabel(season, sIdx)}
-                                <span className="series-season-count">
-                                    {toBanglaNumber(season.parts?.length || 0)}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* Parts list */}
-                <section className="series-parts-section">
-                    <div className="series-parts-header">
-                        <h2>
-                            {hasSeasons ? getSeasonLabel(currentSeason, activeSeason) : 'পর্ব তালিকা'}
-                        </h2>
-                        <span>{toBanglaNumber(currentParts.length)}টি পর্ব</span>
-                    </div>
-
-                    <div className="series-parts-list">
-                        {currentParts.map((part, idx) => {
-                            const partPath = hasSeasons
-                                ? `/stories/${baseSegment}/s/${activeSeason + 1}/part/${toPartSegment(part, idx)}`
-                                : `/stories/${baseSegment}/${toPartSegment(part, idx)}`;
-                            const label = normalizeText(part?.title) || `পর্ব ${toBanglaNumber(idx + 1)}`;
-                            return (
-                                <Link
-                                    key={part.id || `part-${idx}`}
-                                    to={partPath}
-                                    className="series-part-item"
-                                >
-                                    <div className="series-part-num">{toBanglaNumber(idx + 1)}</div>
-                                    <div className="series-part-body">
-                                        <h3>{label}</h3>
-                                        <p>{getPartPreview(part)}</p>
-                                    </div>
-                                    <ChevronRight className="series-part-arrow" size={18} />
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </section>
+                        {/* Tags */}
+                        {displayTags.length > 0 && (
+                            <div className="series-sidebar-pills">
+                                {displayTags.map((tag) => (
+                                    <Link key={tag} to={buildTagFilterPath(tag)} className="series-sidebar-pill series-sidebar-pill--tag">
+                                        #{tag}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </aside>
+                </div>
             </div>
         </article>
     );

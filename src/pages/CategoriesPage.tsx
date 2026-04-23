@@ -106,10 +106,9 @@ const CategoriesPage = () => {
 
             <div className="container">
                 <div className="categories-hero">
-                    <span className="categories-kicker">গল্পের ক্যাটাগরি</span>
-                    <h1 className="categories-title">সব ধরনের গল্প এক জায়গায়</h1>
+                    <h1 className="categories-title">ক্যাটাগরি</h1>
                     <p className="categories-subtitle">
-                        আপনার পছন্দের ক্যাটাগরি বেছে নিয়ে সেরা বাংলা গল্পগুলো পড়ুন এবং নতুন লেখকদের সাথে পরিচিত হন।
+                        ক্যাটাগরি অনুযায়ী সিরিজসমূহ।
                     </p>
                 </div>
 

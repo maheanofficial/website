@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Eye, ExternalLink, ArrowLeft, Star, CheckCircle, UserPlus, UserCheck } from 'lucide-react';
+import { BookOpen, Eye, ExternalLink, ArrowLeft, CheckCircle, UserPlus, UserCheck } from 'lucide-react';
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
-import { formatLongDate } from '../utils/dateFormatter';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import { getCurrentUser } from '../utils/auth';
 import { isReaderFollowingAuthor, toggleReaderAuthorFollow } from '../utils/readerStateManager';
 import SmartImage from '../components/SmartImage';
+import StoryCard from '../components/StoryCard';
 import SEO from '../components/SEO';
 import './AuthorProfilePage.css';
 
@@ -34,15 +34,12 @@ const AuthorProfilePage = () => {
     const [author, setAuthor] = useState<Author | null>(null);
     const [authorStories, setAuthorStories] = useState<Story[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'series' | 'standalone'>('all');
     const [userId, setUserId] = useState<string | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
         getCurrentUser().then((u) => {
-            if (u?.id) {
-                setUserId(u.id);
-            }
+            if (u?.id) setUserId(u.id);
         });
     }, []);
 
@@ -94,23 +91,17 @@ const AuthorProfilePage = () => {
         return (
             <div className="container py-20 text-center">
                 <h2 className="text-2xl text-white mb-4">লেখক পাওয়া যায়নি</h2>
-                <Link to="/author" className="text-blue-400 hover:underline">সব লেখক দেখুন</Link>
+                <Link to="/authors" className="text-blue-400 hover:underline">সব লেখক দেখুন</Link>
             </div>
         );
     }
 
     const totalViews = getTotalViews(authorStories);
     const publishedCount = authorStories.filter((s) => s.status === 'published' || !s.status).length;
-    const isFeatured = (author as Author & { is_featured?: boolean }).is_featured;
     const isVerified = (author as Author & { verified?: boolean }).verified;
+    const links = author.links || [];
 
-    const filteredStories = authorStories.filter((s) => {
-        if (filter === 'series') return Array.isArray(s.parts) && s.parts.length > 1;
-        if (filter === 'standalone') return !Array.isArray(s.parts) || s.parts.length <= 1;
-        return true;
-    });
-
-    const canonicalUrl = `${SITE_URL}/author/${username}`;
+    const canonicalUrl = `${SITE_URL}/authors/${username}`;
     const authorImage = author.avatar || DEFAULT_OG_IMAGE;
 
     const personSchema = {
@@ -120,7 +111,7 @@ const AuthorProfilePage = () => {
         description: author.bio || '',
         url: canonicalUrl,
         image: author.avatar || '',
-        sameAs: (author.links || []).map((l) => l.url).filter(Boolean)
+        sameAs: links.map((l) => l.url).filter(Boolean)
     };
 
     return (
@@ -139,20 +130,20 @@ const AuthorProfilePage = () => {
                     <span>ফিরে যান</span>
                 </button>
 
-                {/* Hero */}
+                {/* Horizontal profile hero */}
                 <section className="author-profile-hero">
                     <div className="author-profile-avatar-wrap">
                         {author.avatar ? (
-                            <img src={author.avatar} alt={author.name} className="author-profile-avatar" />
+                            <SmartImage
+                                src={author.avatar}
+                                alt={author.name}
+                                className="author-profile-avatar"
+                                isRound={true}
+                            />
                         ) : (
                             <div className="author-profile-avatar-fallback">
                                 {(author.name || '?').charAt(0).toUpperCase()}
                             </div>
-                        )}
-                        {isFeatured && (
-                            <span className="author-featured-badge" title="বিশিষ্ট লেখক">
-                                <Star size={13} />
-                            </span>
                         )}
                     </div>
 
@@ -161,8 +152,7 @@ const AuthorProfilePage = () => {
                             <h1 className="author-profile-name">{author.name}</h1>
                             {isVerified && (
                                 <span className="author-verified-badge">
-                                    <CheckCircle size={16} />
-                                    <span>যাচাইকৃত</span>
+                                    <CheckCircle size={14} />
                                 </span>
                             )}
                         </div>
@@ -175,96 +165,54 @@ const AuthorProfilePage = () => {
 
                         <div className="author-profile-stats">
                             <div className="author-stat">
-                                <BookOpen size={15} />
+                                <BookOpen size={14} />
                                 <span>{toBanglaNumber(publishedCount)}টি গল্প</span>
                             </div>
                             <div className="author-stat">
-                                <Eye size={15} />
-                                <span>{toBanglaNumber(totalViews)} পাঠক</span>
+                                <Eye size={14} />
+                                <span>{toBanglaNumber(totalViews)} ভিউ</span>
                             </div>
                         </div>
 
-                        {userId && (
-                            <button
-                                className={`author-follow-btn ${isFollowing ? 'following' : ''}`}
-                                onClick={handleFollowToggle}
-                            >
-                                {isFollowing ? (
-                                    <><UserCheck size={15} /><span>অনুসরণ করছেন</span></>
-                                ) : (
-                                    <><UserPlus size={15} /><span>অনুসরণ করুন</span></>
-                                )}
-                            </button>
-                        )}
-
-                        {author.links && author.links.length > 0 && (
-                            <div className="author-profile-links">
-                                {author.links.map((link, i) => (
-                                    <a
-                                        key={i}
-                                        href={link.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="author-profile-link"
-                                    >
-                                        <ExternalLink size={13} />
-                                        <span>{link.name || link.url}</span>
-                                    </a>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* Stories */}
-                <section className="author-stories-section">
-                    <div className="author-stories-header">
-                        <h2>গল্পসমূহ</h2>
-                        <div className="author-filter-tabs">
-                            {(['all', 'series', 'standalone'] as const).map((f) => (
+                        <div className="author-profile-actions">
+                            {userId && (
                                 <button
-                                    key={f}
-                                    className={`author-filter-tab ${filter === f ? 'active' : ''}`}
-                                    onClick={() => setFilter(f)}
+                                    className={`author-follow-btn ${isFollowing ? 'following' : ''}`}
+                                    onClick={handleFollowToggle}
                                 >
-                                    {f === 'all' ? 'সব' : f === 'series' ? 'সিরিজ' : 'একক'}
+                                    {isFollowing ? (
+                                        <><UserCheck size={14} /><span>অনুসরণ করছেন</span></>
+                                    ) : (
+                                        <><UserPlus size={14} /><span>অনুসরণ করুন</span></>
+                                    )}
                                 </button>
+                            )}
+                            {links.map((link, i) => (
+                                <a
+                                    key={i}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="author-profile-link"
+                                >
+                                    <ExternalLink size={13} />
+                                    <span>{link.name || link.url}</span>
+                                </a>
                             ))}
                         </div>
                     </div>
+                </section>
 
-                    {filteredStories.length === 0 ? (
+                {/* Stories grid */}
+                <section className="author-stories-section">
+                    <h2 className="author-stories-heading">সিরিজ</h2>
+
+                    {authorStories.length === 0 ? (
                         <p className="author-stories-empty">কোনো গল্প পাওয়া যায়নি।</p>
                     ) : (
                         <div className="author-stories-grid">
-                            {filteredStories.map((story) => (
-                                <Link
-                                    key={story.id}
-                                    to={`/stories/${story.slug || story.id}`}
-                                    className="author-story-card"
-                                >
-                                    <div className="author-story-cover">
-                                        <SmartImage
-                                            src={story.cover_image || story.image}
-                                            alt={story.title}
-                                        />
-                                    </div>
-                                    <div className="author-story-body">
-                                        <h3 className="author-story-title">{story.title}</h3>
-                                        {story.excerpt && (
-                                            <p className="author-story-excerpt">{story.excerpt}</p>
-                                        )}
-                                        <div className="author-story-meta">
-                                            <span>{formatLongDate(story.date)}</span>
-                                            {story.views ? (
-                                                <span>
-                                                    <Eye size={12} />
-                                                    {toBanglaNumber(story.views)}
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                </Link>
+                            {authorStories.map((story, index) => (
+                                <StoryCard key={story.id} story={story} index={index} />
                             ))}
                         </div>
                     )}

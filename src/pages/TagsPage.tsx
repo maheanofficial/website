@@ -4,7 +4,7 @@ import SEO from '../components/SEO';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import { SITE_URL } from '../utils/siteMeta';
-import { buildTagFilterPath, formatTagLabel, normalizeTagFilterKey, normalizeTagFilterValue } from '../utils/storyFilters';
+import { buildTagFilterPath, normalizeTagFilterKey, normalizeTagFilterValue } from '../utils/storyFilters';
 import './TagsPage.css';
 
 const TagsPage = () => {
@@ -14,33 +14,24 @@ const TagsPage = () => {
         let isMounted = true;
         const loadStories = async () => {
             const data = await getStories();
-            if (isMounted) {
-                setStories(data);
-            }
+            if (isMounted) setStories(data);
         };
         loadStories();
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, []);
-    const tagMap = new Map<string, { name: string; count: number; views: number }>();
 
+    const tagMap = new Map<string, { name: string; count: number; views: number }>();
     stories.forEach((story) => {
         (story.tags || []).forEach((tag) => {
             const normalized = normalizeTagFilterValue(tag);
             const tagKey = normalizeTagFilterKey(tag);
             if (!tagKey) return;
-
             const existing = tagMap.get(tagKey);
             if (existing) {
                 existing.count += 1;
                 existing.views += story.views || 0;
             } else {
-                tagMap.set(tagKey, {
-                    name: normalized,
-                    count: 1,
-                    views: story.views || 0
-                });
+                tagMap.set(tagKey, { name: normalized, count: 1, views: story.views || 0 });
             }
         });
     });
@@ -53,8 +44,8 @@ const TagsPage = () => {
     const tagsSchema = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": "Bangla Story Tags",
-        "description": "Browse stories by popular tags and topics.",
+        "name": "বাংলা গল্পের ট্যাগ",
+        "description": "বিষয় অনুযায়ী বাংলা গল্প খুঁজুন।",
         "url": `${SITE_URL}/tags`,
         "mainEntity": {
             "@type": "ItemList",
@@ -70,19 +61,18 @@ const TagsPage = () => {
     return (
         <div className="tags-page page-offset">
             <SEO
-                title="Tags - Story Topics | Mahean Ahmed"
-                description="Browse popular tags to quickly find stories by topic."
-                keywords="Bangla Story Tags, Bengali Topics, Thriller Tags, Romance Tags"
+                title="ট্যাগ - GolpoHub"
+                description="বিষয় অনুযায়ী বাংলা গল্প খুঁজুন।"
+                keywords="Bangla Story Tags, Bengali Topics"
                 canonicalUrl="/tags"
                 jsonLd={tagsSchema}
             />
 
             <div className="container">
                 <div className="tags-hero">
-                    <span className="tags-kicker">Story tags</span>
-                    <h1 className="tags-title">Find Stories By Topic</h1>
+                    <h1 className="tags-title">ট্যাগ</h1>
                     <p className="tags-subtitle">
-                        From romance to mystery, every tag opens a focused story list.
+                        ট্যাগ অনুযায়ী সিরিজসমূহ।
                     </p>
                 </div>
 
@@ -93,10 +83,12 @@ const TagsPage = () => {
                             to={buildTagFilterPath(tag.name)}
                             className="tag-card"
                         >
-                            <div className="tag-pill">{formatTagLabel(tag.name)}</div>
-                            <div className="tag-meta">
-                                <span>{toBanglaNumber(tag.count)} stories</span>
-                                <span>{toBanglaNumber(tag.views)} reads</span>
+                            <div className="tag-card__name">
+                                <span className="tag-card__hash">#</span>{tag.name}
+                            </div>
+                            <div className="tag-card__meta">
+                                <span>{toBanglaNumber(tag.count)}টি গল্প</span>
+                                <span>{toBanglaNumber(tag.views)} ভিউ</span>
                             </div>
                         </Link>
                     ))}
