@@ -14,6 +14,7 @@ import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
 import { buildTagFilterPath } from '../utils/storyFilters';
 import BrandLogo from '../components/BrandLogo';
 import SEO from '../components/SEO';
+import { withCacheBust } from '../utils/imageCache';
 import './SeriesDetailPage.css';
 
 const normalizeText = (v?: string | null) => (v ?? '').trim();
@@ -236,7 +237,7 @@ const SeriesDetailPage = () => {
                         {/* Text-only cover card */}
                         <div className="series-sidebar-cover">
                             {hasRealCover ? (
-                                <img src={story.cover_image || story.image} alt={story.title} className="series-sidebar-cover__img" />
+                                <img src={withCacheBust(story.cover_image || story.image)} alt={story.title} className="series-sidebar-cover__img" />
                             ) : (
                                 <div className="series-sidebar-cover__text">
                                     <BrandLogo size="sm" className="series-sidebar-cover__watermark" />

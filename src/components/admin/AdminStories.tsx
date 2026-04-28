@@ -625,20 +625,78 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const ctx = canvas.getContext('2d');
         if (!ctx) return '';
 
-        ctx.fillStyle = '#050505';
+        // === BACKGROUND: radial gradient (deep indigo -> near black) ===
+        const bgGradient = ctx.createRadialGradient(
+            width / 2, height * 0.5, 40,
+            width / 2, height * 0.5, Math.max(width, height) * 0.7
+        );
+        bgGradient.addColorStop(0, '#1a0f2e');
+        bgGradient.addColorStop(0.55, '#0a0612');
+        bgGradient.addColorStop(1, '#050505');
+        ctx.fillStyle = bgGradient;
         ctx.fillRect(0, 0, width, height);
 
-        ctx.strokeStyle = '#1f2937';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(18, 18, width - 36, height - 36);
+        // === SUBTLE NOISE/DOT TEXTURE for depth ===
+        ctx.save();
+        ctx.globalAlpha = 0.04;
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 240; i += 1) {
+            const dx = Math.random() * width;
+            const dy = Math.random() * height;
+            ctx.fillRect(dx, dy, 1, 1);
+        }
+        ctx.restore();
 
+        // === TOP ACCENT BAR (orange gradient) ===
+        const topBar = ctx.createLinearGradient(0, 0, width, 0);
+        topBar.addColorStop(0, '#FF5C00');
+        topBar.addColorStop(0.5, '#FFA500');
+        topBar.addColorStop(1, '#FF5C00');
+        ctx.fillStyle = topBar;
+        ctx.fillRect(0, 0, width, 5);
+
+        // === INNER FRAME ===
+        const frameInset = 22;
+        ctx.strokeStyle = 'rgba(255, 165, 0, 0.28)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(frameInset, frameInset, width - frameInset * 2, height - frameInset * 2);
+
+        // === CORNER TRIANGLE ORNAMENTS (orange) ===
+        const cornerSize = 20;
+        ctx.fillStyle = '#FF5C00';
+        ctx.beginPath();
+        ctx.moveTo(frameInset, frameInset + cornerSize);
+        ctx.lineTo(frameInset, frameInset);
+        ctx.lineTo(frameInset + cornerSize, frameInset);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(width - frameInset - cornerSize, frameInset);
+        ctx.lineTo(width - frameInset, frameInset);
+        ctx.lineTo(width - frameInset, frameInset + cornerSize);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(frameInset, height - frameInset - cornerSize);
+        ctx.lineTo(frameInset, height - frameInset);
+        ctx.lineTo(frameInset + cornerSize, height - frameInset);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(width - frameInset - cornerSize, height - frameInset);
+        ctx.lineTo(width - frameInset, height - frameInset);
+        ctx.lineTo(width - frameInset, height - frameInset - cornerSize);
+        ctx.closePath();
+        ctx.fill();
+
+        // === LOGO (top-right) ===
         try {
             const logo = await loadImage(THUMBNAIL_LOGO_SRC);
-            const targetHeight = Math.round(height * 0.12);
+            const targetHeight = Math.round(height * 0.13);
             const scale = targetHeight / logo.height;
             const targetWidth = logo.width * scale;
-            const logoX = width - targetWidth - Math.round(width * 0.01);
-            const logoY = Math.round(height * 0.015);
+            const logoX = width - targetWidth - Math.round(width * 0.025);
+            const logoY = Math.round(height * 0.035);
             ctx.drawImage(logo, logoX, logoY, targetWidth, targetHeight);
         } catch (error) {
             console.warn('Logo load failed.', error);
@@ -648,18 +706,17 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         const coverAuthor = resolveCoverAuthor();
         const titleFontFamily = '"Li Subha Letterpress Unicode", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
         const authorFontFamily = '"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", sans-serif';
-        const maxTitleWidth = width - 220;
-        const maxTitleHeight = height * 0.44;
+        const maxTitleWidth = width - 200;
+        const maxTitleHeight = height * 0.46;
         const maxLines = 3;
-        let titleFontSize = 78;
+        let titleFontSize = 80;
         let titleLines: string[] = [];
         let titleLineHeight = Math.round(titleFontSize * 1.15);
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#FF5C00';
 
-        for (let size = 78; size >= 48; size -= 4) {
+        for (let size = 80; size >= 46; size -= 4) {
             ctx.font = `700 ${size}px ${titleFontFamily}`;
             const lines = wrapCanvasText(ctx, coverTitle, maxTitleWidth);
             const lineHeight = Math.round(size * 1.15);
@@ -670,7 +727,7 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
                 titleLineHeight = lineHeight;
                 break;
             }
-            if (size === 48) {
+            if (size === 46) {
                 titleFontSize = size;
                 titleLines = lines;
                 titleLineHeight = lineHeight;
@@ -678,16 +735,69 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
 
         const totalTitleHeight = titleLines.length * titleLineHeight;
-        const startY = height * 0.5 - totalTitleHeight / 2;
+        const startY = height * 0.48 - totalTitleHeight / 2;
 
+        // === TITLE: gradient gold->orange + glow shadow ===
+        ctx.font = `700 ${titleFontSize}px ${titleFontFamily}`;
+        const titleGradient = ctx.createLinearGradient(
+            0, startY - titleLineHeight / 2,
+            0, startY + totalTitleHeight + titleLineHeight / 2
+        );
+        titleGradient.addColorStop(0, '#FFE066');
+        titleGradient.addColorStop(0.5, '#FFA94D');
+        titleGradient.addColorStop(1, '#FF5C00');
+        ctx.fillStyle = titleGradient;
+        ctx.shadowColor = 'rgba(255, 92, 0, 0.55)';
+        ctx.shadowBlur = 22;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 4;
         titleLines.forEach((line, index) => {
             ctx.fillText(line, width / 2, startY + index * titleLineHeight);
         });
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
 
-        const authorFontSize = Math.max(28, Math.round(titleFontSize * 0.4));
-        ctx.fillStyle = '#e5e7eb';
+        // === ORNAMENTAL DIVIDER (line - diamond - line) ===
+        const dividerY = startY + totalTitleHeight + 22;
+        const dividerCx = width / 2;
+        const lineLength = 90;
+        const diamondHalf = 7;
+        ctx.strokeStyle = 'rgba(255, 169, 77, 0.55)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(dividerCx - lineLength - diamondHalf - 8, dividerY);
+        ctx.lineTo(dividerCx - diamondHalf - 8, dividerY);
+        ctx.moveTo(dividerCx + diamondHalf + 8, dividerY);
+        ctx.lineTo(dividerCx + lineLength + diamondHalf + 8, dividerY);
+        ctx.stroke();
+        ctx.fillStyle = '#FFA94D';
+        ctx.beginPath();
+        ctx.moveTo(dividerCx, dividerY - diamondHalf);
+        ctx.lineTo(dividerCx + diamondHalf, dividerY);
+        ctx.lineTo(dividerCx, dividerY + diamondHalf);
+        ctx.lineTo(dividerCx - diamondHalf, dividerY);
+        ctx.closePath();
+        ctx.fill();
+
+        // === AUTHOR NAME (light gray + soft shadow) ===
+        const authorFontSize = Math.max(26, Math.round(titleFontSize * 0.4));
+        ctx.fillStyle = '#f3f4f6';
         ctx.font = `500 ${authorFontSize}px ${authorFontFamily}`;
-        ctx.fillText(coverAuthor, width / 2, startY + totalTitleHeight + Math.round(authorFontSize * 1.35));
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(coverAuthor, dividerCx, dividerY + Math.round(authorFontSize * 0.95));
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // === BOTTOM-LEFT WATERMARK 'GolpoHub' ===
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.font = `600 14px "Hind Siliguri", "Noto Sans Bengali", sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('GolpoHub', frameInset + 12, height - frameInset - 8);
 
         return canvas.toDataURL('image/png');
     };

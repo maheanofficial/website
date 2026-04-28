@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
 import { User, Image as ImageIcon } from 'lucide-react';
-
-const THUMBNAIL_COVER_PATH_SEGMENT = '/uploads/stories/covers/';
-const THUMBNAIL_CACHE_BUST_VERSION = '20260401-1';
-
-const appendCacheBust = (url: string) => {
-    const value = String(url || '').trim();
-    if (!value || !value.includes(THUMBNAIL_COVER_PATH_SEGMENT)) {
-        return value;
-    }
-    if (/[?&]tbv=/.test(value)) {
-        return value;
-    }
-    return `${value}${value.includes('?') ? '&' : '?'}tbv=${THUMBNAIL_CACHE_BUST_VERSION}`;
-};
+import { withCacheBust } from '../utils/imageCache';
 
 interface SmartImageProps {
     src?: string;
@@ -37,7 +24,7 @@ const SmartImage: React.FC<SmartImageProps> = ({
     fetchPriority = 'auto'
 }) => {
     const [error, setError] = useState(false);
-    const resolvedSrc = appendCacheBust(String(src || ''));
+    const resolvedSrc = withCacheBust(src);
 
     if (!resolvedSrc || error) {
         // Generate a color based on the name hash

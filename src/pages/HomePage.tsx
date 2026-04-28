@@ -12,6 +12,7 @@ import SkeletonCard from '../components/SkeletonCard';
 import StoryCard from '../components/StoryCard';
 import StoryCarousel from '../components/StoryCarousel';
 import SmartImage from '../components/SmartImage';
+import { withCacheBust } from '../utils/imageCache';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
@@ -112,7 +113,7 @@ const HomePage = () => {
                 <div className="container">
                     <div className="continue-reading-card">
                         {continueSession.coverImage && (
-                            <img src={continueSession.coverImage} alt="" className="continue-reading-cover" />
+                            <img src={withCacheBust(continueSession.coverImage)} alt="" className="continue-reading-cover" />
                         )}
                         <div className="continue-reading-info">
                             <span className="continue-reading-kicker">

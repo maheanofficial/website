@@ -12,6 +12,7 @@ import {
     type ReaderNotification
 } from '../utils/readerStateManager';
 import { getCachedStories } from '../utils/storyManager';
+import { withCacheBust } from '../utils/imageCache';
 import type { User } from '../utils/userManager';
 import BrandLogo from './BrandLogo';
 import './Header.css';
@@ -299,7 +300,7 @@ export default function Header() {
                                     <Link to="/profile" className="nav-user-chip" onClick={closeMenu}>
                                         <span className="nav-user-avatar">
                                             {currentUser.photoURL ? (
-                                                <img src={currentUser.photoURL} alt={displayName || 'User'} />
+                                                <img src={withCacheBust(currentUser.photoURL)} alt={displayName || 'User'} />
                                             ) : userInitial}
                                         </span>
                                     </Link>

@@ -14,6 +14,7 @@ import AdminUsers from '../components/admin/AdminUsers';
 import AdminTrash from '../components/admin/AdminTrash';
 import { buildAuthPageLink, consumeStoredAuthRedirectIntent } from '../utils/authRedirect';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
+import { withCacheBust } from '../utils/imageCache';
 import type { User } from '../utils/userManager';
 
 
@@ -304,7 +305,7 @@ const AdminPage = () => {
                 <div className="sidebar-user-profile">
                     <div className="user-avatar-sm">
                         {avatarUrl ? (
-                            <img src={avatarUrl} alt="User" className="w-full h-full object-cover rounded-full" />
+                            <img src={withCacheBust(avatarUrl)} alt="User" className="w-full h-full object-cover rounded-full" />
                         ) : (
                             userInitial
                         )}
