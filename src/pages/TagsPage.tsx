@@ -72,7 +72,10 @@ const TagsPage = () => {
                 <div className="tags-hero">
                     <h1 className="tags-title">ট্যাগ</h1>
                     <p className="tags-subtitle">
-                        ট্যাগ অনুযায়ী সিরিজসমূহ।
+                        বিষয় অনুযায়ী আপনার পছন্দের বাংলা গল্প খুঁজুন।
+                    </p>
+                    <p style={{ maxWidth: '640px', margin: '14px auto 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', lineHeight: '1.75', fontFamily: "'Hind Siliguri', sans-serif" }}>
+                        GolpoHub-এ গল্পগুলো বিভিন্ন ট্যাগে সাজানো আছে — যেমন ভূত, রহস্য, ভালোবাসা, পুলিশ, হত্যাকাণ্ড, বন্ধুত্ব, পরিবার, মুক্তিযুদ্ধ এবং আরও অনেক কিছু। ট্যাগে ক্লিক করলেই সেই বিষয়ের সব গল্প এক জায়গায় পাবেন।
                     </p>
                 </div>
 

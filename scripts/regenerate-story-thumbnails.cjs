@@ -232,7 +232,7 @@ const generateCover = async (title, author) => {
   ctx.fill();
 
   // === AUTHOR NAME (light gray + soft shadow) ===
-  const authorFontSize = Math.max(26, Math.round(titleFontSize * 0.4));
+  const authorFontSize = Math.max(36, Math.round(titleFontSize * 0.55));
   ctx.fillStyle = '#f3f4f6';
   ctx.font = `500 ${authorFontSize}px ${authorFontFamily}`;
   ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';

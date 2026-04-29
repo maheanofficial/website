@@ -108,8 +108,29 @@ const CategoriesPage = () => {
                 <div className="categories-hero">
                     <h1 className="categories-title">ক্যাটাগরি</h1>
                     <p className="categories-subtitle">
-                        ক্যাটাগরি অনুযায়ী সিরিজসমূহ।
+                        আপনার পছন্দের ধরন বেছে নিন এবং সেই ঘরানার সেরা বাংলা গল্পগুলো পড়ুন।
                     </p>
+                    <p style={{ maxWidth: '680px', margin: '16px auto 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.95rem', lineHeight: '1.75', fontFamily: "'Hind Siliguri', sans-serif" }}>
+                        GolpoHub-এ রয়েছে থ্রিলার, হরর, রোমান্টিক, গোয়েন্দা, অ্যাডভেঞ্চার, ক্লাসিক সাহিত্য সহ বিভিন্ন ধরনের মৌলিক বাংলা গল্পের বিশাল সংগ্রহ। প্রতিটি ক্যাটাগরিতে বাংলাদেশের প্রতিভাবান লেখকদের অনন্য সব সৃষ্টিকর্ম পাবেন।
+                    </p>
+                </div>
+
+                {/* Static genre descriptions for SEO */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '40px' }}>
+                    {[
+                        { icon: '🔪', name: 'থ্রিলার', desc: 'উত্তেজনাপূর্ণ অ্যাকশন আর অপ্রত্যাশিত টুইস্টে ভরা গল্প।' },
+                        { icon: '👻', name: 'হরর', desc: 'শিহরণ জাগানো ভৌতিক কাহিনি যা রাতের ঘুম কেড়ে নেবে।' },
+                        { icon: '❤️', name: 'রোমান্টিক', desc: 'প্রেম, ভালোবাসা ও হৃদয়ের গভীরের অনুভূতির গল্প।' },
+                        { icon: '🔍', name: 'গোয়েন্দা', desc: 'রহস্যের জট খুলতে বের হওয়া চৌকস গোয়েন্দার কাহিনি।' },
+                        { icon: '🏕️', name: 'অ্যাডভেঞ্চার', desc: 'দুঃসাহসিক যাত্রা, অজানা গন্তব্য আর রোমাঞ্চের গল্প।' },
+                        { icon: '📚', name: 'ক্লাসিক', desc: 'চিরকালীন বাংলা সাহিত্যের অনন্য অমর রচনাবলী।' },
+                    ].map((g) => (
+                        <div key={g.name} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '16px 14px' }}>
+                            <div style={{ fontSize: '1.4rem', marginBottom: '8px' }}>{g.icon}</div>
+                            <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem', marginBottom: '6px', fontFamily: "'Hind Siliguri', sans-serif" }}>{g.name}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', lineHeight: '1.65', fontFamily: "'Hind Siliguri', sans-serif" }}>{g.desc}</div>
+                        </div>
+                    ))}
                 </div>
 
                 <div className="categories-grid">

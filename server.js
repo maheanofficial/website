@@ -289,6 +289,11 @@ const toCacheControl = (filePath) => {
         return 'public, max-age=31536000, immutable';
     }
 
+    // Upload files (thumbnails, covers) — always revalidate so fresh images show immediately
+    if (relative.startsWith('uploads/')) {
+        return 'no-cache';
+    }
+
     return 'public, max-age=3600';
 };
 

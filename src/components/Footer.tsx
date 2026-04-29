@@ -78,6 +78,7 @@ export default function Footer() {
                         <div className="footer-links">
                             <Link to="/privacy" className="footer-link">গোপনীয়তা নীতি</Link>
                             <Link to="/terms" className="footer-link">পরিষেবার শর্তাবলী</Link>
+                            <Link to="/disclaimer" className="footer-link">দাবিত্যাগ</Link>
                         </div>
                     </div>
                 </div>
@@ -93,13 +94,13 @@ export default function Footer() {
                         <a href="https://m.me/maheanahmedofficial" className="footer-social-icon" aria-label="Messenger" target="_blank" rel="noopener noreferrer">
                             <MessengerIcon />
                         </a>
-                        <a href="#" className="footer-social-icon" aria-label="Threads">
+                        <a href="https://www.threads.net/@maheanahmedofficial" className="footer-social-icon" aria-label="Threads" target="_blank" rel="noopener noreferrer">
                             <ThreadsIcon />
                         </a>
-                        <a href="#" className="footer-social-icon" aria-label="Instagram">
+                        <a href="https://www.instagram.com/maheanahmedofficial" className="footer-social-icon" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
                             <InstagramIcon />
                         </a>
-                        <a href="#" className="footer-social-icon" aria-label="X (Twitter)">
+                        <a href="https://x.com/maheanahmed" className="footer-social-icon" aria-label="X (Twitter)" target="_blank" rel="noopener noreferrer">
                             <XIcon />
                         </a>
                         <a href="https://youtube.com/@maheanstoryvoice" className="footer-social-icon" aria-label="YouTube" target="_blank" rel="noopener noreferrer">

@@ -9,7 +9,7 @@
 //   20260428-lisubha    -> Li Subha Letterpress Unicode font regeneration
 //   20260428-powerful   -> Powered-up thumbnail design (gradient bg, ornaments)
 
-export const THUMBNAIL_CACHE_BUST_VERSION = '20260428-powerful';
+export const THUMBNAIL_CACHE_BUST_VERSION = '20260428-author-lg';
 
 /**
  * Append `?tbv=<version>` to URLs that point at locally-served uploads

@@ -66,6 +66,9 @@ const SeriesPage = () => {
                     <p className="series-subtitle">
                         ধারাবাহিক বাংলা গল্পের সম্পূর্ণ সংগ্রহ — একাধিক পর্বে সাজানো।
                     </p>
+                    <p style={{ maxWidth: '640px', margin: '16px auto 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', lineHeight: '1.75', fontFamily: "'Hind Siliguri', sans-serif" }}>
+                        GolpoHub-এ রয়েছে বাংলাদেশের সেরা লেখকদের ধারাবাহিক গল্পের বিশাল সংগ্রহ। থ্রিলার সিরিজ, রোমান্টিক উপন্যাস, গোয়েন্দা গল্প, হরর সিরিজ — প্রতিটি পর্বে পাঠককে টেনে রাখার অনন্য ক্ষমতা রাখে আমাদের লেখকরা। চলমান ও সমাপ্ত — দুই ধরনের সিরিজই এখানে পাবেন।
+                    </p>
                 </div>
 
                 <div className="series-filter-tabs">

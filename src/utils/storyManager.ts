@@ -75,9 +75,9 @@ const STORY_LIST_COLUMNS = [
     'updated_at'
 ].join(',');
 const STORY_DETAIL_COLUMNS = `${STORY_LIST_COLUMNS},content`;
-const STORY_REMOTE_SYNC_TTL_MS = 60_000;
+const STORY_REMOTE_SYNC_TTL_MS = 0; // Always fetch fresh — never serve stale cache
 const STORY_REMOTE_CACHE_FRESH_MS = STORY_REMOTE_SYNC_TTL_MS;
-const STORY_REMOTE_CACHE_VERSION = 'v3';
+const STORY_REMOTE_CACHE_VERSION = 'v4'; // Bumped to invalidate old localStorage cache
 const PUBLIC_DETAIL_CACHE_LIMIT = 12;
 const LEGACY_SEEDED_STORY_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
 const BLOCKED_STORY_SUBMITTER_IDS = new Set(['bed0e197-08dc-4e4d-8ac4-b959692759c1']);
@@ -1274,17 +1274,12 @@ const queueStorySync = (fallbackStories: Story[], options?: { force?: boolean })
 export const getStories = async (): Promise<Story[]> => {
     const localStories = getRawPublicStories();
     const localPublishedStories = getLocalPublishedStoriesSnapshot();
-    const hasRecentSyncAttempt = lastStorySyncAt > 0 && (Date.now() - lastStorySyncAt) < STORY_REMOTE_SYNC_TTL_MS;
-    if (localPublishedStories.length > 0) {
-        void queueStorySync(
-            localStories.length ? localStories : localPublishedStories,
-            { force: !hasReadyRemoteStoryCache() && !hasRecentSyncAttempt }
-        );
-        return localPublishedStories;
-    }
-
-    const syncedStories = await queueStorySync(localStories.length ? localStories : localPublishedStories, { force: true });
-    return filterPublishedStories(syncedStories || localPublishedStories);
+    // Always await fresh data from remote — never return stale cached stories
+    const syncedStories = await queueStorySync(
+        localStories.length ? localStories : localPublishedStories,
+        { force: true }
+    );
+    return filterPublishedStories(syncedStories ?? localPublishedStories);
 };
 
 export const getCachedStoryByIdOrSlug = (

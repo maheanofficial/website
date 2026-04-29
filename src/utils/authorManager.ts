@@ -18,7 +18,7 @@ const AUTHOR_TABLE = 'authors';
 const TRASH_STORAGE_KEY = 'mahean_trash';
 const TRASH_TABLE = 'trash';
 const DELETED_AUTHOR_CACHE_TTL_MS = 15_000;
-const AUTHOR_REMOTE_SYNC_TTL_MS = 60_000;
+const AUTHOR_REMOTE_SYNC_TTL_MS = 0; // Always fetch fresh — never serve stale cache
 
 type AuthorRow = {
     id: string;
@@ -327,14 +327,6 @@ const storeAuthors = (authors: Author[]) => {
     }
 };
 
-const hasReadyRemoteAuthorCache = () => {
-    if (typeof window === 'undefined') return false;
-    try {
-        return localStorage.getItem(AUTHOR_REMOTE_CACHE_READY_KEY) === '1';
-    } catch {
-        return false;
-    }
-};
 
 const markRemoteAuthorCacheReady = () => {
     if (typeof window === 'undefined') return;
@@ -556,15 +548,9 @@ const queueAuthorSync = (fallbackAuthors: Author[], options?: { force?: boolean 
 export const getAllAuthors = async (): Promise<Author[]> => {
     const localAuthors = getLocalAuthors();
     const localVisibleAuthors = await getLocalVisibleAuthors(localAuthors);
-    const hasRecentSyncAttempt = lastAuthorSyncAt > 0 && (Date.now() - lastAuthorSyncAt) < AUTHOR_REMOTE_SYNC_TTL_MS;
-
-    if (localVisibleAuthors.length > 0) {
-        void queueAuthorSync(localAuthors, { force: !hasReadyRemoteAuthorCache() && !hasRecentSyncAttempt });
-        return localVisibleAuthors;
-    }
-
+    // Always await fresh data from remote — never return stale cached authors
     const syncedAuthors = await queueAuthorSync(localAuthors, { force: true });
-    return syncedAuthors || localVisibleAuthors;
+    return syncedAuthors ?? localVisibleAuthors;
 };
 
 export const getAuthorById = async (id: string): Promise<Author | null> => {
