@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Image as ImageIcon } from 'lucide-react';
 
 const THUMBNAIL_COVER_PATH_SEGMENT = '/uploads/stories/covers/';
-const THUMBNAIL_CACHE_BUST_VERSION = '20260618-1';
+const THUMBNAIL_CACHE_BUST_VERSION = '20260618-2';
 
 const appendCacheBust = (url: string) => {
     const value = String(url || '').trim();
