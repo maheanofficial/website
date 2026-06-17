@@ -626,8 +626,8 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
             const targetHeight = Math.round(height * 0.12);
             const scale = targetHeight / logo.height;
             const targetWidth = logo.width * scale;
-            const logoX = width - targetWidth - Math.round(width * 0.01);
-            const logoY = Math.round(height * 0.015);
+            const logoX = width - targetWidth - 30;
+            const logoY = 30;
             ctx.drawImage(logo, logoX, logoY, targetWidth, targetHeight);
         } catch (error) {
             console.warn('Logo load failed.', error);
