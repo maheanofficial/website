@@ -263,9 +263,9 @@ const syncSupabaseSession = (user: SupabaseUser | null) => {
 
 const getOAuthRedirectUrl = () => {
     if (typeof window === 'undefined') return '';
+    // Redirect to admin/dashboard after Google auth.
+    // restoreSessionFromUrl() on that page will detect ?code= and exchange it.
     const configured = (
-        import.meta.env.VITE_SUPABASE_REDIRECT_URL as string | undefined
-    ) || (
         import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URL as string | undefined
     );
     if (configured) {
@@ -326,7 +326,11 @@ export const signInWithGoogle = async (nextPath?: string) => {
     });
 
     if (error) {
-        throw error;
+        // Always throw a proper Error so catch blocks can use error.message
+        const message = typeof error.message === 'string' && error.message
+            ? error.message
+            : 'Google sign-in failed. Please try again.';
+        throw new Error(message);
     }
 };
 

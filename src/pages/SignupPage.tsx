@@ -115,7 +115,11 @@ const SignupPage = () => {
         try {
             await signInWithGoogle(nextPath);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Google sign-up failed. Please try again.';
+            const message = error instanceof Error
+                ? error.message
+                : (error && typeof error === 'object' && 'message' in error)
+                    ? String((error as { message: unknown }).message)
+                    : 'Google sign-up failed. Please try again.';
             alert(message);
         }
     };

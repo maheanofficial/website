@@ -18,7 +18,6 @@ ALLOWED_ORIGINS = "https://www.mahean.com,https://mahean.com"
 DB_BACKEND = "d1"
 D1_BINDING = "D1_DB"
 GOOGLE_OAUTH_CLIENT_ID = "1025433348092-tsq2gqs6d8dvnjtjfptmgr2mrqv91du8.apps.googleusercontent.com"
-GOOGLE_OAUTH_REDIRECT_URI = "https://www.mahean.com/api/auth?action=google-oauth-exchange"
 GOOGLE_OAUTH_ALLOWED_REDIRECT_ORIGIN = "https://www.mahean.com"
 
 [[d1_databases]]
