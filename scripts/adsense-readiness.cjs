@@ -203,14 +203,14 @@ const run = async () => {
     if (!robotsTxt) {
         warn('dist/robots.txt not found.');
     } else {
-        if (/User-agent:\s*\*\s*[\s\S]*?Disallow:\s*\/\s*$/im.test(robotsTxt)) {
+        if (/User-agent:\s*\*\s*(?:(?!User-agent:)[\s\S])*?Disallow:\s*\/\s*$/im.test(robotsTxt)) {
             fail('robots.txt blocks all crawlers (Disallow: /).');
             hasFailures = true;
         } else {
             ok('robots.txt does not block all crawlers.');
         }
 
-        if (/User-agent:\s*Mediapartners-Google[\s\S]*?Disallow:\s*\/\s*$/im.test(robotsTxt)) {
+        if (/User-agent:\s*Mediapartners-Google(?:(?!User-agent:)[\s\S])*?Disallow:\s*\/\s*$/im.test(robotsTxt)) {
             fail('robots.txt blocks Mediapartners-Google.');
             hasFailures = true;
         } else {

@@ -179,7 +179,7 @@ const checkRobotsAndSitemaps = async () => {
             fail(`robots.txt returned ${response.status}.`);
         } else {
             ok(`robots.txt returned ${response.status}.`);
-            if (/User-agent:\s*\*[\s\S]*?Disallow:\s*\/\s*$/im.test(text)) {
+            if (/User-agent:\s*\*(?:(?!User-agent:)[\s\S])*?Disallow:\s*\/\s*$/im.test(text)) {
                 fail('robots.txt blocks all crawlers with `Disallow: /`.');
             } else {
                 ok('robots.txt does not block all crawlers.');
