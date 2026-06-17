@@ -246,19 +246,30 @@ const AudiobooksPage = () => {
             .slice(0, 8);
     }, [storyInsights]);
 
-    const jsonLd = useMemo(() => ({
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'Mahean Ahmed Audiobooks',
-        description: 'মেহেদী আহমেদের বাংলা অডিওবুক, ধারাবাহিক গল্পপাঠ এবং বাছাই করা শোনার সংগ্রহ।',
-        url: 'https://www.mahean.com/audiobooks',
-        hasPart: rankedStories.slice(0, 8).map((item, index) => ({
-            '@type': 'CreativeWork',
-            position: index + 1,
-            name: item.story.title,
-            url: `https://www.mahean.com${item.path}`
-        }))
-    }), [rankedStories]);
+    const jsonLd = useMemo(() => [
+        {
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: 'Mahean Ahmed - বাংলা অডিওবুক লাইব্রেরি',
+            description: 'Mahean Ahmed-এর বাংলা অডিওবুক, ধারাবাহিক গল্পপাঠ এবং বাছাই করা শোনার সংগ্রহ।',
+            url: 'https://www.mahean.com/audiobooks',
+            inLanguage: 'bn-BD',
+            hasPart: rankedStories.slice(0, 8).map((item, index) => ({
+                '@type': 'CreativeWork',
+                position: index + 1,
+                name: item.story.title,
+                url: `https://www.mahean.com${item.path}`
+            }))
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'হোম', item: 'https://www.mahean.com/' },
+                { '@type': 'ListItem', position: 2, name: 'অডিওবুক', item: 'https://www.mahean.com/audiobooks' },
+            ]
+        }
+    ], [rankedStories]);
 
     const renderStoryRow = (item: StoryInsight, railName: string) => (
         <Link key={`${railName}-${item.story.id}`} to={item.path} className="audiobooks-story-row">
@@ -286,11 +297,13 @@ const AudiobooksPage = () => {
     return (
         <>
             <SEO
-                title="অডিওবুক লাইব্রেরি - Mahean Ahmed"
-                description="বাংলা অডিওবুক শোনার জন্য গোছানো একটি পেজ। পছন্দের গল্প, ধারাবাহিক সিরিজ, নতুন সংযোজন আর দ্রুত শোনার লিংক একসাথে।"
-                keywords="Bangla Audiobook, Bengali Audiobook, Audio Story, Mahean Ahmed, Listening Hub, Serialized Bangla Story"
-                canonicalUrl="https://www.mahean.com/audiobooks"
+                title="বাংলা অডিওবুক লাইব্রেরি - Mahean Ahmed"
+                description="Mahean Ahmed-এর বাংলা অডিওবুক, থ্রিলার, হরর ও ধারাবাহিক গল্প শোনার জন্য গোছানো একটি পেজ। পছন্দের গল্প, ধারাবাহিক সিরিজ, নতুন সংযোজন আর দ্রুত শোনার লিঙ্ক একসাথে।"
+                keywords="Bangla Audiobook, Bengali Audiobook, Audio Story, Mahean Ahmed, বাংলা অডিওবুক, ধারাবাহিক গল্প, Bangla Thriller Audio, Bengali Horror Audiobook, ভয়েস গল্প"
+                canonicalUrl="/audiobooks"
                 ogUrl="https://www.mahean.com/audiobooks"
+                ogImage="/mahean-3.jpg"
+                imageAlt="Mahean Ahmed - বাংলা অডিওবুক লাইব্রেরি"
                 jsonLd={jsonLd}
             />
 

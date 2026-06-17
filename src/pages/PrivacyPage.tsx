@@ -1,13 +1,29 @@
 import SEO from '../components/SEO';
+import { SITE_URL } from '../utils/siteMeta';
+import { buildWebPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './LegalPage.css';
 
 const PrivacyPage = () => {
+    const privacySchema = [
+        buildWebPageSchema(
+            'গোপনীয়তা নীতি - Mahean Ahmed',
+            'mahean.com-এর গোপনীয়তা নীতি, ডেটা সুরক্ষা ও কুকি নীতি সম্পর্কিত তথ্য।',
+            `${SITE_URL}/privacy`,
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'গোপনীয়তা নীতি', url: '/privacy' },
+        ]),
+    ];
+
     return (
         <>
             <SEO
-                title="গোপনীয়তা নীতি - মাহিয়ান আহমেদ"
-                description="মাহিয়ান আহমেদের ওয়েবসাইটের গোপনীয়তা নীতি এবং ডেটা সুরক্ষা সম্পর্কিত তথ্য।"
+                title="গোপনীয়তা নীতি - Mahean Ahmed"
+                description="mahean.com-এর গোপনীয়তা নীতি, ডেটা সুরক্ষা ও কুকি নীতি সম্পর্কিত তথ্য। আমাদের প্লাটফর্ম ব্যবহার করে আপনার তথ্য কীভাবে সুরক্ষিত থাকে জানুন।"
+                keywords="Privacy Policy, গোপনীয়তা নীতি, Data Protection, Mahean Ahmed Privacy, Cookie Policy"
                 canonicalUrl="/privacy"
+                jsonLd={privacySchema}
             />
 
             <div className="legal-container">

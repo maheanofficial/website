@@ -1,29 +1,34 @@
 import SEO from '../components/SEO';
 import { SITE_URL } from '../utils/siteMeta';
+import { buildBreadcrumbSchema, buildWebPageSchema, buildPersonSchema } from '../utils/seoSchema';
 import './LegalPage.css';
 
 const AboutPage = () => {
+    const aboutSchema = [
+        buildWebPageSchema(
+            'আমার সম্পর্কে - Mahean Ahmed',
+            'আমি Mahean Ahmed, একজন বাংলা ভয়েস আর্টিস্ট এবং গল্পকার। জানুন আমার কাজ, মিশন এবং ভিশন সম্পর্কে।',
+            `${SITE_URL}/about`,
+            'AboutPage',
+        ),
+        buildPersonSchema(),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'আমার সম্পর্কে', url: '/about' },
+        ]),
+    ];
+
     return (
         <>
             <SEO
-                title="আমার সম্পর্কে - মাহিয়ান আহমেদ"
-                description="আমি মাহিয়ান আহমেদ, একজন বাংলা ভয়েস আর্টিস্ট এবং গল্পকার। জানুন আমার কাজ, মিশন এবং ভিশন সম্পর্কে।"
-                keywords="About Mahean Ahmed, Voice Artist Biography, Bangla Storyteller, Mahean's Story"
+                title="আমার সম্পর্কে - Mahean Ahmed"
+                description="আমি Mahean Ahmed, একজন বাংলা ভয়েস আর্টিস্ট এবং গল্পকার। বাংলা অডিওবুক, থ্রিলার ও সাসপেন্স গল্পের জগতে আপনাকে স্বাগতম। জানুন আমার কাজ, মিশন এবং ভিশন সম্পর্কে।"
+                keywords="About Mahean Ahmed, Voice Artist Biography, Bangla Storyteller, Mahean's Story, বাংলা ভয়েস আর্টিস্ট, বাংলা গল্পকার"
                 ogType="profile"
                 canonicalUrl="/about"
-                jsonLd={{
-                    "@context": "https://schema.org",
-                    "@type": "AboutPage",
-                    "mainEntity": {
-                        "@type": "Person",
-                        "name": "Mahean Ahmed",
-                        "description": "Voice Artist and Content Creator",
-                        "image": `${SITE_URL}/mahean-3.jpg`,
-                        "sameAs": [
-                            "https://www.youtube.com/@maheanstoryvoice"
-                        ]
-                    }
-                }}
+                ogImage="/mahean-3.jpg"
+                imageAlt="Mahean Ahmed - বাংলা ভয়েস আর্টিস্ট"
+                jsonLd={aboutSchema}
             />
 
             <div className="legal-container">
@@ -38,7 +43,8 @@ const AboutPage = () => {
                 }}>
                     <img
                         src="/mahean-1.jpg"
-                        alt="Mahean Ahmed"
+                        alt="Mahean Ahmed - বাংলা ভয়েস আর্টিস্ট"
+                        loading="lazy"
                         style={{
                             width: '100%',
                             borderRadius: '12px',
@@ -48,7 +54,8 @@ const AboutPage = () => {
                     />
                     <img
                         src="/mahean-2.jpg"
-                        alt="Mahean Ahmed"
+                        alt="Mahean Ahmed - ভয়েস ওভার আর্টিস্ট"
+                        loading="lazy"
                         style={{
                             width: '100%',
                             borderRadius: '12px',
@@ -58,7 +65,8 @@ const AboutPage = () => {
                     />
                     <img
                         src="/mahean-3.jpg"
-                        alt="Mahean Ahmed"
+                        alt="Mahean Ahmed - বাংলা অডিওবুক ক্রিয়েটর"
+                        loading="lazy"
                         style={{
                             width: '100%',
                             borderRadius: '12px',

@@ -10,6 +10,7 @@ import {
     normalizeCategoryFilterKey,
     normalizeCategoryFilterList
 } from '../utils/storyFilters';
+import { buildCollectionPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './CategoriesPage.css';
 
 const CategoriesPage = () => {
@@ -68,29 +69,28 @@ const CategoriesPage = () => {
         return b.views - a.views;
     });
 
-    const categoriesSchema = {
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        "name": "বাংলা গল্পের ক্যাটাগরি",
-        "description": "বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা এবং পাঠকপ্রিয়তা দেখুন।",
-        "url": `${SITE_URL}/categories`,
-        "mainEntity": {
-            "@type": "ItemList",
-            "itemListElement": categories.map((category, index) => ({
-                "@type": "ListItem",
-                "position": index + 1,
-                "name": category.name,
-                "url": `${SITE_URL}${buildCategoryFilterPath(category.name)}`
+    const categoriesSchema = [
+        buildCollectionPageSchema(
+            'বাংলা গল্পের ক্যাটাগরি - Mahean Ahmed',
+            'বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা এবং পাঠকপ্রিয়তা দেখুন।',
+            `${SITE_URL}/categories`,
+            categories.map((category) => ({
+                name: category.name,
+                url: `${SITE_URL}${buildCategoryFilterPath(category.name)}`,
             }))
-        }
-    };
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'ক্যাটাগরি', url: '/categories' },
+        ]),
+    ];
 
     return (
         <div className="categories-page page-offset">
             <SEO
-                title="ক্যাটাগরি - বাংলা গল্পের ধরনসমূহ | Mahean Ahmed"
-                description="বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা, এবং পাঠকপ্রিয়তা দেখুন।"
-                keywords="Bangla Story Categories, Bengali Genres, Thriller, Horror, Romance"
+                title="গল্পের ক্যাটাগরি - বাংলা গল্পের ধরনসমূহ | Mahean Ahmed"
+                description="বাংলা গল্পের জনপ্রিয় ক্যাটাগরি, গল্প সংখ্যা, এবং পাঠকপ্রিয়তা দেখুন। থ্রিলার, হরর, রোমান্টিক, গোয়েন্দা, উপন্যাস, অ্যাডভেন্চার সব ধরনের গল্প আবিষ্কার করুন।"
+                keywords="Bangla Story Categories, Bengali Genres, Thriller, Horror, Romance, বাংলা গল্পের ধরন, বাংলা থ্রিলার, বাংলা হরর, গোয়েন্দা গল্প"
                 canonicalUrl="/categories"
                 jsonLd={categoriesSchema}
             />

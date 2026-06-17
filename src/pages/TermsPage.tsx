@@ -1,13 +1,29 @@
 import SEO from '../components/SEO';
+import { SITE_URL } from '../utils/siteMeta';
+import { buildWebPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './LegalPage.css';
 
 const TermsPage = () => {
+    const termsSchema = [
+        buildWebPageSchema(
+            'ব্যবহারের শর্তাবলী - Mahean Ahmed',
+            'mahean.com ব্যবহারের শর্তাবলী, নিয়মাবলী এবং শর্তাদি।',
+            `${SITE_URL}/terms`,
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'শর্তাবলী', url: '/terms' },
+        ]),
+    ];
+
     return (
         <>
             <SEO
-                title="ব্যবহারের শর্তাবলী - মাহিয়ান আহমেদ"
-                description="মাহিয়ান আহমেদের ওয়েবসাইট ব্যবহারের শর্তাবলী এবং নিয়মাবলী।"
+                title="ব্যবহারের শর্তাবলী - Mahean Ahmed"
+                description="mahean.com ব্যবহারের শর্তাবলী, কপিরাইট নীতি এবং ব্যবহারকারীর অধিকার ও দায়িত্বসমূহ।"
+                keywords="Terms of Service, শর্তাবলী, Terms and Conditions, Mahean Ahmed Terms, ব্যবহারের শর্ত"
                 canonicalUrl="/terms"
+                jsonLd={termsSchema}
             />
 
             <div className="legal-container">

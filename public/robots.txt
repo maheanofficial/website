@@ -1,17 +1,94 @@
-# https://www.robotstxt.org/robotstxt.html
+# ======================================================
+# robots.txt — mahean.com
+# Updated: 2026-06-18
+# ======================================================
+
+# ── All crawlers (default policy) ─────────────────────
 User-agent: *
 Allow: /
+Allow: /stories/
+Allow: /audiobooks
+Allow: /series
+Allow: /authors
+Allow: /categories
+Allow: /tags
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /disclaimer
+Allow: /links
 Allow: /rss.xml
 Allow: /feed.xml
+Allow: /sitemap.xml
+Allow: /sitemap-news.xml
+
+# Block private / auth / admin paths
 Disallow: /admin
+Disallow: /admin/
 Disallow: /dashboard
+Disallow: /dashboard/
 Disallow: /author/dashboard
-Disallow: /api/
+Disallow: /user/dashboard
 Disallow: /login
 Disallow: /signup
 Disallow: /profile
+Disallow: /forgot-password
+Disallow: /update-password
+Disallow: /api/
+Disallow: /admin/login
+Disallow: /admin/signup
 
-# Sitemaps
+# ── Googlebot (specific fine-tuning) ──────────────────
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Crawl-delay: 1
+
+# ── Google Image Bot ──────────────────────────────────
+User-agent: Googlebot-Image
+Allow: /
+
+# ── Bingbot ───────────────────────────────────────────
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Crawl-delay: 2
+
+# ── DuckDuckBot ───────────────────────────────────────
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Yandex ────────────────────────────────────────────
+User-agent: YandexBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Crawl-delay: 3
+
+# ── Block bad bots / scrapers ─────────────────────────
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# ── Sitemaps ──────────────────────────────────────────
 Sitemap: https://www.mahean.com/sitemap.xml
 Sitemap: https://www.mahean.com/sitemap-news.xml
+
+# Canonical host hint (used by Yandex and some others)
 Host: www.mahean.com

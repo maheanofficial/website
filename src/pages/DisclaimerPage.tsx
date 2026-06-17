@@ -1,13 +1,29 @@
 import SEO from '../components/SEO';
+import { SITE_URL } from '../utils/siteMeta';
+import { buildWebPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './LegalPage.css';
 
 const DisclaimerPage = () => {
+    const disclaimerSchema = [
+        buildWebPageSchema(
+            'দাবিত্যাগ - Mahean Ahmed',
+            'mahean.com-এর বিজ্ঞাপন, কপিরাইট ও দায়-সীমাবদ্ধতা সম্পর্কিত গুরুত্বপূর্ণ ঘোষণা।',
+            `${SITE_URL}/disclaimer`,
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'দাবিত্যাগ', url: '/disclaimer' },
+        ]),
+    ];
+
     return (
         <>
             <SEO
-                title="দাবিত্যাগ - মাহিয়ান আহমেদ"
-                description="mahean.com ওয়েবসাইটের বিজ্ঞাপন, ব্যবহারকারী-জমাকৃত কনটেন্ট, কপিরাইট ও দায়-সীমাবদ্ধতা সম্পর্কিত গুরুত্বপূর্ণ ঘোষণা।"
+                title="দাবিত্যাগ - Mahean Ahmed"
+                description="mahean.com-এর বিজ্ঞাপন, ব্যবহারকারী-জমাকৃত কনটেন্ট, কপিরাইট ও দায়-সীমাবদ্ধতা সম্পর্কিত গুরুত্বপূর্ণ ঘোষণা।"
+                keywords="Disclaimer, দাবিত্যাগ, Copyright Notice, Mahean Ahmed Disclaimer, বিজ্ঞাপন"
                 canonicalUrl="/disclaimer"
+                jsonLd={disclaimerSchema}
             />
 
             <div className="legal-container">

@@ -8,7 +8,9 @@ import {
     TWITTER_HANDLE,
     DEFAULT_DESCRIPTION,
     DEFAULT_KEYWORDS,
-    DEFAULT_OG_IMAGE
+    DEFAULT_OG_IMAGE,
+    DEFAULT_OG_IMAGE_WIDTH,
+    DEFAULT_OG_IMAGE_HEIGHT,
 } from '../utils/siteMeta';
 
 interface SEOProps {
@@ -16,6 +18,8 @@ interface SEOProps {
     description?: string;
     keywords?: string;
     ogImage?: string;
+    ogImageWidth?: number;
+    ogImageHeight?: number;
     ogUrl?: string;
     ogType?: string;
     author?: string;
@@ -29,6 +33,8 @@ interface SEOProps {
     imageAlt?: string;
     publishedTime?: string;
     modifiedTime?: string;
+    articleSection?: string;
+    articleTag?: string;
 }
 
 const SEO = ({
@@ -36,6 +42,8 @@ const SEO = ({
     description = DEFAULT_DESCRIPTION,
     keywords = DEFAULT_KEYWORDS,
     ogImage = DEFAULT_OG_IMAGE,
+    ogImageWidth = DEFAULT_OG_IMAGE_WIDTH,
+    ogImageHeight = DEFAULT_OG_IMAGE_HEIGHT,
     ogUrl,
     ogType = 'website',
     author = SITE_NAME,
@@ -48,7 +56,9 @@ const SEO = ({
     twitterHandle = TWITTER_HANDLE,
     imageAlt,
     publishedTime,
-    modifiedTime
+    modifiedTime,
+    articleSection,
+    articleTag,
 }: SEOProps) => {
     const toAbsoluteUrl = (url?: string) => {
         if (!url) return undefined;
@@ -61,16 +71,24 @@ const SEO = ({
     const resolvedOgUrl = toAbsoluteUrl(ogUrl);
     const finalUrl = resolvedOgUrl || resolvedCanonical || (typeof window !== 'undefined' ? window.location.href : SITE_URL);
     const finalImage = toAbsoluteUrl(ogImage);
-    const finalImageAlt = imageAlt || `${SITE_NAME} cover image`;
+    const finalImageAlt = imageAlt || `${title} - ${SITE_NAME}`;
     const robotsContent = [
         noIndex ? 'noindex' : 'index',
         noFollow ? 'nofollow' : 'follow',
-        'max-image-preview:large'
+        'max-image-preview:large',
+        'max-snippet:-1',
+        'max-video-preview:-1',
     ].join(', ');
 
+    // Build full title: "Page Title | Site Name - Tagline" (or just "Page Title | Site Name")
+    const buildFullTitle = () => {
+        if (title.includes(SITE_NAME)) return title;
+        const suffix = SITE_TAGLINE ? `${SITE_NAME} - ${SITE_TAGLINE}` : SITE_NAME;
+        return `${title} | ${suffix}`;
+    };
+
     useEffect(() => {
-        const titleSuffix = SITE_TAGLINE ? `${SITE_NAME} - ${SITE_TAGLINE}` : SITE_NAME;
-        document.title = title.includes(SITE_NAME) ? title : `${title} | ${titleSuffix}`;
+        document.title = buildFullTitle();
 
         const setMetaTag = (name: string, content: string, isProperty = false) => {
             if (!content) return;
@@ -84,6 +102,11 @@ const SEO = ({
             }
 
             element.setAttribute('content', content);
+        };
+
+        const removeMetaTag = (name: string, isProperty = false) => {
+            const attribute = isProperty ? 'property' : 'name';
+            document.querySelector(`meta[${attribute}="${name}"]`)?.remove();
         };
 
         const setCanonicalLink = (href: string) => {
@@ -108,41 +131,54 @@ const SEO = ({
             element.setAttribute('href', href);
         };
 
+        // ── Standard Meta ──────────────────────────────────────────
         setMetaTag('description', description);
         setMetaTag('keywords', keywords);
         setMetaTag('author', author);
         setMetaTag('robots', robotsContent);
         setMetaTag('googlebot', robotsContent);
         setMetaTag('language', SITE_LANGUAGE);
-        setMetaTag('theme-color', '#0f172a');
+        setMetaTag('theme-color', '#0D0D14');
+        setMetaTag('rating', 'general');
+        setMetaTag('revisit-after', '3 days');
+        setMetaTag('generator', 'Mahean Ahmed Platform');
 
+        // ── Open Graph ─────────────────────────────────────────────
         setMetaTag('og:title', title, true);
         setMetaTag('og:description', description, true);
-        if (finalImage) {
-            setMetaTag('og:image', finalImage, true);
-            setMetaTag('og:image:alt', finalImageAlt, true);
-        }
         setMetaTag('og:url', finalUrl, true);
         setMetaTag('og:type', ogType, true);
         setMetaTag('og:locale', locale, true);
         setMetaTag('og:site_name', siteName, true);
-
-        if (ogType === 'article') {
-            if (author) {
-                setMetaTag('article:author', author, true);
-            }
-            if (publishedTime) {
-                setMetaTag('article:published_time', publishedTime, true);
-            }
-            if (modifiedTime) {
-                setMetaTag('article:modified_time', modifiedTime, true);
-            }
+        if (finalImage) {
+            setMetaTag('og:image', finalImage, true);
+            setMetaTag('og:image:secure_url', finalImage, true);
+            setMetaTag('og:image:alt', finalImageAlt, true);
+            setMetaTag('og:image:width', String(ogImageWidth), true);
+            setMetaTag('og:image:height', String(ogImageHeight), true);
+            setMetaTag('og:image:type', 'image/jpeg', true);
         }
 
+        // ── Article-Specific OG ────────────────────────────────────
+        if (ogType === 'article') {
+            if (author) setMetaTag('article:author', author, true);
+            if (publishedTime) setMetaTag('article:published_time', publishedTime, true);
+            if (modifiedTime) setMetaTag('article:modified_time', modifiedTime, true);
+            if (articleSection) setMetaTag('article:section', articleSection, true);
+            if (articleTag) setMetaTag('article:tag', articleTag, true);
+        } else {
+            // Remove article-specific tags when not an article
+            removeMetaTag('article:author', true);
+            removeMetaTag('article:published_time', true);
+            removeMetaTag('article:modified_time', true);
+        }
+
+        // ── Twitter Card ───────────────────────────────────────────
         setMetaTag('twitter:card', 'summary_large_image');
         setMetaTag('twitter:title', title);
         setMetaTag('twitter:description', description);
         setMetaTag('twitter:domain', SITE_URL.replace(/^https?:\/\//, ''));
+        setMetaTag('twitter:url', finalUrl);
         if (twitterHandle) {
             setMetaTag('twitter:site', twitterHandle);
             setMetaTag('twitter:creator', twitterHandle);
@@ -152,13 +188,14 @@ const SEO = ({
             setMetaTag('twitter:image:alt', finalImageAlt);
         }
 
+        // ── Canonical & Alternate ──────────────────────────────────
         if (finalUrl) {
             setCanonicalLink(finalUrl);
             setAlternateLink('bn-BD', finalUrl);
             setAlternateLink('x-default', finalUrl);
-            setMetaTag('twitter:url', finalUrl);
         }
 
+        // ── JSON-LD ────────────────────────────────────────────────
         document.querySelectorAll('script[type="application/ld+json"][data-seo-managed="true"]').forEach((node) => node.remove());
         const jsonLdEntries = Array.isArray(jsonLd)
             ? jsonLd
@@ -185,12 +222,16 @@ const SEO = ({
         finalUrl,
         finalImage,
         finalImageAlt,
+        ogImageWidth,
+        ogImageHeight,
         robotsContent,
         locale,
         siteName,
         twitterHandle,
         publishedTime,
-        modifiedTime
+        modifiedTime,
+        articleSection,
+        articleTag,
     ]);
 
     return null;

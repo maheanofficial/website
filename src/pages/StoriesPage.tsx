@@ -15,6 +15,7 @@ import { getReaderSession } from '../utils/readerExperience';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
 import { SITE_URL } from '../utils/siteMeta';
+import { buildCollectionPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import {
     matchesCategoryFilter,
     matchesTagFilter,
@@ -258,51 +259,56 @@ export default function StoriesPage() {
     const readerResumeMinutes = matchedResumeStory ? estimateStoryReadMinutes(matchedResumeStory) : null;
     const adminWriterPath = buildAuthPageLink('/admin/login', '/admin/dashboard', '/admin/dashboard');
 
-    // SEO Schemas
-    const collectionSchema = {
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        "name": "Bangla Stories Collection",
-        "description": "Read the best collection of Bangla Audiobooks, Thrillers, and Short Stories.",
-        "url": canonicalUrl,
-        "mainEntity": {
-            "@type": "ItemList",
-            "itemListElement": sortedStories.slice(0, 10).map((story, index) => ({
-                "@type": "ListItem",
-                "position": index + 1,
-                "url": `${SITE_URL}/stories/${story.slug || story.id}`,
-                "name": story.title
-            }))
-        }
-    };
-
-    const profileSchema = authorFilter ? {
-        "@context": "https://schema.org",
-        "@type": "ProfilePage",
-        "url": canonicalUrl,
-        "mainEntity": {
-            "@type": "Person",
-            "name": authorDetails?.name || authorFilter,
-            "description": authorDetails?.bio,
-            "image": authorDetails?.avatar
-        }
-    } : undefined;
-
+    // SEO Title & Description
     const seoTitle = authorFilter
         ? `${authorFilter} - বাংলা গল্প সংগ্রহ`
         : tagFilter
             ? `${tagFilter} ট্যাগের গল্প - Mahean Ahmed`
-            : "বাংলা গল্প ও অডিওবুক কালেকশন - Mahean Ahmed";
+            : 'সব বাংলা গল্প ও অডিওবুক | Mahean Ahmed';
 
     const seoDescription = authorDetails?.bio
-        || (tagFilter ? `${tagFilter} ট্যাগের সেরা গল্প পড়ুন এবং নতুন গল্প আবিষ্কার করুন।` : "সেরা বাংলা গল্পের কালেকশন। থ্রিলার, হরর, রোমান্টিক এবং সাসপেন্স সব ধরনের গল্প পড়ুন এখানে।");
+        || (tagFilter ? `${tagFilter} ট্যাগের সেরা গল্প পড়ুন এবং নতুন গল্প আবিষ্কার করুন।` : 'সেরা বাংলা গল্পের সংগ্রহ। থ্রিলার, হরর, রোমান্টিক, সাসপেন্স সব ধরনের বাংলা গল্প পড়ুন এখানে।');
+
+    // SEO Schemas
+    const collectionSchema = [
+        buildCollectionPageSchema(
+            seoTitle,
+            seoDescription,
+            canonicalUrl,
+            sortedStories.slice(0, 10).map((story) => ({
+                name: story.title,
+                url: `${SITE_URL}/stories/${story.slug || story.id}`,
+            }))
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'গল্প', url: '/stories' },
+            ...(authorFilter ? [{ name: authorFilter, url: canonicalUrl }] : []),
+            ...(tagFilter ? [{ name: tagFilter, url: canonicalUrl }] : []),
+        ]),
+    ];
+
+    const profileSchema = authorFilter ? [
+        ...collectionSchema,
+        {
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "url": canonicalUrl,
+            "mainEntity": {
+                "@type": "Person",
+                "name": authorDetails?.name || authorFilter,
+                "description": authorDetails?.bio,
+                "image": authorDetails?.avatar
+            }
+        }
+    ] : undefined;
 
     return (
         <div className="stories-page-container fade-in-up">
             <SEO
                 title={seoTitle}
                 description={seoDescription}
-                keywords="Bangla Story, Bangla Audio Book, Mahean Ahmed, Thriller Story, Horror Story, Detective Story"
+                keywords="Bangla Story, Bangla Audio Book, Mahean Ahmed, থ্রিলার গল্প, Horror Story, Detective Story, বাংলা গল্প, বাংলা সাসপেন্স, Bangla Thriller, Bengali Fiction"
                 ogType={authorFilter ? "profile" : "website"}
                 canonicalUrl={canonicalUrl}
                 jsonLd={authorFilter ? profileSchema! : collectionSchema}

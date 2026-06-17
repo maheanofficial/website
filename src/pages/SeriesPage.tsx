@@ -4,6 +4,8 @@ import SEO from '../components/SEO';
 import StoryCard from '../components/StoryCard';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { buildCollectionPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
+import { SITE_URL } from '../utils/siteMeta';
 import './SeriesPage.css';
 
 const SeriesPage = () => {
@@ -52,10 +54,25 @@ const SeriesPage = () => {
     return (
         <div className="series-page page-offset">
             <SEO
-                title="সিরিজ - ধারাবাহিক বাংলা গল্প | Mahean Ahmed"
-                description="ধারাবাহিক বাংলা গল্পের সম্পূর্ণ সংগ্রহ দেখুন।"
-                keywords="Bangla Series, Bengali Episodes, Serialized Stories"
+                title="ধারাবাহিক সিরিজ - বাংলা সিরিজ গল্পের সংগ্রহ | Mahean Ahmed"
+                description="বাংলা ধারাবাহিক গল্পের সম্পূর্ণ সংগ্রহ। একাধিক পর্বে সাজানো রোমাঞ্চকর, থ্রিলার ও সাসপেন্স সিরিজ গল্প পড়ুন।"
+                keywords="Bangla Series, Bengali Episodes, Serialized Stories, বাংলা সিরিজ, ধারাবাহিক গল্প, বাংলা ধারাবাহিক উপন্যাস"
                 canonicalUrl="/series"
+                jsonLd={[
+                    buildCollectionPageSchema(
+                        'ধারাবাহিক বাংলা গল্পের সংগ্রহ - Mahean Ahmed',
+                        'একাধিক পর্বে সাজানো বাংলা ধারাবাহিক গল্পের সংগ্রহ।',
+                        `${SITE_URL}/series`,
+                        sortedStories.slice(0, 20).map(s => ({
+                            name: s.title,
+                            url: `${SITE_URL}/stories/${s.slug || s.id}`,
+                        }))
+                    ),
+                    buildBreadcrumbSchema([
+                        { name: 'হোম', url: '/' },
+                        { name: 'সিরিজ', url: '/series' },
+                    ]),
+                ]}
             />
 
             <div className="container">

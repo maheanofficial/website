@@ -4,6 +4,7 @@ import AuthorsGrid from '../components/AuthorsGrid';
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
 import { SITE_URL } from '../utils/siteMeta';
+import { buildCollectionPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './AuthorsPage.css';
 
 const normalizeValue = (value?: string | null) => (value ?? '').trim().toLowerCase();
@@ -26,8 +27,6 @@ const hasPublishedStoryForAuthor = (author: Author, stories: Story[]) => {
 
 const AuthorsPage = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
-    const canonicalUrl = `${SITE_URL}/authors`;
-
     useEffect(() => {
         let isMounted = true;
         const loadAuthors = async () => {
@@ -43,29 +42,28 @@ const AuthorsPage = () => {
         };
     }, []);
 
-    const authorsSchema = {
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        "name": "বাংলা লেখক তালিকা",
-        "description": "জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা এবং পাঠকের রেটিং দেখুন।",
-        "url": canonicalUrl,
-        "mainEntity": {
-            "@type": "ItemList",
-            "itemListElement": authors.map((author, index) => ({
-                "@type": "ListItem",
-                "position": index + 1,
-                "name": author.name,
-                "url": `${SITE_URL}/stories?author=${encodeURIComponent(author.name)}`
+    const authorsSchema = [
+        buildCollectionPageSchema(
+            'বাংলা লেখক তালিকা - Mahean Ahmed',
+            'জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা এবং পাঠকের রেটিং দেখুন।',
+            `${SITE_URL}/authors`,
+            authors.map((author) => ({
+                name: author.name,
+                url: `${SITE_URL}/stories?author=${encodeURIComponent(author.name)}`,
             }))
-        }
-    };
+        ),
+        buildBreadcrumbSchema([
+            { name: 'হোম', url: '/' },
+            { name: 'লেখক', url: '/authors' },
+        ]),
+    ];
 
     return (
         <div className="authors-page page-offset">
             <SEO
-                title="লেখক তালিকা - Mahean Ahmed"
-                description="জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা, এবং পাঠকের প্রতিক্রিয়া দেখুন।"
-                keywords="Bangla Authors, Bengali Writers, Story Authors, Mahean Ahmed"
+                title="বাংলা লেখক তালিকা - Mahean Ahmed"
+                description="জনপ্রিয় বাংলা লেখকদের প্রোফাইল, গল্প সংখ্যা, এবং পাঠকের প্রতিক্রিয়া দেখুন। নতুন বাংলা লেখক আবিষ্কার করুন এবং তাদের গল্পগুলো পড়ুন।"
+                keywords="Bangla Authors, Bengali Writers, Story Authors, বাংলা লেখক, বাংলা সাহিত্যিক, Mahean Ahmed Authors"
                 canonicalUrl="/authors"
                 jsonLd={authorsSchema}
             />
