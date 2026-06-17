@@ -15,6 +15,7 @@ import {
     readJsonBody
 } from './_request-utils.js';
 import { readSessionClaimsFromRequest } from './_auth-session.js';
+import { submitToIndexNow } from './_indexnow.js';
 
 const parseBodyLimitMb = (...values) => {
     for (const value of values) {
@@ -560,6 +561,44 @@ const assertAccess = async (req, action, table) => {
     return { ok: true, actor };
 };
 
+const triggerIndexNowForStories = (rows) => {
+    try {
+        const list = Array.isArray(rows) ? rows : (rows ? [rows] : []);
+        const urls = new Set(['/', '/stories']);
+        let hasPublic = false;
+
+        list.forEach((row) => {
+            const status = String(row?.status || '').trim().toLowerCase();
+            const isPublic = !status || status === 'published' || status === 'completed' || status === 'ongoing';
+            if (!isPublic) return;
+
+            hasPublic = true;
+            const slug = String(row?.slug || '').trim();
+            if (slug) {
+                urls.add(`/stories/${slug}`);
+                const partsCount = Array.isArray(row?.parts) ? row.parts.length : 0;
+                for (let i = 1; i <= Math.max(1, partsCount); i++) {
+                    urls.add(`/stories/${slug}/part/${i}`);
+                }
+            }
+        });
+
+        if (hasPublic) {
+            submitToIndexNow(Array.from(urls)).catch((err) => {
+                console.error('[IndexNow] Background trigger failed:', err);
+            });
+        }
+    } catch (error) {
+        console.error('[IndexNow] Error queueing trigger:', error);
+    }
+};
+
+const afterDbWrite = (table, action, result) => {
+    if (table === STORY_TABLE && WRITE_ACTIONS.has(action) && result) {
+        triggerIndexNowForStories(result);
+    }
+};
+
 export default async function handler(req, res) {
     const method = (req.method || 'GET').toUpperCase();
     if (method !== 'POST') {
@@ -649,6 +688,7 @@ export default async function handler(req, res) {
                     sanitizeModeratorStoryRow(entry, accessCheck.actor.id, null)
                 );
                 const inserted = await insertRows(table, moderatedValues);
+                afterDbWrite(table, action, inserted);
                 json(res, 200, { data: selectColumns(inserted, columns), error: null });
                 return;
             }
@@ -663,6 +703,7 @@ export default async function handler(req, res) {
                 return;
             }
             const inserted = await insertRows(table, values);
+            afterDbWrite(table, action, inserted);
             json(res, 200, { data: selectColumns(inserted, columns), error: null });
             return;
         }
@@ -689,6 +730,7 @@ export default async function handler(req, res) {
                 });
 
                 const changed = await upsertRows(table, moderatedValues, 'id');
+                afterDbWrite(table, action, changed);
                 json(res, 200, { data: changed, error: null });
                 return;
             }
@@ -703,6 +745,7 @@ export default async function handler(req, res) {
                 return;
             }
             const changed = await upsertRows(table, values, body.onConflict || 'id');
+            afterDbWrite(table, action, changed);
             json(res, 200, { data: changed, error: null });
             return;
         }
@@ -754,6 +797,7 @@ export default async function handler(req, res) {
                     { op: 'eq', column: 'submitted_by', value: accessCheck.actor.id }
                 ];
                 const updated = await updateRows(table, moderatedPatch, scopedFilters);
+                afterDbWrite(table, action, updated);
                 json(res, 200, { data: updated, error: null });
                 return;
             }
@@ -768,6 +812,7 @@ export default async function handler(req, res) {
                 return;
             }
             const updated = await updateRows(table, patch, filters);
+            afterDbWrite(table, action, updated);
             json(res, 200, { data: updated, error: null });
             return;
         }
@@ -818,11 +863,13 @@ export default async function handler(req, res) {
                 { op: 'eq', column: 'submitted_by', value: accessCheck.actor.id }
             ];
             const deleted = await deleteRows(table, scopedFilters);
+            afterDbWrite(table, action, deleted);
             json(res, 200, { data: selectColumns(deleted, columns), error: null });
             return;
         }
 
         const deleted = await deleteRows(table, filters);
+        afterDbWrite(table, action, deleted);
         json(res, 200, { data: selectColumns(deleted, columns), error: null });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unexpected DB error.';

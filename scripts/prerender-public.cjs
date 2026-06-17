@@ -1266,6 +1266,43 @@ const run = async () => {
   console.log(
     `[prerender] ads.txt ${hasAdsensePublisher ? 'generated with AdSense publisher id.' : 'generated with placeholder comments.'}`
   );
+
+  // Submit to IndexNow
+  const pathsToPing = [
+    ...staticRouteMeta.map((r) => r.path),
+    ...Array.from(uniquePaths).slice(0, 100)
+  ];
+  await pingIndexNow(pathsToPing);
+};
+
+const pingIndexNow = async (paths) => {
+  const host = 'www.mahean.com';
+  const key = '63133624986647138bb9a47cc15c5d86';
+  const keyLocation = `https://${host}/${key}.txt`;
+  const urls = paths.map((p) => `https://${host}${p}`);
+
+  console.log(`[prerender] submitting ${urls.length} URLs to IndexNow...`);
+  try {
+    const response = await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify({
+        host,
+        key,
+        keyLocation,
+        urlList: urls
+      })
+    });
+    if (response.ok) {
+      console.log('[prerender] IndexNow URLs submitted successfully.');
+    } else {
+      console.warn(`[prerender] IndexNow submission failed: ${response.status}`);
+    }
+  } catch (e) {
+    console.warn('[prerender] IndexNow connection failed:', e.message || e);
+  }
 };
 
 run().catch((error) => {
