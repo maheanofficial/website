@@ -206,7 +206,7 @@ export const blockIp = (ip, reason) => {
         expiresAt: Date.now() + BLOCK_DURATION_MS,
         reason
     });
-    console.warn([security] IP  blocked for 24 hours. Reason: );
+    console.warn(`[security] IP ${ip} blocked for 24 hours. Reason: ${reason}`);
 };
 
 export const isIpBlocked = (ip) => {
