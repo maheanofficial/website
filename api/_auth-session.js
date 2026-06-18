@@ -47,10 +47,7 @@ const resolveSessionSecret = () => {
     const sharedFallbackSecret = pickFirstEnv(
         'APP_SECRET',
         'SESSION_SECRET',
-        'JWT_SECRET',
-        'GOOGLE_OAUTH_CLIENT_SECRET',
-        'MYSQL_PASSWORD',
-        'DB_PASSWORD'
+        'JWT_SECRET'
     );
     if (sharedFallbackSecret) {
         cachedSessionSecret = sharedFallbackSecret;

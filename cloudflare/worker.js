@@ -10,6 +10,7 @@ import storyRedirectHandler from '../api/story-redirect.js';
 import uploadImageHandler from '../api/upload-image.js';
 import { tryServeStorySeoPage } from '../api/_story-seo-page.js';
 import { runNodeHandler } from './node-handler-adapter.js';
+import { isIpBlocked, blockIp, checkMaliciousRequest } from '../api/_request-utils.js';
 
 const API_HANDLERS = new Map([
     ['/api/admin-users', adminUsersHandler],
@@ -157,6 +158,9 @@ const withSecurityHeaders = (request, response, pathname) => {
     if (!headers.has('x-permitted-cross-domain-policies')) {
         headers.set('X-Permitted-Cross-Domain-Policies', 'none');
     }
+    if (!headers.has('content-security-policy')) {
+        headers.set('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss:; img-src 'self' data: blob: https:; frame-src 'self' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; worker-src 'self' blob:; object-src 'none';`);
+    }
     if (new URL(request.url).protocol === 'https:' && !headers.has('strict-transport-security')) {
         headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
@@ -230,6 +234,16 @@ const runStorySeoHandler = async (request, env, pathname, assets) => {
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
+
+        const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+        if (isIpBlocked(clientIp)) {
+            return new Response('Forbidden: Your IP has been blocked due to suspicious activity.', { status: 403 });
+        }
+        if (checkMaliciousRequest(url.pathname + url.search)) {
+            blockIp(clientIp, 'Malicious request pattern detected');
+            return new Response('Forbidden: Suspicious activity detected.', { status: 403 });
+        }
+
         const method = (request.method || 'GET').toUpperCase();
         const pathname = toNormalizedPathname(url.pathname);
         const host = firstHostValue(url.host || request.headers.get('host') || '');

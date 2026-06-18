@@ -195,3 +195,74 @@ export const consumeRateLimit = (key, max, windowMs) => {
         retryAfterSec: Math.max(0, Math.ceil((bucket.resetAt - now) / 1000))
     };
 };
+const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000;
+const BLOCKED_IPS = new Map();
+const RATE_VIOLATIONS = new Map();
+const MAX_RATE_VIOLATIONS = 10;
+
+export const blockIp = (ip, reason) => {
+    if (!ip || ip === 'unknown') return;
+    BLOCKED_IPS.set(ip, {
+        expiresAt: Date.now() + BLOCK_DURATION_MS,
+        reason
+    });
+    console.warn([security] IP  blocked for 24 hours. Reason: );
+};
+
+export const isIpBlocked = (ip) => {
+    if (!ip || ip === 'unknown') return false;
+    const record = BLOCKED_IPS.get(ip);
+    if (!record) return false;
+    if (Date.now() > record.expiresAt) {
+        BLOCKED_IPS.delete(ip);
+        return false;
+    }
+    return true;
+};
+
+const MALICIOUS_PATTERNS = [
+    /\.env/i,
+    /\.git/i,
+    /wp-admin/i,
+    /wp-login/i,
+    /\.php$/i,
+    /(?:\.\.\/){2,}/,
+    /UNION\s+SELECT/i,
+    /<script[^>]*>/i,
+    /SELECT\s+.*\s+FROM/i,
+    /(etc|bin|var)\/(passwd|shadow|ls)/i
+];
+
+export const checkMaliciousRequest = (pathname) => {
+    const decoded = safeDecodeURIComponent(pathname || '');
+    for (const pattern of MALICIOUS_PATTERNS) {
+        if (pattern.test(decoded)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+const safeDecodeURIComponent = (value) => {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+};
+
+export const recordRateViolation = (ip) => {
+    if (!ip || ip === 'unknown') return;
+    const current = RATE_VIOLATIONS.get(ip) || 0;
+    const next = current + 1;
+    if (next >= MAX_RATE_VIOLATIONS) {
+        blockIp(ip, 'Repeated rate limit violations');
+        RATE_VIOLATIONS.delete(ip);
+    } else {
+        RATE_VIOLATIONS.set(ip, next);
+        setTimeout(() => {
+            const val = RATE_VIOLATIONS.get(ip);
+            if (val === next) RATE_VIOLATIONS.delete(ip);
+        }, 5 * 60_000);
+    }
+};

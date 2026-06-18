@@ -18,6 +18,7 @@ import searchHandler from './api/search.js';
 import syncDataHandler from './api/sync-data.js';
 import uploadImageHandler from './api/upload-image.js';
 import { tryServeStorySeoPage } from './api/_story-seo-page.js';
+import { getClientIp, isIpBlocked, blockIp, checkMaliciousRequest } from './api/_request-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -247,7 +248,7 @@ const applySecurityHeaders = (req, res) => {
     if (!res.hasHeader('Content-Security-Policy')) {
         res.setHeader(
             'Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-src 'self' https://accounts.google.com; worker-src 'self' blob:; object-src 'none';"
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; mmg-src 'self' data: blob: https:; connect-src 'self' https: wss:; img-src 'self' data: blob: https:; frame-src 'self' https://accounts.google.com https://apis.google.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; worker-src 'self' blob:; object-src 'none';"
         );
     }
     if (!res.hasHeader('X-Request-ID')) {
@@ -608,6 +609,23 @@ const ensurePassengerProcessHint = async () => {
 
 const handleRequest = async (req, res) => {
     applySecurityHeaders(req, res);
+
+    const clientIp = getClientIp(req);
+    if (isIpBlocked(clientIp)) {
+        res.statusCode = 403;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Forbidden: Your IP has been blocked due to suspicious activity.');
+        return;
+    }
+
+    if (checkMaliciousRequest(req.url)) {
+        blockIp(clientIp, 'Malicious request pattern detected');
+        res.statusCode = 403;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Forbidden: Suspicious activity detected.');
+        return;
+    }
+
 
     const baseUrl = `http://${req.headers.host || 'localhost'}`;
     const parsed = new URL(req.url || '/', baseUrl);
