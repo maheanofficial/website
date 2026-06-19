@@ -68,6 +68,8 @@ export default function StoriesPage() {
     }, [location.search]);
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
     const [authors, setAuthors] = useState<Author[]>([]);
+    const [searchSuggestions, setSearchSuggestions] = useState<Story[]>([]);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     // Search and Filter State
     const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +111,18 @@ export default function StoriesPage() {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchSuggestions([]);
+            return;
+        }
+        const filtered = stories.filter(story => 
+            story.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (story.author && story.author.toLowerCase().includes(searchQuery.toLowerCase()))
+        ).slice(0, 5);
+        setSearchSuggestions(filtered);
+    }, [searchQuery, stories]);
 
     useEffect(() => {
         const syncFiltersId = window.setTimeout(() => {
@@ -170,6 +184,49 @@ export default function StoriesPage() {
             left.localeCompare(right, undefined, { sensitivity: 'base' })
         );
     }, [stories]);
+
+    const renderSearchBox = () => (
+        <div className="search-box-wrapper" onFocus={() => setIsSearchFocused(true)} onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}>
+            <div className="search-box">
+                <Search className="search-icon" size={20} />
+                <input
+                    type="text"
+                    placeholder="গল্প বা লেখকের নাম খুঁজুন..."
+                    value={searchQuery}
+                    onChange={(e) => handleFilterChange(() => setSearchQuery(e.target.value))}
+                />
+            </div>
+            {isSearchFocused && searchSuggestions.length > 0 && (
+                <div className="search-suggestions-dropdown">
+                    {searchSuggestions.map((story) => (
+                        <Link 
+                            key={story.id} 
+                            to={`/stories/${story.slug || story.id}`}
+                            className="suggestion-item"
+                        >
+                            <div className="suggestion-item-thumb">
+                                <SmartImage src={story.cover_image || story.image} alt={story.title} showFullText={false} />
+                            </div>
+                            <div className="suggestion-item-info">
+                                <span className="suggestion-item-title">{story.title}</span>
+                                <span className="suggestion-item-author">{story.author}</span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    const renderMoodFilters = () => (
+        <div className="mood-buttons-row">
+            <button className={`mood-btn ${tagFilter === null ? 'active' : ''}`} onClick={() => handleFilterChange(() => setTagFilter(null))}>সব মুড</button>
+            <button className={`mood-btn ${tagFilter === 'থ্রিলার' ? 'active' : ''}`} onClick={() => handleFilterChange(() => setTagFilter('থ্রিলার'))}>থ্রিলার</button>
+            <button className={`mood-btn ${tagFilter === 'হরর' ? 'active' : ''}`} onClick={() => handleFilterChange(() => setTagFilter('হরর'))}>হরর</button>
+            <button className={`mood-btn ${tagFilter === 'রোমান্টিক' ? 'active' : ''}`} onClick={() => handleFilterChange(() => setTagFilter('রোমান্টিক'))}>রোমান্টিক</button>
+            <button className={`mood-btn ${tagFilter === 'রহস্য' ? 'active' : ''}`} onClick={() => handleFilterChange(() => setTagFilter('রহস্য'))}>রহস্য</button>
+        </div>
+    );
 
     // Filter and sort logic
     const normalizedTag = normalizeTagFilterKey(tagFilter);
@@ -434,15 +491,7 @@ export default function StoriesPage() {
 
                     {/* Filter Bar */}
                     <div className="filter-bar-wrapper mb-8">
-                        <div className="search-box">
-                            <Search className="search-icon" size={20} />
-                            <input
-                                type="text"
-                                placeholder="গল্প বা লেখকের নাম খুঁজুন..."
-                                value={searchQuery}
-                                onChange={(e) => handleFilterChange(() => setSearchQuery(e.target.value))}
-                            />
-                        </div>
+                        {renderSearchBox()}
 
                         <div className="filter-controls">
                             <div className="select-wrapper">
@@ -612,15 +661,7 @@ export default function StoriesPage() {
 
                             {/* Filter Bar */}
                             <div className="filter-bar-wrapper">
-                                <div className="search-box">
-                                    <Search className="search-icon" size={20} />
-                                    <input
-                                        type="text"
-                                        placeholder="গল্প বা লেখকের নাম খুঁজুন..."
-                                        value={searchQuery}
-                                        onChange={(e) => handleFilterChange(() => setSearchQuery(e.target.value))}
-                                    />
-                                </div>
+                                {renderSearchBox()}
 
                                 <div className="filter-controls">
                                     <div className="select-wrapper">
@@ -665,6 +706,7 @@ export default function StoriesPage() {
                                         </select>
                                     </div>
                                 </div>
+                                {renderMoodFilters()}
                             </div>
 
                             {/* Results Summary */}

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { BookOpen, Bookmark, Clock3, LayoutDashboard, MessageSquare, Save, UserRound, X } from 'lucide-react';
+import { BookOpen, Bookmark, Clock3, LayoutDashboard, MessageSquare, Save, UserRound, X, Award, Flame, Footprints, Moon } from 'lucide-react';
 import SEO from '../components/SEO';
 import SmartImage from '../components/SmartImage';
 import { buildAuthPageLink } from '../utils/authRedirect';
@@ -17,6 +17,7 @@ import {
 } from '../utils/readerExperience';
 import { getCachedStories, getStories, type Story } from '../utils/storyManager';
 import type { User } from '../utils/userManager';
+import { calculateStreak, evaluateBadges } from '../utils/gamification';
 import './ProfilePage.css';
 
 const trimValue = (value: unknown) => String(value || '').trim();
@@ -244,6 +245,9 @@ const ProfilePage = () => {
         })
         : '';
 
+    const streakData = calculateStreak(readerHistory);
+    const badges = evaluateBadges(readerHistory, myComments.length, streakData);
+
     const handleRemoveBookmark = (storyId: string) => {
         if (!currentUser?.id) return;
         const nextBookmarks = removeReaderBookmark(currentUser.id, storyId);
@@ -373,6 +377,66 @@ const ProfilePage = () => {
                             <strong>{myComments.length}</strong>
                             <span>Comments posted</span>
                         </article>
+                        <article className="profile-stat-card streak-card">
+                            <span className="profile-stat-icon streak-icon">
+                                <Flame size={18} />
+                            </span>
+                            <strong>{streakData.currentStreak}</strong>
+                            <span>Day streak</span>
+                        </article>
+                    </section>
+
+                    {/* Badges & Achievements Section */}
+                    <section className="profile-badges-section">
+                        <div className="profile-badges-head">
+                            <span className="profile-panel-kicker">Achievements & Milestones</span>
+                            <h2>Unlocked Reader Badges</h2>
+                        </div>
+                        <div className="profile-badges-grid">
+                            {badges.map((badge) => {
+                                const renderBadgeIcon = (iconName: string) => {
+                                    switch (iconName) {
+                                        case 'footprints':
+                                            return <Footprints size={22} />;
+                                        case 'book-open':
+                                            return <BookOpen size={22} />;
+                                        case 'moon':
+                                            return <Moon size={22} />;
+                                        case 'flame':
+                                            return <Flame size={22} />;
+                                        case 'award':
+                                            return <Award size={22} />;
+                                        case 'message-square':
+                                            return <MessageSquare size={22} />;
+                                        default:
+                                            return <Award size={22} />;
+                                    }
+                                };
+
+                                return (
+                                    <div 
+                                        key={badge.id} 
+                                        className={`profile-badge-card ${badge.isUnlocked ? 'unlocked' : 'locked'}`}
+                                    >
+                                        <div className="profile-badge-icon-wrap">
+                                            {renderBadgeIcon(badge.icon)}
+                                        </div>
+                                        <div className="profile-badge-info">
+                                            <h3>{badge.name}</h3>
+                                            <p>{badge.description}</p>
+                                            {!badge.isUnlocked ? (
+                                                <div className="profile-badge-progress-container">
+                                                    <div className="profile-badge-progress-bar" style={{ width: `${badge.progress}%` }}></div>
+                                                    <span className="profile-badge-progress-text">{badge.currentValue} / {badge.targetValue}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="profile-badge-unlocked-status">Unlocked</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </section>
 
                     {dashboardError ? (

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>আপনি অফলাইন আছেন | মাহিয়ানের গল্পকথা</title>
+  <style>
+    :root {
+      --bg-primary: #0D0D14;
+      --bg-secondary: #13131E;
+      --text-primary: #FAFAFA;
+      --text-secondary: #B0B0B0;
+      --accent-primary: #FF5C00;
+      --glass-bg: rgba(19, 19, 30, 0.82);
+      --glass-border: rgba(255, 92, 0, 0.18);
+    }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      padding: 40px 30px;
+      border-radius: 24px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+    .icon {
+      font-size: 64px;
+      color: var(--accent-primary);
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      margin: 0 0 10px;
+    }
+    p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 0 30px;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--accent-primary);
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.2s ease;
+    }
+    .btn:hover {
+      background: #ff7426;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📶❌</div>
+    <h1>ইন্টারনেট সংযোগ নেই</h1>
+    <p>দুঃখিত, আপনি বর্তমানে অফলাইনে আছেন। আপনার নেট কানেকশন চেক করে আবার চেষ্টা করুন। আগে লোড করা গল্পগুলো আপনি এখনও পড়তে পারবেন!</p>
+    <a href="/" class="btn">পুনরায় চেষ্টা করুন</a>
+  </div>
+</body>
+</html>

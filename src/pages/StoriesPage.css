@@ -1090,3 +1090,99 @@
         grid-template-columns: 1fr !important;
     }
 }
+
+/* Premium Live Search & Mood Filter styles */
+.search-box-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.search-suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    z-index: 99;
+    max-height: 280px;
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 92, 0, 0.05);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: rgba(255, 92, 0, 0.08);
+}
+
+.suggestion-item-thumb {
+    width: 36px;
+    height: 48px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.suggestion-item-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.suggestion-item-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.suggestion-item-author {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+/* Mood Filter Buttons Row */
+.mood-buttons-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.mood-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mood-btn:hover,
+.mood-btn.active {
+    background: var(--accent-gradient);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+

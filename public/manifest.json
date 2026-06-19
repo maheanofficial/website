@@ -1,0 +1,16 @@
+{
+  "short_name": "Mahean Story",
+  "name": "মাহিয়ানের গল্পকথা - অডিওবুক ও গল্প",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0D0D14",
+  "theme_color": "#FF5C00",
+  "display": "standalone",
+  "orientation": "portrait"
+}

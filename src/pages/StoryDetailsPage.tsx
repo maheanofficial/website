@@ -1,4 +1,4 @@
-﻿import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
 import {
@@ -47,8 +47,9 @@ import {
 import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
-import ShareButtons from '../components/ShareButtons';
 import StoryRating from '../components/StoryRating';
+import PremiumPlayer from '../components/PremiumPlayer';
+import ShareButtons from '../components/ShareButtons';
 import type { User } from '../utils/userManager';
 import './StoryDetailsPage.css';
 
@@ -977,6 +978,21 @@ const StoryDetailsPage = () => {
         `Please review this story for policy/copyright issue.\n\nURL: ${canonicalUrl}\nStory ID: ${story.id}\nReason:`
     )}`;
 
+    const extractYouTubeId = (text: string) => {
+        if (!text) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = text.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const getSeedVideoId = (storyId: string) => {
+        const popularIds = ['3tmd-ClpJKA', 'coYw-MIdkGE', '9bZkp7q19f0', 'dQw4w9WgXcQ'];
+        const index = Math.abs(storyId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % popularIds.length;
+        return popularIds[index];
+    };
+
+    const youtubeVideoId = extractYouTubeId(story.content) || extractYouTubeId(story.excerpt) || getSeedVideoId(story.id);
+
     return (
         <article className="story-details-page fade-in-up">
             {/* Reading Progress Bar */}
@@ -1082,6 +1098,11 @@ const StoryDetailsPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Premium Audiobook Player */}
+                {youtubeVideoId && (
+                    <PremiumPlayer videoId={youtubeVideoId} title={story.title} />
+                )}
 
                 {/* Parts Navigation Controls */}
                 <div className="parts-navigation-box">

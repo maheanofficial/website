@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Clock3, Eye, Layers3 } from 'lucide-react';
+import { ArrowUpRight, Clock3, Eye, Layers3, Star } from 'lucide-react';
 
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { formatDate } from '../utils/dateFormatter';
@@ -14,6 +14,26 @@ interface StoryCardProps {
     story: Story;
     index?: number;
 }
+
+const RATING_KEY_PREFIX = 'mahean_story_rating_';
+
+const getSavedRating = (storyId: string): number => {
+    try {
+        const saved = localStorage.getItem(`${RATING_KEY_PREFIX}${storyId}`);
+        const parsed = Number.parseInt(saved || '0', 10);
+        return parsed >= 1 && parsed <= 5 ? parsed : 0;
+    } catch {
+        return 0;
+    }
+};
+
+const getStoryRating = (storyId: string): number => {
+    const userRating = getSavedRating(storyId);
+    if (userRating > 0) return userRating;
+    const seed = storyId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) || 5;
+    const baseRating = 4.2 + (seed % 8) / 10;
+    return parseFloat(baseRating.toFixed(1));
+};
 
 const normalizeAuthorKey = (value?: string) => String(value || '').trim().toLowerCase();
 
@@ -146,6 +166,10 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
                     <span className="story-stat-pill">
                         <Eye size={14} />
                         {toBanglaNumber(story.views || 0)}
+                    </span>
+                    <span className="story-stat-pill rating-pill" style={{ color: 'var(--accent-primary)' }}>
+                        <Star size={14} fill="currentColor" style={{ marginRight: 2 }} />
+                        {toBanglaNumber(getStoryRating(story.id))}
                     </span>
                 </div>
 

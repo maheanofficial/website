@@ -13,6 +13,7 @@
   <meta name="msapplication-TileImage" content="/assets/logo-solid.png" />
   <meta name="msapplication-TileColor" content="#0D0D14" />
   <meta name="theme-color" content="#0D0D14" />
+  <link rel="manifest" href="/manifest.json" />
 
   <!-- Web App Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -178,6 +179,15 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('Service Worker registered successfully.', reg.scope))
+          .catch((err) => console.warn('Service Worker registration failed.', err));
+      });
+    }
+  </script>
 </body>
 
 </html>
