@@ -21,6 +21,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const AdminSignupPage = lazy(() => import('./pages/AdminSignupPage'));
 const AudiobooksPage = lazy(() => import('./pages/AudiobooksPage'));
 const AuthorsPage = lazy(() => import('./pages/AuthorsPage'));
+const AuthorProfilePage = lazy(() => import('./pages/AuthorProfilePage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const DisclaimerPage = lazy(() => import('./pages/DisclaimerPage'));
@@ -39,6 +40,7 @@ const SubmitStoryPage = lazy(() => import('./pages/SubmitStoryPage'));
 const TagsPage = lazy(() => import('./pages/TagsPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'));
+const WriterDashboard = lazy(() => import('./pages/WriterDashboard'));
 
 const AdminFallback = () => (
   <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
@@ -165,6 +167,7 @@ function App() {
               <Route path="/stories" element={<StoriesPage />} />
               <Route path="/series" element={<SeriesPage />} />
               <Route path="/authors" element={<AuthorsPage />} />
+              <Route path="/authors/:slug" element={<AuthorProfilePage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/tags" element={<TagsPage />} />
               <Route path="/stories/:id/:partNumber" element={<StoryDetailsPage />} />
@@ -177,6 +180,8 @@ function App() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/admin/signup" element={<AdminSignupPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/writer/dashboard" element={<WriterDashboard />} />
+              <Route path="/reader/dashboard" element={<Navigate to="/profile" replace />} />
               <Route path="/admin/dashboard/*" element={<AdminPage />} />
               <Route path="/author/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

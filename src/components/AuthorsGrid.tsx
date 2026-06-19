@@ -5,6 +5,7 @@ import { ArrowUpRight, BookOpen, Check, Eye } from 'lucide-react';
 import { getAllAuthors, type Author } from '../utils/authorManager';
 import { getStories, type Story } from '../utils/storyManager';
 import { toBanglaNumber } from '../utils/numberFormatter';
+import { slugify } from '../utils/slugify';
 import SmartImage from './SmartImage';
 import './AuthorsGrid.css';
 
@@ -77,7 +78,7 @@ const AuthorsGrid = () => {
             <div className="authors-grid-shell">
                 <div className="authors-grid">
                     {authorsWithStats.map((author, index) => {
-                        const authorLink = `/stories?author=${encodeURIComponent(author.name)}`;
+                        const authorLink = `/authors/${author.username || slugify(author.name)}`;
                         const profileMeta = author.username ? `@${author.username}` : 'গল্পকার';
                         const bioText = author.bio?.trim() || 'নিয়মিত লেখালেখির মাধ্যমে নতুন গল্পের ভুবন তৈরি করছেন।';
 
