@@ -5,7 +5,7 @@
     position: relative;
     width: 100%;
     min-height: 100vh;
-    background: #000;
+    background: var(--bg-primary);
     font-family: 'Hind Siliguri', sans-serif;
     overflow-x: hidden;
     overflow-y: auto;
@@ -68,7 +68,7 @@
     max-width: 450px;
     background: rgba(10, 10, 10, 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 40px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -83,7 +83,7 @@
     font-size: 22px;
     font-weight: 700;
     margin-bottom: 8px;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .login-header p {
@@ -95,10 +95,10 @@
 .google-btn {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
     padding: 12px;
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -155,11 +155,11 @@
 .input-wrapper input {
     width: 100%;
     background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
     padding: 12px 16px 12px 40px;
     /* Left padding for icon */
-    color: #fff;
+    color: var(--text-primary);
     font-size: 14px;
     transition: border-color 0.2s;
 }
@@ -190,12 +190,12 @@
 }
 
 .toggle-pass:hover {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .login-submit-btn {
     width: 100%;
-    background: #fff;
+    background: var(--bg-secondary);
     color: #000;
     border: none;
     border-radius: 8px;
@@ -219,7 +219,7 @@
 }
 
 .signup-link {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 600;
     margin-left: 4px;
     text-decoration: none;

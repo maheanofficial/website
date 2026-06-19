@@ -6,7 +6,7 @@
     height: 100%;
     overflow: hidden;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background:
         radial-gradient(circle at top right, rgba(255, 92, 0, 0.12), transparent 30%),
         linear-gradient(180deg, rgba(11, 15, 22, 0.98), rgba(4, 7, 12, 0.98));
@@ -42,7 +42,7 @@
     position: relative;
     aspect-ratio: 16 / 9;
     min-height: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--glass-border);
     overflow: hidden;
     background:
         radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 54%),
@@ -170,7 +170,7 @@
     padding: 4px 10px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     color: #cbd5e1;
     font-size: 0.72rem;
     font-weight: 800;
@@ -190,7 +190,7 @@
 
 .card-title-small {
     margin: 0;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: clamp(1.08rem, 1.2vw, 1.25rem);
     font-weight: 800;
     line-height: 1.3;
@@ -243,7 +243,7 @@
     padding: 5px 10px;
     border-radius: 999px;
     background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
     color: #cbd5e1;
     font-size: 0.73rem;
     font-weight: 700;
@@ -255,7 +255,7 @@
     transform: translateY(-1px);
     background: rgba(255, 92, 0, 0.12);
     border-color: rgba(255, 92, 0, 0.2);
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .story-card-author-row {
@@ -265,7 +265,7 @@
     padding: 12px;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
 }
 
 .author-avatar-small {
@@ -335,7 +335,7 @@
     padding: 5px 10px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--glass-border);
     color: #dbe6f5;
     font-size: 0.72rem;
     font-weight: 800;

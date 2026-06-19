@@ -50,13 +50,13 @@
 
 .share-facebook {
     background: #1877F2;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .share-twitter {
-    background: #000;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
 }
 
 .share-copy {

@@ -1,5 +1,5 @@
 .tags-page {
-    background: #000000;
+    background: var(--bg-primary);
     min-height: 100vh;
     padding-bottom: var(--spacing-xl);
 }
@@ -43,8 +43,8 @@
 }
 
 .tag-card {
-    background: #050505;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 18px;
     text-decoration: none;

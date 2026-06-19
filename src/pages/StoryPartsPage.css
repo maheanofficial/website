@@ -91,7 +91,7 @@
     padding: 6px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     color: var(--text-secondary);
     font-size: 0.83rem;
     font-weight: 600;
@@ -134,7 +134,7 @@
     font-weight: 800;
     border-radius: 999px;
     padding: 10px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
 }
 
 .story-parts-start-btn:hover {

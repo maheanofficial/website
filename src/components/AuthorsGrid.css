@@ -18,7 +18,7 @@
     min-height: 100%;
     border-radius: 24px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background:
         radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 34%),
         radial-gradient(circle at bottom left, rgba(255, 92, 0, 0.12), transparent 40%),
@@ -61,7 +61,7 @@
     aspect-ratio: 16 / 10;
     overflow: hidden;
     background: #090909;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .author-card-cover-image {
@@ -179,7 +179,7 @@
     border-radius: 50%;
     flex-shrink: 0;
     background: linear-gradient(180deg, #38bdf8, #2563eb);
-    color: #ffffff;
+    color: var(--text-primary);
     box-shadow:
         0 6px 14px rgba(37, 99, 235, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.32);
@@ -221,7 +221,7 @@
     min-height: 64px;
     padding: 12px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.03);
 }
 
@@ -300,7 +300,7 @@
     margin: 0 auto;
     padding: 56px 28px;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background:
         radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 34%),
         linear-gradient(180deg, rgba(11, 11, 11, 0.98), rgba(3, 3, 3, 0.98));
@@ -309,7 +309,7 @@
 
 .authors-empty-state h2 {
     margin: 0 0 10px;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: clamp(1.6rem, 3vw, 2.2rem);
     font-weight: 700;
 }

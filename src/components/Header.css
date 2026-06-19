@@ -115,8 +115,8 @@
 }
 
 .nav-btn-pill {
-    background: #ffffff;
-    color: #111111;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     text-decoration: none;
     padding: 8px 18px;
     border-radius: 999px;

@@ -2,7 +2,7 @@
     margin-top: 3rem;
     padding: 1rem 1.25rem;
     border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--glass-border);
     background: linear-gradient(180deg, rgba(18, 26, 42, 0.86) 0%, rgba(8, 12, 20, 0.86) 100%);
     backdrop-filter: blur(8px);
     display: flex;
@@ -32,7 +32,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--glass-border);
     background: rgba(15, 23, 42, 0.76);
     color: #e5e7eb;
     font-size: 0.9rem;
@@ -43,7 +43,7 @@
 
 .pagination-btn:hover:not(:disabled) {
     border-color: rgba(255, 126, 31, 0.9);
-    color: #ffffff;
+    color: var(--text-primary);
     background: rgba(31, 41, 55, 0.95);
     transform: translateY(-1px);
 }
@@ -71,7 +71,7 @@
 .pagination-btn.is-active {
     background: linear-gradient(135deg, #ff7e1f 0%, #ff5a1f 100%);
     border-color: rgba(255, 122, 31, 1);
-    color: #fff;
+    color: var(--text-primary);
     box-shadow: 0 8px 18px rgba(255, 106, 26, 0.28);
 }
 

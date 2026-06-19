@@ -5,7 +5,7 @@
     background:
         radial-gradient(circle at 12% 20%, rgba(255, 92, 0, 0.2), transparent 36%),
         radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.14), transparent 40%),
-        linear-gradient(165deg, #050505 0%, #0a0a0a 55%, #10131a 100%);
+        linear-gradient(165deg, var(--admin-surface) 0%, var(--admin-bg) 55%, var(--admin-bg) 100%);
     font-family: 'Hind Siliguri', sans-serif;
     display: flex;
     align-items: center;
@@ -28,7 +28,7 @@
 
 .admin-auth-card {
     background: rgba(8, 8, 8, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--glass-border);
     border-radius: 20px;
     padding: 26px;
     backdrop-filter: blur(12px);
@@ -100,7 +100,7 @@
 .admin-auth-social-btn {
     width: 100%;
     margin-top: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 12px 14px;
     color: #f8fafc;
@@ -175,9 +175,9 @@
 .admin-auth-input-wrap input {
     width: 100%;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--glass-border);
     background: rgba(15, 15, 15, 0.82);
-    color: #fff;
+    color: var(--text-primary);
     padding: 11px 40px 11px 38px;
     font-size: 14px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;

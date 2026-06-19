@@ -50,7 +50,7 @@
 .audiobooks-cta-shell {
     position: relative;
     border-radius: 1.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--glass-border);
     box-shadow: 0 20px 55px rgba(0, 0, 0, 0.24);
     overflow: hidden;
 }
@@ -72,7 +72,7 @@
     gap: 0.45rem;
     padding: 0.44rem 0.86rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.04);
     color: var(--accent-secondary);
     font-size: 0.76rem;
@@ -111,7 +111,7 @@
     gap: 0.48rem;
     border-radius: 999px;
     padding: 0.86rem 1.24rem;
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.03);
     color: var(--text-primary);
     font-weight: 700;
@@ -142,7 +142,7 @@
     gap: 0.45rem;
     padding: 0.48rem 0.76rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.045);
     color: var(--text-secondary);
     font-size: 0.88rem;
@@ -192,7 +192,7 @@
     width: fit-content;
     padding: 0.48rem 0.84rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid var(--glass-border);
     background:
         linear-gradient(145deg, rgba(255, 92, 0, 0.24), rgba(255, 92, 0, 0.11)),
         rgba(22, 22, 22, 0.72);
@@ -214,7 +214,7 @@
     aspect-ratio: 16 / 9;
     border-radius: 1.15rem;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--glass-border);
     background: rgba(0, 0, 0, 0.35);
     position: relative;
     z-index: 1;
@@ -283,7 +283,7 @@
     align-items: center;
     padding: 0.34rem 0.66rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-secondary);
     font-size: 0.82rem;
@@ -299,7 +299,7 @@
 }
 
 .audiobooks-inline-link:hover {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .audiobooks-spotlight-empty {
@@ -311,7 +311,7 @@
     text-align: center;
     gap: 0.45rem;
     color: rgba(255, 255, 255, 0.74);
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.04);
     padding: 1rem;
 }
@@ -327,7 +327,7 @@
     overflow: hidden;
     border-radius: 1rem;
     padding: 0.92rem 0.95rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     background:
         linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.014)),
         rgba(13, 13, 14, 0.86);
@@ -359,7 +359,7 @@
 .audiobooks-mini-panel:hover {
     color: var(--text-primary);
     transform: translateY(-3px);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--glass-border);
     box-shadow: 0 16px 28px rgba(0, 0, 0, 0.25);
 }
 
@@ -451,7 +451,7 @@
 .audiobooks-destination-card {
     border-radius: 1.12rem;
     padding: 0.88rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background:
         linear-gradient(170deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
         rgba(17, 17, 18, 0.9);
@@ -465,7 +465,7 @@
 .audiobooks-destination-card:hover {
     color: var(--text-primary);
     transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.18);
+    border-color: var(--glass-border);
     box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
 }
 
@@ -522,7 +522,7 @@
     align-items: flex-start;
     border-radius: 1rem;
     padding: 0.82rem;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.035);
 }
 
@@ -604,7 +604,7 @@
     align-items: center;
     border-radius: 0.92rem;
     padding: 0.48rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.032);
     color: var(--text-primary);
     transition:
@@ -616,7 +616,7 @@
 .audiobooks-story-row:hover {
     color: var(--text-primary);
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.18);
+    border-color: var(--glass-border);
     background: rgba(255, 255, 255, 0.05);
 }
 
@@ -625,7 +625,7 @@
     aspect-ratio: 1 / 1;
     border-radius: 0.72rem;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.11);
+    border: 1px solid var(--glass-border);
     background: rgba(0, 0, 0, 0.24);
 }
 
@@ -633,7 +633,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: #050505;
+    background: var(--bg-secondary);
     display: block;
 }
 
@@ -666,7 +666,7 @@
     font-size: 0.76rem;
     color: var(--text-secondary);
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.11);
+    border: 1px solid var(--glass-border);
     padding: 0.2rem 0.5rem;
     background: rgba(255, 255, 255, 0.038);
 }
@@ -699,7 +699,7 @@
 .audiobooks-category-card {
     border-radius: 1rem;
     padding: 0.88rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.03);
     display: grid;
     gap: 0.14rem;
@@ -917,7 +917,7 @@
 :root[data-theme='light'] .audiobooks-journey-panel,
 :root[data-theme='light'] .audiobooks-rail-card,
 :root[data-theme='light'] .audiobooks-categories-shell {
-    background: #ffffff;
+    background: var(--bg-secondary);
 }
 
 :root[data-theme='light'] .audiobooks-cta-shell {

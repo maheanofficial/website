@@ -40,7 +40,7 @@
 }
 
 .image-uploader__overlay-icon {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .image-uploader:hover .image-uploader__overlay {
@@ -57,7 +57,7 @@
     flex-direction: column;
     gap: 8px;
     background: rgba(0, 0, 0, 0.6);
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 600;
     pointer-events: none;
@@ -82,7 +82,7 @@
     background: rgba(0, 0, 0, 0.6);
     border: none;
     border-radius: 999px;
-    color: #ffffff;
+    color: var(--text-primary);
     cursor: pointer;
     transition: background 0.2s ease, color 0.2s ease;
 }
