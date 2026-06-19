@@ -1,1 +1,2 @@
-/* /index.html 200
+# Cloudflare Workers handles all routing via the Worker script.
+# SPA fallback is managed in the Worker, not here.

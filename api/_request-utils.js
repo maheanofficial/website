@@ -231,7 +231,7 @@ const MALICIOUS_PATTERNS = [
     /\.aspx?$/i,
     /\.jsp$/i,
     /\.cgi$/i,
-    /(?:\\.\\.\\/){2,}/,
+    /(?:\.\.\/){2,}/,
     /UNION\s+SELECT/i,
     /<script[^>]*>/i,
     /SELECT\s+.*\s+FROM/i,
