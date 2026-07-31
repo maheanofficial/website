@@ -66,9 +66,9 @@ export default function StoriesPage() {
         const query = canonicalParams.toString();
         return `${SITE_URL}/stories${query ? `?${query}` : ''}`;
     }, [location.search]);
+
     const [stories, setStories] = useState<Story[]>(() => getCachedStories());
     const [authors, setAuthors] = useState<Author[]>([]);
-    const [searchSuggestions, setSearchSuggestions] = useState<Story[]>([]);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     // Search and Filter State
@@ -97,6 +97,15 @@ export default function StoriesPage() {
         tagFilter !== tagFromUrl
     );
 
+    const searchSuggestions = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const query = searchQuery.toLowerCase();
+        return stories.filter(story => 
+            story.title.toLowerCase().includes(query) || 
+            (story.author && story.author.toLowerCase().includes(query))
+        ).slice(0, 5);
+    }, [searchQuery, stories]);
+
     useEffect(() => {
         let isMounted = true;
         const loadData = async () => {
@@ -111,18 +120,6 @@ export default function StoriesPage() {
             isMounted = false;
         };
     }, []);
-
-    useEffect(() => {
-        if (!searchQuery.trim()) {
-            setSearchSuggestions([]);
-            return;
-        }
-        const filtered = stories.filter(story => 
-            story.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            (story.author && story.author.toLowerCase().includes(searchQuery.toLowerCase()))
-        ).slice(0, 5);
-        setSearchSuggestions(filtered);
-    }, [searchQuery, stories]);
 
     useEffect(() => {
         const syncFiltersId = window.setTimeout(() => {

@@ -80,14 +80,13 @@ const SEO = ({
         'max-video-preview:-1',
     ].join(', ');
 
-    // Build full title: "Page Title | Site Name - Tagline" (or just "Page Title | Site Name")
-    const buildFullTitle = () => {
-        if (title.includes(SITE_NAME)) return title;
-        const suffix = SITE_TAGLINE ? `${SITE_NAME} - ${SITE_TAGLINE}` : SITE_NAME;
-        return `${title} | ${suffix}`;
-    };
-
     useEffect(() => {
+        const buildFullTitle = () => {
+            if (title.includes(SITE_NAME)) return title;
+            const suffix = SITE_TAGLINE ? `${SITE_NAME} - ${SITE_TAGLINE}` : SITE_NAME;
+            return `${title} | ${suffix}`;
+        };
+
         document.title = buildFullTitle();
 
         const setMetaTag = (name: string, content: string, isProperty = false) => {

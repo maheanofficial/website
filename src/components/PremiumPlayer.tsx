@@ -8,10 +8,25 @@ interface PremiumPlayerProps {
     title?: string;
 }
 
+interface YTPlayer {
+    destroy: () => void;
+    playVideo: () => void;
+    pauseVideo: () => void;
+    seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+    setVolume: (volume: number) => void;
+    mute: () => void;
+    unMute: () => void;
+    setPlaybackRate: (rate: number) => void;
+    getCurrentTime: () => number;
+}
+
 declare global {
     interface Window {
         onYouTubeIframeAPIReady?: () => void;
-        YT?: any;
+        YT?: {
+            Player: new (elementId: string, options: unknown) => YTPlayer;
+            PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
+        };
     }
 }
 
@@ -25,35 +40,47 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
     const [sleepTimer, setSleepTimer] = useState<number | null>(null);
     const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
 
-    const playerRef = useRef<any>(null);
+    const playerRef = useRef<YTPlayer | null>(null);
     const containerId = `yt-player-${videoId}`;
-    const timerIntervalRef = useRef<any>(null);
-    const progressIntervalRef = useRef<any>(null);
+    const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    useEffect(() => {
-        // Load YouTube Iframe API
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = 'https://www.youtube.com/iframe_api';
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    const cleanupIntervals = () => {
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
 
-            window.onYouTubeIframeAPIReady = () => {
-                initializePlayer();
-            };
-        } else {
-            initializePlayer();
-        }
+    const stopTrackingProgress = () => {
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
 
-        return () => {
-            cleanupIntervals();
-            if (playerRef.current) {
-                playerRef.current.destroy();
+    const startTrackingProgress = () => {
+        stopTrackingProgress();
+        progressIntervalRef.current = setInterval(() => {
+            if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+                setCurrentTime(playerRef.current.getCurrentTime());
             }
-        };
-    }, [videoId]);
+        }, 500);
+    };
+
+    const onPlayerReady = (event: { target: { getDuration: () => number; setVolume: (v: number) => void } }) => {
+        setDuration(event.target.getDuration());
+        event.target.setVolume(volume);
+    };
+
+    const onPlayerStateChange = (event: { data: number }) => {
+        const state = event.data;
+        if (window.YT && state === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+            startTrackingProgress();
+        } else {
+            setIsPlaying(false);
+            stopTrackingProgress();
+        }
+    };
 
     const initializePlayer = () => {
+        if (!window.YT || !window.YT.Player) return;
         playerRef.current = new window.YT.Player(containerId, {
             height: '0',
             width: '0',
@@ -72,39 +99,29 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
         });
     };
 
-    const cleanupIntervals = () => {
-        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
+    useEffect(() => {
+        // Load YouTube Iframe API
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
-    const onPlayerReady = (event: any) => {
-        setDuration(event.target.getDuration());
-        event.target.setVolume(volume);
-    };
-
-    const onPlayerStateChange = (event: any) => {
-        const state = event.data;
-        if (state === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
-            startTrackingProgress();
+            window.onYouTubeIframeAPIReady = () => {
+                initializePlayer();
+            };
         } else {
-            setIsPlaying(false);
-            stopTrackingProgress();
+            initializePlayer();
         }
-    };
 
-    const startTrackingProgress = () => {
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = setInterval(() => {
-            if (playerRef.current && playerRef.current.getCurrentTime) {
-                setCurrentTime(playerRef.current.getCurrentTime());
+        return () => {
+            cleanupIntervals();
+            if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+                playerRef.current.destroy();
             }
-        }, 500);
-    };
-
-    const stopTrackingProgress = () => {
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [videoId]);
 
     const handlePlayPause = () => {
         if (!playerRef.current) return;
