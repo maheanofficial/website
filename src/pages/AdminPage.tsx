@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus, Trash2, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Home, Settings, User as UserIcon, X, BookOpen, Users, CheckCircle, UserPlus, Trash2, ShieldAlert, TrendingUp } from 'lucide-react';
 import './AdminPage.css';
 import BrandLogo from '../components/BrandLogo';
 import AdminStories from '../components/admin/AdminStories';
@@ -12,6 +12,8 @@ import AdminApprovals from '../components/admin/AdminApprovals';
 import AdminModeration from '../components/admin/AdminModeration';
 import AdminUsers from '../components/admin/AdminUsers';
 import AdminTrash from '../components/admin/AdminTrash';
+
+const AdminAnalytics = lazy(() => import('../components/admin/AdminAnalytics'));
 import { buildAuthPageLink, consumeStoredAuthRedirectIntent } from '../utils/authRedirect';
 import { onAuthStateChange, getCurrentUser, signOut } from '../utils/auth';
 import type { User } from '../utils/userManager';
@@ -132,6 +134,7 @@ const AdminPage = () => {
         if (path.includes('/trash')) return 'trash';
         if (path.includes('/settings')) return 'settings';
         if (path.includes('/profile')) return 'profile';
+        if (path.includes('/analytics')) return 'analytics';
         return '';
     };
 
@@ -171,6 +174,8 @@ const AdminPage = () => {
             }
         } else if (path.includes('/profile')) {
             crumbs.push({ label: 'প্রোফাইল', path: '/admin/dashboard/profile', icon: undefined });
+        } else if (path.includes('/analytics')) {
+            crumbs.push({ label: 'অ্যানালিটিক্স', path: '/admin/dashboard/analytics', icon: undefined });
         }
 
         return (
@@ -252,6 +257,13 @@ const AdminPage = () => {
                     <div className="sidebar-section">
                         <div className="sidebar-label">Admin</div>
                         <nav className="sidebar-nav">
+                            <Link
+                                to="/admin/dashboard/analytics"
+                                className={`sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`}
+                            >
+                                <TrendingUp size={18} />
+                                <span>অ্যানালিটিক্স</span>
+                            </Link>
                             <Link
                                 to="/admin/dashboard/moderation"
                                 className={`sidebar-item ${activeTab === 'moderation' ? 'active' : ''}`}
@@ -344,6 +356,16 @@ const AdminPage = () => {
                         <Route
                             path="users"
                             element={isAdmin ? <AdminUsers currentUser={currentUser} /> : <Navigate to="/admin/dashboard" replace />}
+                        />
+                        <Route
+                            path="analytics"
+                            element={
+                                isAdmin ? (
+                                    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading Analytics...</div>}>
+                                        <AdminAnalytics />
+                                    </Suspense>
+                                ) : <Navigate to="/admin/dashboard" replace />
+                            }
                         />
                         <Route path="trash" element={<AdminTrash />} />
                         <Route path="profile" element={<AdminProfile />} />

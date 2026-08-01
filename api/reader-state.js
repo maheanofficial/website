@@ -130,12 +130,14 @@ const normalizeReaderState = (value) => {
         .filter(Boolean)
         .slice(0, COLLECTION_LIMIT);
     const dismissedNotifications = uniqueValues(record.dismissedNotifications, DISMISSED_LIMIT);
+    const badges = uniqueValues(record.badges, 100);
     return {
         history,
         bookmarks,
         follows,
         collections,
         dismissedNotifications,
+        badges,
         updatedAt: normalizeIsoDate(record.updatedAt, follows.updatedAt)
     };
 };
@@ -194,7 +196,7 @@ export default async function handler(req, res) {
     }
 
     const action = toTrimmedString(body.action || 'get').toLowerCase();
-    if (!['get', 'save'].includes(action)) {
+    if (!['get', 'save', 'sync-bookmarks', 'sync-badges'].includes(action)) {
         json(res, 400, { error: 'Unsupported action.' });
         return;
     }
@@ -225,6 +227,61 @@ export default async function handler(req, res) {
 
         if (action === 'get') {
             json(res, 200, { state: existingState });
+            return;
+        }
+
+        if (action === 'sync-bookmarks') {
+            const incomingBookmarks = toArray(body.bookmarks)
+                .map((entry) => normalizeBookmark(entry))
+                .filter(Boolean);
+            
+            const map = new Map();
+            [...(existingState.bookmarks || []), ...incomingBookmarks].forEach(entry => {
+                const existing = map.get(entry.storyId);
+                if (!existing) {
+                    map.set(entry.storyId, entry);
+                } else {
+                    const existingDate = new Date(existing.savedAt || existing.updatedAt || 0).getTime();
+                    const entryDate = new Date(entry.savedAt || entry.updatedAt || 0).getTime();
+                    if (entryDate >= existingDate) {
+                        map.set(entry.storyId, entry);
+                    }
+                }
+            });
+            const mergedBookmarks = Array.from(map.values()).slice(0, BOOKMARK_LIMIT);
+
+            const nextState = {
+                ...existingState,
+                bookmarks: mergedBookmarks,
+                updatedAt: new Date().toISOString()
+            };
+            
+            const row = {
+                id: toTrimmedString(existingRow?.id) || actor.id,
+                userId: actor.id,
+                state: nextState,
+                updatedAt: nextState.updatedAt
+            };
+            await upsertRows(TABLE_NAME, [row], 'id');
+            json(res, 200, { state: nextState });
+            return;
+        }
+
+        if (action === 'sync-badges') {
+            const incomingBadges = toArray(body.badges).map(b => toTrimmedString(b)).filter(Boolean);
+            const nextState = {
+                ...existingState,
+                badges: uniqueValues([...(existingState.badges || []), ...incomingBadges], 100),
+                updatedAt: new Date().toISOString()
+            };
+            const row = {
+                id: toTrimmedString(existingRow?.id) || actor.id,
+                userId: actor.id,
+                state: nextState,
+                updatedAt: nextState.updatedAt
+            };
+            await upsertRows(TABLE_NAME, [row], 'id');
+            json(res, 200, { state: nextState });
             return;
         }
 

@@ -1,0 +1,57 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong!",
+    "retry": "Try Again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "noResults": "No results found",
+    "readMore": "Read More",
+    "back": "Go Back",
+    "home": "Home",
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "nav": {
+    "stories": "Stories",
+    "audiobooks": "Audiobooks",
+    "series": "Series",
+    "authors": "Authors",
+    "categories": "Categories",
+    "tags": "Tags",
+    "about": "About Us",
+    "contact": "Contact"
+  },
+  "story": {
+    "parts": "Parts",
+    "views": "Views",
+    "rating": "Rating",
+    "ratePrompt": "How did you like this story?",
+    "rateThank": "Thank you!",
+    "share": "Share",
+    "bookmark": "Bookmark",
+    "comments": "Comments"
+  },
+  "footer": {
+    "explore": "Explore",
+    "pages": "Pages",
+    "policies": "Policies",
+    "social": "Social Media",
+    "copyright": "All rights reserved",
+    "enableNotification": "Enable Notifications"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "loginButton": "Login",
+    "signupButton": "Create Account",
+    "googleLogin": "Login with Google"
+  }
+}

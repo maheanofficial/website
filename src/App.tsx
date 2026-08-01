@@ -11,6 +11,7 @@ import { getCurrentUser, onAuthStateChange } from './utils/auth';
 import { hydrateReaderStateFromCloud, queueReaderStateSync } from './utils/readerStateManager';
 
 import HomePage from './pages/HomePage';
+import PageSkeleton from './components/PageSkeleton';
 
 import ScrollToTop from './components/ScrollToTop';
 import './index.css';
@@ -42,11 +43,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage'));
 const WriterDashboard = lazy(() => import('./pages/WriterDashboard'));
 
-const AdminFallback = () => (
-  <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
-    Loading...
-  </div>
-);
+const PageLoadingFallback = () => <PageSkeleton />;
 
 const DashboardRedirect = ({ defaultTarget = '/profile' }: { defaultTarget?: string }) => {
   const [targetPath, setTargetPath] = useState<string>('');
@@ -70,7 +67,7 @@ const DashboardRedirect = ({ defaultTarget = '/profile' }: { defaultTarget?: str
   }, [defaultTarget]);
 
   if (!targetPath) {
-    return <AdminFallback />;
+    return <PageLoadingFallback />;
   }
 
   return <Navigate to={targetPath} replace />;
@@ -92,7 +89,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {!isAdminRoute && !isAuthRoute && <AdSenseScript />}
       {!isAdminRoute && <Header />}
-      <main>
+      <main id="main-content">
         {children}
       </main>
       {!isAdminRoute && <Footer />}
@@ -160,7 +157,7 @@ function App() {
       <Router>
         <ScrollToTop />
         <Layout>
-          <Suspense fallback={<AdminFallback />}>
+          <Suspense fallback={<PageLoadingFallback />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/audiobooks" element={<AudiobooksPage />} />

@@ -68,3 +68,37 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'মাহিয়ানের গল্পকথা';
+  const options = {
+    body: data.body || 'নতুন গল্প প্রকাশিত হয়েছে!',
+    icon: '/logo-192.png',
+    badge: '/logo-192.png',
+    tag: data.tag || 'new-story',
+    data: { url: data.url || '/' },
+    vibrate: [200, 100, 200]
+  };
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(url) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});

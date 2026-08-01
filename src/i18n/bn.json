@@ -1,0 +1,57 @@
+{
+  "common": {
+    "loading": "লোড হচ্ছে...",
+    "error": "কিছু একটা সমস্যা হয়েছে!",
+    "retry": "আবার চেষ্টা করুন",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল",
+    "delete": "মুছুন",
+    "edit": "সম্পাদনা",
+    "search": "অনুসন্ধান করুন...",
+    "noResults": "কিছু পাওয়া যায়নি",
+    "readMore": "আরও পড়ুন",
+    "back": "পিছনে যান",
+    "home": "হোম",
+    "login": "লগইন",
+    "signup": "সাইন আপ",
+    "logout": "লগ আউট",
+    "profile": "প্রোফাইল",
+    "settings": "সেটিংস"
+  },
+  "nav": {
+    "stories": "গল্পসমূহ",
+    "audiobooks": "অডিওবুক",
+    "series": "সিরিজ",
+    "authors": "লেখক",
+    "categories": "ক্যাটাগরি",
+    "tags": "ট্যাগ",
+    "about": "আমাদের সম্পর্কে",
+    "contact": "যোগাযোগ"
+  },
+  "story": {
+    "parts": "পর্ব",
+    "views": "ভিউ",
+    "rating": "রেটিং",
+    "ratePrompt": "গল্পটি কেমন লাগল?",
+    "rateThank": "ধন্যবাদ!",
+    "share": "শেয়ার করুন",
+    "bookmark": "বুকমার্ক",
+    "comments": "মন্তব্য"
+  },
+  "footer": {
+    "explore": "এক্সপ্লোর",
+    "pages": "পেজসমূহ",
+    "policies": "নীতি",
+    "social": "সামাজিক মিডিয়া",
+    "copyright": "সর্বস্বত্ব সংরক্ষিত",
+    "enableNotification": "নোটিফিকেশন চালু করুন"
+  },
+  "auth": {
+    "email": "ইমেইল",
+    "password": "পাসওয়ার্ড",
+    "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+    "loginButton": "লগইন করুন",
+    "signupButton": "অ্যাকাউন্ট তৈরি করুন",
+    "googleLogin": "গুগল দিয়ে লগইন"
+  }
+}

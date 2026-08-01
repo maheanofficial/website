@@ -38,6 +38,18 @@ export default function StoryRating({ storyId }: StoryRatingProps) {
         saveRating(storyId, rating);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent, star: number) => {
+        if (e.key === 'ArrowRight') {
+            const next = Math.min(star + 1, 5);
+            handleRate(next);
+            (document.querySelector(`button[aria-label="${next} তারা — ${STAR_LABELS[next]}"]`) as HTMLElement)?.focus();
+        } else if (e.key === 'ArrowLeft') {
+            const prev = Math.max(star - 1, 1);
+            handleRate(prev);
+            (document.querySelector(`button[aria-label="${prev} তারা — ${STAR_LABELS[prev]}"]`) as HTMLElement)?.focus();
+        }
+    };
+
     const displayRating = hoverRating || userRating;
 
     return (
@@ -52,7 +64,7 @@ export default function StoryRating({ storyId }: StoryRatingProps) {
             </div>
             <div
                 className="story-rating-stars"
-                role="group"
+                role="radiogroup"
                 aria-label="গল্পের রেটিং"
                 onMouseLeave={() => setHoverRating(0)}
             >
@@ -60,9 +72,12 @@ export default function StoryRating({ storyId }: StoryRatingProps) {
                     <button
                         key={star}
                         type="button"
+                        role="radio"
+                        aria-checked={star === userRating}
                         className={`star-btn ${star <= displayRating ? 'is-active' : ''}`}
                         onClick={() => handleRate(star)}
                         onMouseEnter={() => setHoverRating(star)}
+                        onKeyDown={(e) => handleKeyDown(e, star)}
                         aria-label={`${star} তারা — ${STAR_LABELS[star]}`}
                     >
                         <Star size={30} />

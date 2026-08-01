@@ -26,7 +26,10 @@ class ErrorBoundary extends Component<Props, State> {
     public render() {
         if (this.state.hasError) {
             return (
-                <div style={{
+                <div
+                    role="alert"
+                    aria-live="assertive"
+                    style={{
                     padding: '20px',
                     color: '#ef4444',
                     background: '#1a1a1a',
@@ -37,7 +40,7 @@ class ErrorBoundary extends Component<Props, State> {
                     justifyContent: 'center',
                     textAlign: 'center'
                 }}>
-                    <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Something went wrong!</h1>
+                    <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>কিছু একটা সমস্যা হয়েছে!</h1>
                     <pre style={{
                         background: '#000',
                         padding: '15px',
@@ -60,7 +63,7 @@ class ErrorBoundary extends Component<Props, State> {
                             cursor: 'pointer'
                         }}
                     >
-                        Reload Page
+                        পেজ রিলোড করুন
                     </button>
                 </div>
             );

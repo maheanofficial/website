@@ -24,6 +24,8 @@ interface SmartImageProps {
     loading?: 'lazy' | 'eager';
     decoding?: 'sync' | 'async' | 'auto';
     fetchPriority?: 'high' | 'low' | 'auto';
+    width?: number;
+    height?: number;
 }
 
 const SmartImage: React.FC<SmartImageProps> = ({
@@ -34,7 +36,9 @@ const SmartImage: React.FC<SmartImageProps> = ({
     showFullText,
     loading = 'lazy',
     decoding = 'async',
-    fetchPriority = 'auto'
+    fetchPriority = 'auto',
+    width,
+    height
 }) => {
     const [error, setError] = useState(false);
     const resolvedSrc = appendCacheBust(String(src || ''));
@@ -120,6 +124,28 @@ const SmartImage: React.FC<SmartImageProps> = ({
         );
     }
 
+    const isUploadImage = resolvedSrc.includes('/uploads/');
+
+    if (isUploadImage) {
+        const webpSrc = resolvedSrc.replace(/\.(jpe?g|png|gif)$/i, '.webp');
+        return (
+            <picture>
+                <source srcSet={webpSrc} type="image/webp" />
+                <img
+                    src={resolvedSrc}
+                    alt={alt}
+                    className={className}
+                    onError={() => setError(true)}
+                    loading={loading}
+                    decoding={decoding}
+                    fetchPriority={fetchPriority}
+                    {...(width ? { width } : {})}
+                    {...(height ? { height } : {})}
+                />
+            </picture>
+        );
+    }
+
     return (
         <img
             src={resolvedSrc}
@@ -129,6 +155,8 @@ const SmartImage: React.FC<SmartImageProps> = ({
             loading={loading}
             decoding={decoding}
             fetchPriority={fetchPriority}
+            {...(width ? { width } : {})}
+            {...(height ? { height } : {})}
         />
     );
 };

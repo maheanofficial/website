@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, ArrowRight } from 'lucide-react';
+import PushSubscription from './PushSubscription';
 import './Footer.css';
 
 export default function Footer() {
@@ -54,6 +55,7 @@ export default function Footer() {
                         <div className="footer-links">
                             <a href="https://www.facebook.com/maheanahmedofficial" className="footer-link">Facebook</a>
                             <a href="https://youtube.com/@maheanstoryvoice" className="footer-link">YouTube</a>
+                            <PushSubscription />
                         </div>
                     </div>
                 </div>

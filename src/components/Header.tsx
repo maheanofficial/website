@@ -118,8 +118,9 @@ export default function Header() {
 
     return (
         <header className={`header ${scrolled ? 'header-scrolled' : ''} ${!headerVisible ? 'header-hidden' : ''}`}>
+            <a href="#main-content" className="skip-link" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: '1px', height: '1px', overflow: 'hidden', zIndex: 9999 }} onFocus={(e) => { e.currentTarget.style.position = 'static'; e.currentTarget.style.width = 'auto'; e.currentTarget.style.height = 'auto'; }}>মূল বিষয়বস্তুতে যান</a>
             <div className="container">
-                <nav className="nav">
+                <nav className="nav" role="navigation">
                     <Link to="/" className="logo">
                         <BrandLogo alt="মাহিয়ানের গল্পকথা" className="site-logo" />
                     </Link>
@@ -127,7 +128,7 @@ export default function Header() {
                     <button
                         className={`menu-toggle ${isMenuOpen ? 'menu-toggle-open' : ''}`}
                         onClick={toggleMenu}
-                        aria-label="Toggle menu"
+                        aria-label="মেনু খুলুন"
                         aria-expanded={isMenuOpen}
                     >
                         <span></span>
