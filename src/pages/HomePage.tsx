@@ -84,7 +84,7 @@ const HomePage = () => {
                     <h2 className="section-title text-4xl font-bold mb-4 gradient-text">জনপ্রিয় গল্পসমূহ</h2>
                     <p className="section-subtitle text-gray-400">যে গল্পগুলো পাঠকদের হৃদয়ে জায়গা করে নিয়েছে</p>
                 </div>
-                <StoryCarousel stories={stories.filter(s => s.views > 50).slice(0, 5)} />
+                <StoryCarousel stories={stories.slice(0, 10)} />
             </div>
 
             {/* Most Viewed Stories Section */}

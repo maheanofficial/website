@@ -13,21 +13,22 @@ interface StoryCarouselProps {
 export default function StoryCarousel({ stories }: StoryCarouselProps) {
     const [currentSlide, setCurrentSlide] = useState(0);
     const featuredStories = stories.filter(s => s.is_featured);
+    const displayStories = featuredStories.length > 0 ? featuredStories : stories.slice(0, 5);
 
     useEffect(() => {
-        if (featuredStories.length === 0) return;
+        if (displayStories.length === 0) return;
         const timer = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % featuredStories.length);
+            setCurrentSlide((prev) => (prev + 1) % displayStories.length);
         }, 5000);
         return () => clearInterval(timer);
-    }, [featuredStories.length]);
+    }, [displayStories.length]);
 
-    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % featuredStories.length);
-    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + featuredStories.length) % featuredStories.length);
+    const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % displayStories.length);
+    const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + displayStories.length) % displayStories.length);
 
-    if (featuredStories.length === 0) return null;
+    if (displayStories.length === 0) return null;
 
-    const currentStory = featuredStories[currentSlide];
+    const currentStory = displayStories[currentSlide];
 
     return (
         <div className="carousel-wrapper">
