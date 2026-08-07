@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
 import { getAllStories, saveStory, type Story } from './storyManager';
 import { getTrashItemsByType } from './trashManager';
+import { INITIAL_CATEGORIES } from '../data/initialSiteData';
 
 export interface Category {
     id: string;
@@ -155,16 +156,20 @@ const storeCategories = (categories: Category[]) => {
 };
 
 const getLocalCategories = (): Category[] => {
-    if (typeof window === 'undefined') return [];
+    const initialCategories = (INITIAL_CATEGORIES as Category[]);
+    if (typeof window === 'undefined') return initialCategories;
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
+    if (!stored) {
+        storeCategories(initialCategories);
+        return initialCategories;
+    }
     try {
         const parsed = JSON.parse(stored) as unknown;
-        if (!Array.isArray(parsed)) {
-            localStorage.removeItem(STORAGE_KEY);
-            return [];
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+            storeCategories(initialCategories);
+            return initialCategories;
         }
-        return parsed
+        const categories = parsed
             .filter((entry): entry is Partial<Category> => Boolean(entry) && typeof entry === 'object')
             .map((entry) => ({
                 id: String(entry.id || '').trim(),
@@ -174,10 +179,11 @@ const getLocalCategories = (): Category[] => {
                 image: typeof entry.image === 'string' ? entry.image : undefined
             }))
             .filter((entry) => entry.id && entry.name);
+        return categories.length ? categories : initialCategories;
     } catch (error) {
         console.warn('Failed to parse categories cache; resetting.', error);
-        localStorage.removeItem(STORAGE_KEY);
-        return [];
+        storeCategories(initialCategories);
+        return initialCategories;
     }
 };
 

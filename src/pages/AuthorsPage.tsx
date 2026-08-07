@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import SEO from '../components/SEO';
 import AuthorsGrid from '../components/AuthorsGrid';
-import { getAllAuthors, type Author } from '../utils/authorManager';
-import { getStories, type Story } from '../utils/storyManager';
+import { getAllAuthors, getCachedAuthors, type Author } from '../utils/authorManager';
+import { getStories, getCachedStories, type Story } from '../utils/storyManager';
 import { SITE_URL } from '../utils/siteMeta';
 import { buildCollectionPageSchema, buildBreadcrumbSchema } from '../utils/seoSchema';
 import './AuthorsPage.css';
@@ -26,17 +26,23 @@ const hasPublishedStoryForAuthor = (author: Author, stories: Story[]) => {
 };
 
 const AuthorsPage = () => {
-    const [authors, setAuthors] = useState<Author[]>([]);
+    const [authors, setAuthors] = useState<Author[]>(() => {
+        const initialAuthors = getCachedAuthors();
+        const initialStories = getCachedStories();
+        const filtered = initialAuthors.filter((author) => hasPublishedStoryForAuthor(author, initialStories));
+        return filtered.length ? filtered : initialAuthors;
+    });
+
     useEffect(() => {
         let isMounted = true;
-        const loadAuthors = async () => {
-            const [authorData, storyData] = await Promise.all([getAllAuthors(), getStories()]);
+        Promise.all([getAllAuthors(), getStories()]).then(([authorData, storyData]) => {
+            if (!isMounted) return;
             const visibleAuthors = authorData.filter((author) => hasPublishedStoryForAuthor(author, storyData));
-            if (isMounted) {
+            if (visibleAuthors.length > 0) {
                 setAuthors(visibleAuthors);
             }
-        };
-        loadAuthors();
+        }).catch(() => {});
+
         return () => {
             isMounted = false;
         };

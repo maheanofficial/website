@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
+import { INITIAL_AUTHORS } from '../data/initialSiteData';
 
 export interface Author {
     id: string;
@@ -338,13 +339,14 @@ const markRemoteAuthorCacheReady = () => {
 };
 
 const getLocalAuthors = (): Author[] => {
-    if (typeof window === 'undefined') return inMemoryAuthorsCache;
+    const initialAuthors = (INITIAL_AUTHORS as Author[]).map(normalizeAuthor);
+    if (typeof window === 'undefined') return inMemoryAuthorsCache.length ? inMemoryAuthorsCache : initialAuthors;
     let stored: string | null = null;
     try {
         stored = localStorage.getItem(STORAGE_KEY);
     } catch (error) {
         console.warn('Failed to read authors from localStorage; using memory cache.', error);
-        return inMemoryAuthorsCache;
+        return inMemoryAuthorsCache.length ? inMemoryAuthorsCache : initialAuthors;
     }
     if (!stored) {
         try {
@@ -355,95 +357,6 @@ const getLocalAuthors = (): Author[] => {
         if (inMemoryAuthorsCache.length > 0) {
             return inMemoryAuthorsCache;
         }
-        return [];
-
-        // Legacy sample data kept below is intentionally unreachable and
-        // removed by production minification, ensuring it does not rehydrate.
-        const initialAuthors: Author[] = [
-            {
-                id: '1',
-                name: 'রবীন্দ্রনাথ ঠাকুর',
-                username: 'rabindranath',
-                bio: 'বিশ্বকবি এবং নোবেল বিজয়ী সাহিত্যিক।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Rabindranath_Tagore_unknown_photographer.jpg/800px-Rabindranath_Tagore_unknown_photographer.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/রবীন্দ্রনাথ_ঠাকুর' }]
-            },
-            {
-                id: '2',
-                name: 'হুমায়ূন আহমেদ',
-                username: 'humayun',
-                bio: 'বাংলা সাহিত্যের অন্যতম জনপ্রিয় কথাশিল্পী ও চলচ্চিত্র নির্মাতা।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/en/8/84/Humayun_Ahmed.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/হুমায়ূন_আহমেদ' }]
-            },
-            {
-                id: '3',
-                name: 'সুনীল গঙ্গোপাধ্যায়',
-                username: 'sunil',
-                bio: 'আধুনিক বাংলা কবিতার অন্যতম প্রধান কবি ও ঔপন্যাসিক।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Sunil_Gangopadhyay_at_Kolkata_Book_Fair_2009.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/সুনীল_গঙ্গোপাধ্যায়' }]
-            },
-            {
-                id: '4',
-                name: 'শরৎচন্দ্র চট্টোপাধ্যায়',
-                username: 'sarat',
-                bio: 'অজেয় কথাশিল্পী ও বাংলা সাহিত্যের অন্যতম জনপ্রিয় লেখক।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/2/25/Sarat_Chandra_Chattopadhyay.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/শরৎচন্দ্র_চট্টোপাধ্যায়' }]
-            },
-            {
-                id: '5',
-                name: 'সত্যজিৎ রায়',
-                username: 'satyajit',
-                bio: 'বিশ্ববরেণ্য চলচ্চিত্র পরিচালক ও ফেলুদা-প্রফেসর শঙ্কুর স্রষ্টা।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Satyajit_Ray_in_New_York.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/সত্যজিৎ_রায়' }]
-            },
-            {
-                id: '6',
-                name: 'বিভূতিভূষণ বন্দ্যোপাধ্যায়',
-                username: 'bibhuti',
-                bio: 'প্রকৃতিপ্রেমী লেখক, পথের পাঁচালীর রচয়িতা।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Bibhutibhushan_Bandyopadhyay.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/বিভূতিভূষণ_বন্দ্যোপাধ্যায়' }]
-            },
-            {
-                id: '7',
-                name: 'শীর্ষেন্দু মুখোপাধ্যায়',
-                username: 'shirshendu',
-                bio: 'অদ্ভুতুড়ে ও রোমাঞ্চকর গল্পের জাদুকর।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Shirshendu_Mukhopadhyay_2013.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/শীর্ষেন্দু_মুখোপাধ্যায়' }]
-            },
-            {
-                id: '8',
-                name: 'কাজী নজরুল ইসলাম',
-                username: 'nazrul',
-                bio: 'বিদ্রোহী কবি এবং বাংলাদেশের জাতীয় কবি।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Kazi_Nazrul_Islam.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/কাজী_নজরুল_ইসলাম' }]
-            },
-            {
-                id: '9',
-                name: 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়',
-                username: 'bankim',
-                bio: 'বাংলা উপন্যাসের জনক ও সাহিত্যসম্রাট।',
-                avatar: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Bankim_Chandra_Chattopadhyay.jpg',
-                links: [{ name: 'Wiki', url: 'https://bn.wikipedia.org/wiki/বঙ্কিমচন্দ্র_চট্টোপাধ্যায়' }]
-            },
-            {
-                id: '10',
-                name: 'মাহিয়ান আহমেদ',
-                username: 'mahean',
-                bio: 'ভয়েস আর্টিস্ট ও অডিওবুক ক্রিয়েটর।',
-                avatar: 'https://mahean.com/mahean-3.jpg',
-                links: [
-                    { name: 'Facebook', url: 'https://www.facebook.com/maheanahmedofficial' },
-                    { name: 'YouTube', url: 'https://youtube.com/@maheanahmed' }
-                ]
-            }
-        ];
         storeAuthors(initialAuthors);
         return initialAuthors;
     }
@@ -544,6 +457,8 @@ const queueAuthorSync = (fallbackAuthors: Author[], options?: { force?: boolean 
 
     return authorSyncPromise;
 };
+
+export const getCachedAuthors = (): Author[] => getLocalAuthors();
 
 export const getAllAuthors = async (): Promise<Author[]> => {
     const localAuthors = getLocalAuthors();
