@@ -611,6 +611,17 @@ const isBlockedStoryRecord = (story: Partial<Story>) =>
 const sanitizeStorySecurity = (stories: Story[]) =>
     stories.filter((story) => !isBlockedStoryRecord(story));
 
+const cleanExcerptText = (value?: string | null): string => {
+    let text = repairMojibakeText(value ?? '').trim();
+    if (text.startsWith('__MAHEAN_META__:')) {
+        const endIdx = text.indexOf(':__MAHEAN_META_END__');
+        if (endIdx >= 0) {
+            text = text.slice(endIdx + ':__MAHEAN_META_END__'.length).trim();
+        }
+    }
+    return text;
+};
+
 const normalizeStory = (story: Story): Story => {
     const normalizedCategories = normalizeCategoryList(
         story.categories,
@@ -623,7 +634,7 @@ const normalizeStory = (story: Story): Story => {
     return {
         ...story,
         title: repairMojibakeText(story.title ?? ''),
-        excerpt: repairMojibakeText(story.excerpt ?? ''),
+        excerpt: cleanExcerptText(story.excerpt),
         content: repairMojibakeText(story.content ?? ''),
         slug: normalizedSlug || undefined,
         views: story.views ?? 0,

@@ -18,6 +18,17 @@ const validAuthors = authorsRaw.filter((a) =>
     a.username !== 'teamuseless2'
 );
 
+const cleanExcerptText = (value) => {
+    let text = String(value || '').trim();
+    if (text.startsWith('__MAHEAN_META__:')) {
+        const endIdx = text.indexOf(':__MAHEAN_META_END__');
+        if (endIdx >= 0) {
+            text = text.slice(endIdx + ':__MAHEAN_META_END__'.length).trim();
+        }
+    }
+    return text;
+};
+
 const LEGACY_SEEDED_STORY_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
 const publishedStories = storiesRaw.filter((s) =>
     s &&
@@ -28,7 +39,7 @@ const publishedStories = storiesRaw.filter((s) =>
     return {
         id: String(s.id),
         title: s.title || '',
-        excerpt: s.excerpt || '',
+        excerpt: cleanExcerptText(s.excerpt),
         content: s.content || '',
         authorId: String(s.author_id || s.authorId || ''),
         categoryId: String(s.category_id || s.categoryId || ''),
