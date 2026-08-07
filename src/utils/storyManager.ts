@@ -1215,7 +1215,9 @@ const fetchStoriesFromRemote = async () => {
     if (error) throw error;
 
     const remoteStories = ((data || []) as StoryRow[]).map(mapRowToStory);
-    const visibleStories = await filterDeletedStories(sortStoriesByDate(remoteStories.map(normalizeStory)));
+    // Server API already filters trash server-side; use sync (localStorage-only) filter here
+    // to avoid an extra async trash DB call that can cause hangs on fresh browsers.
+    const visibleStories = filterDeletedStoriesSync(sortStoriesByDate(remoteStories.map(normalizeStory)));
     const publishedStories = filterPublishedStories(visibleStories);
     storePublicStories(publishedStories);
     markRemoteStoryCacheReady();
