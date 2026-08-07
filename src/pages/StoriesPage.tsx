@@ -108,14 +108,14 @@ export default function StoriesPage() {
 
     useEffect(() => {
         let isMounted = true;
-        const loadData = async () => {
-            const [storyData, authorData] = await Promise.all([getStories(), getAllAuthors()]);
-            if (isMounted) {
-                setStories(storyData);
-                setAuthors(authorData);
-            }
-        };
-        loadData();
+        // Load stories first — show them ASAP without waiting for authors
+        getStories().then((storyData) => {
+            if (isMounted) setStories(storyData);
+        }).catch(() => { /* keep existing stories state */ });
+        // Load authors independently
+        getAllAuthors().then((authorData) => {
+            if (isMounted) setAuthors(authorData);
+        }).catch(() => {});
         return () => {
             isMounted = false;
         };

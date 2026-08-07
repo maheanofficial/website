@@ -555,8 +555,18 @@ export const getAllAuthors = async (): Promise<Author[]> => {
         return localVisibleAuthors;
     }
 
-    const syncedAuthors = await queueAuthorSync(localAuthors, { force: true });
-    return syncedAuthors || localVisibleAuthors;
+    const syncPromise = queueAuthorSync(localAuthors, { force: true });
+    if (syncPromise) {
+        const syncedAuthors = await syncPromise;
+        return syncedAuthors || localVisibleAuthors;
+    }
+
+    // Fallback: direct fetch when queue returned null
+    try {
+        return await fetchAuthorsFromRemote(localAuthors);
+    } catch {
+        return localVisibleAuthors;
+    }
 };
 
 export const getAuthorById = async (id: string): Promise<Author | null> => {
