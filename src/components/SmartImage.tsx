@@ -124,28 +124,6 @@ const SmartImage: React.FC<SmartImageProps> = ({
         );
     }
 
-    const isUploadImage = resolvedSrc.includes('/uploads/');
-
-    if (isUploadImage) {
-        const webpSrc = resolvedSrc.replace(/\.(jpe?g|png|gif)$/i, '.webp');
-        return (
-            <picture>
-                <source srcSet={webpSrc} type="image/webp" />
-                <img
-                    src={resolvedSrc}
-                    alt={alt}
-                    className={className}
-                    onError={() => setError(true)}
-                    loading={loading}
-                    decoding={decoding}
-                    fetchPriority={fetchPriority}
-                    {...(width ? { width } : {})}
-                    {...(height ? { height } : {})}
-                />
-            </picture>
-        );
-    }
-
     return (
         <img
             src={resolvedSrc}
