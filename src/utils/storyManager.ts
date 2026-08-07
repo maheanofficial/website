@@ -1256,8 +1256,22 @@ export const getStories = async (): Promise<Story[]> => {
         return localPublishedStories;
     }
 
-    const syncedStories = await queueStorySync(localStories.length ? localStories : localPublishedStories, { force: true });
-    return filterPublishedStories(syncedStories || localPublishedStories);
+    // No local cache — must fetch from remote.
+    // queueStorySync may return null if shouldSync is false and no promise is running.
+    // In that case, call fetchStoriesFromRemote directly to avoid returning empty.
+    const syncPromise = queueStorySync(localStories.length ? localStories : localPublishedStories, { force: true });
+    if (syncPromise) {
+        const syncedStories = await syncPromise;
+        return filterPublishedStories(syncedStories || localPublishedStories);
+    }
+
+    // Fallback: direct fetch when queue returned null
+    try {
+        const fetched = await fetchStoriesFromRemote();
+        return filterPublishedStories(fetched);
+    } catch {
+        return filterPublishedStories(localPublishedStories);
+    }
 };
 
 export const getCachedStoryByIdOrSlug = (
