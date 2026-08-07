@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronRight, Play } from 'lucide-react';
+import { INITIAL_STORIES } from '../data/initialSiteData';
 import {
     getCachedStoryByIdOrSlug,
     getPublishedStoryByIdOrSlug,
@@ -82,12 +83,38 @@ const normalizePartTitleForDisplay = (value: string | undefined, partIndex: numb
 
 const getReadableParts = (entry: Story): StoryPart[] => {
     const sourceParts = Array.isArray(entry.parts) ? entry.parts : [];
-    const meaningfulParts = sourceParts.filter((part) => normalizeDisplayText(part?.content).length > 0);
+    const initialMatch = (INITIAL_STORIES as unknown as Story[]).find(
+        (s) => String(s.id) === String(entry.id) || (s.slug && entry.slug && s.slug === entry.slug)
+    );
+    const initialPartsMap = new Map<string, string>();
+    if (initialMatch && Array.isArray(initialMatch.parts)) {
+        initialMatch.parts.forEach((p, idx) => {
+            if (p.id) initialPartsMap.set(p.id, p.content || '');
+            if (p.title) initialPartsMap.set(p.title, p.content || '');
+            initialPartsMap.set(String(idx), p.content || '');
+        });
+    }
+
+    const mergedParts = sourceParts.map((part, idx) => {
+        if (normalizeDisplayText(part?.content).length > 0) return part;
+        const fallbackContent = initialPartsMap.get(part.id || '')
+            || initialPartsMap.get(part.title || '')
+            || initialPartsMap.get(String(idx))
+            || '';
+        return {
+            ...part,
+            content: fallbackContent || part.content || ''
+        };
+    });
+
+    const meaningfulParts = mergedParts.filter((part) => normalizeDisplayText(part?.content).length > 0);
     if (meaningfulParts.length > 0) return meaningfulParts;
+
+    const initialContent = initialMatch?.content || entry.content || '';
     return [{
         id: sourceParts[0]?.id || '1',
         title: sourceParts[0]?.title || '01',
-        content: entry.content || ''
+        content: initialContent
     }];
 };
 

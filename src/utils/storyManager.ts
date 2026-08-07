@@ -326,8 +326,16 @@ const normalizeCategoryList = (value: unknown, fallback?: unknown) => {
 };
 
 const toStoryParts = (value: unknown): StoryPart[] => {
-    if (!Array.isArray(value)) return [];
-    return value
+    let list = value;
+    if (typeof list === 'string') {
+        try {
+            list = JSON.parse(list);
+        } catch {
+            list = [];
+        }
+    }
+    if (!Array.isArray(list)) return [];
+    return list
         .map((entry) => {
             if (!isRecord(entry)) return null;
             const title = repairMojibakeText(typeof entry.title === 'string' ? entry.title : '');

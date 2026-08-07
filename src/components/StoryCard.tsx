@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Clock3, Eye, Layers3, Star } from 'lucide-react';
 
-import { getAllAuthors, type Author } from '../utils/authorManager';
+import { getCachedAuthors, getAllAuthors, type Author } from '../utils/authorManager';
 import { formatDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import type { Story } from '../utils/storyManager';
@@ -40,13 +40,34 @@ const normalizeAuthorKey = (value?: string) => String(value || '').trim().toLowe
 let authorDirectoryPromise: Promise<Author[]> | null = null;
 const authorAvatarCache = new Map<string, string>();
 
-const resolveAuthorAvatar = async (authorName: string) => {
-    const authorKey = normalizeAuthorKey(authorName);
-    if (!authorKey) return '';
-
-    if (authorAvatarCache.has(authorKey)) {
-        return authorAvatarCache.get(authorKey) || '';
+const syncPopulateAuthorAvatarCache = () => {
+    try {
+        const cached = getCachedAuthors();
+        cached.forEach((author) => {
+            if (!author.avatar) return;
+            if (author.name) authorAvatarCache.set(normalizeAuthorKey(author.name), author.avatar);
+            if (author.username) authorAvatarCache.set(normalizeAuthorKey(author.username), author.avatar);
+            if (author.id) authorAvatarCache.set(normalizeAuthorKey(author.id), author.avatar);
+        });
+    } catch {
+        // ignore
     }
+};
+
+const resolveAuthorAvatarSync = (authorName: string, authorId?: string): string => {
+    syncPopulateAuthorAvatarCache();
+    const key = normalizeAuthorKey(authorName);
+    const idKey = normalizeAuthorKey(authorId);
+    if (key && authorAvatarCache.has(key)) return authorAvatarCache.get(key) || '';
+    if (idKey && authorAvatarCache.has(idKey)) return authorAvatarCache.get(idKey) || '';
+    return '';
+};
+
+const resolveAuthorAvatar = async (authorName: string, authorId?: string) => {
+    const syncResult = resolveAuthorAvatarSync(authorName, authorId);
+    if (syncResult) return syncResult;
+
+    const authorKey = normalizeAuthorKey(authorName);
 
     if (!authorDirectoryPromise) {
         authorDirectoryPromise = getAllAuthors().catch((error) => {
@@ -60,11 +81,12 @@ const resolveAuthorAvatar = async (authorName: string) => {
     const matchedAuthor = authors.find((author) => {
         const nameKey = normalizeAuthorKey(author.name);
         const usernameKey = normalizeAuthorKey(author.username);
-        return nameKey === authorKey || usernameKey === authorKey;
+        const idKey = normalizeAuthorKey(author.id);
+        return nameKey === authorKey || usernameKey === authorKey || (authorId && idKey === normalizeAuthorKey(authorId));
     });
 
     const avatar = matchedAuthor?.avatar?.trim() || '';
-    authorAvatarCache.set(authorKey, avatar);
+    if (authorKey && avatar) authorAvatarCache.set(authorKey, avatar);
     return avatar;
 };
 
@@ -82,7 +104,7 @@ const estimateStoryReadMinutes = (story: Story) => {
 };
 
 export default function StoryCard({ story, index = 0 }: StoryCardProps) {
-    const [authorAvatar, setAuthorAvatar] = useState('');
+    const [authorAvatar, setAuthorAvatar] = useState(() => resolveAuthorAvatarSync(story.author || '', story.authorId || ''));
     const displayTags = (story.tags || []).filter(Boolean).slice(0, 2);
     const coverSource = story.cover_image || story.image || '';
     const displayExcerpt = (story.excerpt || 'গল্পের সারাংশ এখানে দেখা যাবে...').trim();
@@ -96,7 +118,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
         let isMounted = true;
 
         const loadAuthorAvatar = async () => {
-            const avatar = await resolveAuthorAvatar(story.author || '');
+            const avatar = await resolveAuthorAvatar(story.author || '', story.authorId || '');
             if (!isMounted) return;
             setAuthorAvatar(avatar);
         };
@@ -106,7 +128,7 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
         return () => {
             isMounted = false;
         };
-    }, [story.author]);
+    }, [story.author, story.authorId]);
 
     return (
         <article
