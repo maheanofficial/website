@@ -358,6 +358,7 @@ const StoryDetailsPage = () => {
     const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
     const [showCompletionBanner, setShowCompletionBanner] = useState(false);
     const completionShownRef = useRef('');
+    const formLoadedAtRef = useRef(Date.now());
     const contentRef = useRef<HTMLDivElement>(null);
     const resetStoryCacheAndReload = () => {
         localStorage.removeItem('mahean_stories');
@@ -736,6 +737,9 @@ const StoryDetailsPage = () => {
     const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        const formTarget = event.currentTarget;
+        const hpValue = (formTarget.elements.namedItem('website') as HTMLInputElement)?.value || '';
+
         const nextContent = commentDraft.trim();
         if (!nextContent) {
             setCommentError('মন্তব্য খালি রাখা যাবে না।');
@@ -751,7 +755,9 @@ const StoryDetailsPage = () => {
                 storySlug: story.slug || undefined,
                 partNumber: activePartNumber,
                 content: nextContent,
-                guestName: currentUser ? undefined : guestName.trim()
+                guestName: currentUser ? undefined : guestName.trim(),
+                formLoadedAt: formLoadedAtRef.current,
+                hp: hpValue
             });
 
             setStoryComments((prev) => [result.comment, ...prev]);

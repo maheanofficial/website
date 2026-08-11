@@ -375,10 +375,61 @@ export default async function handler(req, res) {
                 return;
             }
 
-            if (body.website || body.hp) {
-                // Silent drop for spam bots filling honeypot fields
+            // 1. Honeypot Trap
+            if (body.website || body.hp || body.email_hp) {
                 json(res, 200, { comment: { id: randomUUID(), content, authorName: 'Guest' }, totalComments: 1 });
                 return;
+            }
+
+            // 2. Form Submission Speed Test (Form loaded < 2.5s ago = bot)
+            if (!actor && body.formLoadedAt) {
+                const elapsed = Date.now() - Number(body.formLoadedAt);
+                if (elapsed < 2200) {
+                    json(res, 429, { error: 'খুব দ্রুত মন্তব্য পাঠানো হয়েছে। অনুগ্রহ করে ২ সেকেন্ড অপেক্ষা করে আবার পাঠান।' });
+                    return;
+                }
+            }
+
+            // 3. Content Length & Repeated Character Spam Filter
+            if (content.length < 2) {
+                json(res, 400, { error: 'মন্তব্য অত্যন্ত ছোট। অন্তত ২ অক্ষরের মন্তব্য লিখুন।' });
+                return;
+            }
+            if (content.length > 1200) {
+                json(res, 400, { error: 'মন্তব্য ১২০০ অক্ষরের বেশি হতে পারবে না।' });
+                return;
+            }
+            if (/([a-zA-Z0-9\u0980-\u09FF])\1{9,}/.test(content)) {
+                json(res, 400, { error: 'স্প্যাম বা অসংলগ্ন টাইপিং গ্রহণযোগ্য নয়।' });
+                return;
+            }
+
+            // 4. Guest URL & Link Spam Protection
+            if (!actor) {
+                const urlPattern = /(https?:\/\/|www\.|[a-zA-Z0-9-]+\.(com|org|net|xyz|online|top|info|site|me|io|tk|cf|gq))/i;
+                if (urlPattern.test(content) || urlPattern.test(body.guestName || '')) {
+                    json(res, 400, { error: 'অতিথি পাঠকদের মন্তব্যে কোনো ওয়েবসাইট লিঙ্ক গ্রহণযোগ্য নয়। লিঙ্ক দিতে লগইন করুন।' });
+                    return;
+                }
+            }
+
+            // 5. Guest IP Cooldown (Max 1 comment per 25 seconds per IP)
+            if (!actor) {
+                const clientIp = req.headers?.['cf-connecting-ip'] || req.headers?.['x-forwarded-for'] || 'guest_ip';
+                const now = Date.now();
+                if (!globalThis._guestCommentRateLimitMap) {
+                    globalThis._guestCommentRateLimitMap = new Map();
+                }
+                const lastTime = globalThis._guestCommentRateLimitMap.get(clientIp) || 0;
+                if (now - lastTime < 25000) {
+                    const waitSec = Math.ceil((25000 - (now - lastTime)) / 1000);
+                    json(res, 429, { error: `স্প্যাম প্রতিরোধে আরও ${waitSec} সেকেন্ড পর পুনরায় মন্তব্য পাঠান।` });
+                    return;
+                }
+                globalThis._guestCommentRateLimitMap.set(clientIp, now);
+                if (globalThis._guestCommentRateLimitMap.size > 2000) {
+                    globalThis._guestCommentRateLimitMap.clear();
+                }
             }
 
             const storySlug = normalizeStorySlug(body.storySlug);
