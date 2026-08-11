@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { PenTool } from 'lucide-react';
 import SEO from '../components/SEO';
 import AuthorsGrid from '../components/AuthorsGrid';
 import { getAllAuthors, getCachedAuthors, type Author } from '../utils/authorManager';
@@ -85,6 +87,22 @@ const AuthorsPage = () => {
                     </div>
 
                     <AuthorsGrid />
+
+                    {/* Become a Writer CTA Section */}
+                    <div className="authors-cta-section">
+                        <div className="authors-cta-card">
+                            <div className="authors-cta-icon">
+                                <PenTool size={32} />
+                            </div>
+                            <div className="authors-cta-text">
+                                <h3>আপনিও কি গল্প লিখতে ভালোবাসেন?</h3>
+                                <p>মাহিয়ানের গল্পকথায় আপনার লেখক অ্যাকাউন্ট তৈরি করুন এবং আজই আপনার প্রথম গল্পটি প্রকাশ করুন!</p>
+                            </div>
+                            <Link to="/writer/signup" className="authors-cta-btn">
+                                গল্প লেখা শুরু করুন
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

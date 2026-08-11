@@ -30,8 +30,9 @@ export default function Header() {
     const loginPath = buildAuthPageLink('/reader/login', currentPath);
     const signupPath = buildAuthPageLink('/reader/signup', currentPath);
     const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'moderator';
+    const isWriter = currentUser?.role === 'writer';
     const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.username || '';
-    const userBadgeLabel = isStaff ? 'Dashboard access' : 'Reader account';
+    const userBadgeLabel = isStaff ? 'Dashboard access' : isWriter ? 'Writer account' : 'Reader account';
     const userInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
 
     useEffect(() => {
@@ -189,6 +190,10 @@ export default function Header() {
                                     {isStaff ? (
                                         <Link to="/admin/dashboard" className="nav-action-link" onClick={closeMenu}>
                                             Dashboard
+                                        </Link>
+                                    ) : isWriter ? (
+                                        <Link to="/writer/dashboard" className="nav-action-link" onClick={closeMenu}>
+                                            লেখক ড্যাশবোর্ড
                                         </Link>
                                     ) : null}
                                     <Link to="/profile" className="nav-user-chip" onClick={closeMenu}>

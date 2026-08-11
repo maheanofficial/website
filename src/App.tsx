@@ -39,6 +39,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 const ReaderLoginPage = lazy(() => import('./pages/ReaderLoginPage'));
 const ReaderSignupPage = lazy(() => import('./pages/ReaderSignupPage'));
+const WriterLoginPage = lazy(() => import('./pages/WriterLoginPage'));
+const WriterSignupPage = lazy(() => import('./pages/WriterSignupPage'));
 const SkillsPage = lazy(() => import('./pages/SkillsPage'));
 const StoriesPage = lazy(() => import('./pages/StoriesPage'));
 const StoryDetailsPage = lazy(() => import('./pages/StoryDetailsPage'));
@@ -60,7 +62,8 @@ const DashboardRedirect = ({ defaultTarget = '/profile' }: { defaultTarget?: str
       .then((user) => {
         if (!isMounted) return;
         const isStaff = user?.role === 'admin' || user?.role === 'moderator';
-        setTargetPath(isStaff ? '/admin/dashboard' : defaultTarget);
+        const isWriter = user?.role === 'writer';
+        setTargetPath(isStaff ? '/admin/dashboard' : isWriter ? '/writer/dashboard' : defaultTarget);
       })
       .catch(() => {
         if (!isMounted) return;
@@ -159,6 +162,8 @@ export default function App() {
                 <Route path="/admin/signup" element={<AdminSignupPage />} />
                 <Route path="/reader/login" element={<ReaderLoginPage />} />
                 <Route path="/reader/signup" element={<ReaderSignupPage />} />
+                <Route path="/writer/login" element={<WriterLoginPage />} />
+                <Route path="/writer/signup" element={<WriterSignupPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/writer/dashboard" element={<WriterDashboard />} />
                 <Route path="/reader/dashboard" element={<Navigate to="/profile" replace />} />

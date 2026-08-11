@@ -1,0 +1,113 @@
+/* Writer Auth Page — Purple-accented theme for Writers */
+
+.writer-portal-page {
+    background: radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                var(--bg-primary);
+}
+
+.writer-content-wrapper {
+    gap: 28px;
+    padding-top: 32px;
+    padding-bottom: 32px;
+}
+
+.writer-portal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.writer-portal-logo {
+    height: 90px;
+    width: auto;
+    object-fit: contain;
+}
+
+.writer-portal-tagline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border-radius: 30px;
+    background: rgba(139, 92, 246, 0.14);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #a78bfa;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.writer-login-card {
+    max-width: 440px;
+    background: rgba(12, 10, 20, 0.76);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.writer-google-btn {
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    transition: background 0.2s, border-color 0.2s !important;
+}
+
+.writer-google-btn:hover {
+    background: rgba(139, 92, 246, 0.12) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+.writer-submit-btn {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+    color: #fff !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
+    padding: 13px !important;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35);
+    transition: opacity 0.2s, transform 0.15s !important;
+}
+
+.writer-submit-btn:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+.writer-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.writer-auth-error {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.writer-login-card .input-wrapper input:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.writer-login-card .forgot-pass,
+.writer-login-card .signup-link {
+    color: #a78bfa;
+}
+
+@media (max-width: 640px) {
+    .writer-content-wrapper {
+        padding-top: 20px;
+        padding-bottom: 20px;
+        gap: 20px;
+    }
+
+    .writer-portal-logo {
+        height: 70px;
+    }
+
+    .writer-login-card {
+        padding: 24px 18px;
+    }
+}

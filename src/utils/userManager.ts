@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { buildServerAuthHeaders } from './serverAuth';
 
-export type UserRole = 'admin' | 'moderator' | 'reader';
+export type UserRole = 'admin' | 'moderator' | 'writer' | 'reader';
 
 export interface User {
     id: string;
@@ -20,7 +20,7 @@ const PASSWORD_RESET_KEY = 'mahean_password_reset_user';
 const BLOCKED_IDENTIFIERS = new Set<string>();
 
 const normalizeRole = (role?: string): UserRole => {
-    if (role === 'admin' || role === 'moderator' || role === 'reader') {
+    if (role === 'admin' || role === 'moderator' || role === 'writer' || role === 'reader') {
         return role;
     }
     return 'reader';
@@ -37,7 +37,7 @@ const isBlockedUser = (user?: Partial<User>) =>
     isBlockedIdentifier(user?.email) || isBlockedIdentifier(user?.username);
 
 const mergeRole = (existingRole?: UserRole, incomingRole?: UserRole): UserRole => {
-    if (incomingRole === 'admin' || incomingRole === 'moderator' || incomingRole === 'reader') {
+    if (incomingRole === 'admin' || incomingRole === 'moderator' || incomingRole === 'writer' || incomingRole === 'reader') {
         return incomingRole;
     }
     return normalizeRole(existingRole);

@@ -51,7 +51,7 @@ const WriterDashboard = () => {
                 if (!isMounted) return;
 
                 if (!user) {
-                    navigate('/login?next=' + encodeURIComponent(window.location.pathname));
+                    navigate('/writer/login?next=' + encodeURIComponent(window.location.pathname));
                     return;
                 }
 
