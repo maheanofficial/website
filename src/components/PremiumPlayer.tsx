@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, Volume2, Timer, Gauge, Youtube, VolumeX } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, Timer, Gauge, Youtube, VolumeX, Volume1 } from 'lucide-react';
 import { toBanglaNumber } from '../utils/numberFormatter';
 import './PremiumPlayer.css';
 
 interface PremiumPlayerProps {
-    videoId: string;
+    videoId?: string;
+    audioUrl?: string;
+    text?: string;
     title?: string;
 }
 
@@ -30,7 +32,28 @@ declare global {
     }
 }
 
-export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
+// Clean markdown / HTML tags from text for clear Bangla reading
+const cleanTextForSpeech = (rawText?: string): string => {
+    if (!rawText) return '';
+    return rawText
+        .replace(/<[^>]*>/g, '') // remove HTML tags
+        .replace(/__MAHEAN_META__:[\s\S]*?:__MAHEAN_META_END__/g, '') // remove meta tags
+        .replace(/[*_#`~[\]()]/g, ' ') // remove markdown symbols
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+// Split text into Bangla sentences for smooth Web Speech API playback
+const splitIntoSentences = (text: string): string[] => {
+    if (!text) return [];
+    // Split by Bangla dari (।), question mark (?), exclamation (!), or period (.)
+    return text
+        .split(/(?<=[।?!.\n])\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+};
+
+export default function PremiumPlayer({ videoId, audioUrl, text, title }: PremiumPlayerProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -40,10 +63,34 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
     const [sleepTimer, setSleepTimer] = useState<number | null>(null);
     const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
 
-    const playerRef = useRef<YTPlayer | null>(null);
-    const containerId = `yt-player-${videoId}`;
+    // Audio Mode: 'youtube' | 'audio' | 'tts'
+    const playerMode = videoId && videoId.trim() ? 'youtube' : audioUrl && audioUrl.trim() ? 'audio' : 'tts';
+
+    // Refs
+    const ytPlayerRef = useRef<YTPlayer | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const containerId = useRef(`yt-player-${Math.random().toString(36).slice(2, 9)}`).current;
+
+    // TTS Refs
+    const currentSentenceIdxRef = useRef(0);
+    const sentencesRef = useRef<string[]>([]);
+    const isTtsActiveRef = useRef(false);
+    const ttsStartTimeRef = useRef(0);
+
     const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const cleanedText = cleanTextForSpeech(text);
+
+    // Estimate TTS Duration (~160 words per minute for Bangla)
+    useEffect(() => {
+        if (playerMode === 'tts' && cleanedText) {
+            const wordCount = cleanedText.split(/\s+/).filter(Boolean).length;
+            const estimatedMins = Math.max(0.5, wordCount / 160);
+            setDuration(Math.round(estimatedMins * 60));
+            sentencesRef.current = splitIntoSentences(cleanedText);
+        }
+    }, [cleanedText, playerMode]);
 
     const cleanupIntervals = () => {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
@@ -54,119 +101,234 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
 
-    const startTrackingProgress = () => {
-        stopTrackingProgress();
-        progressIntervalRef.current = setInterval(() => {
-            if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
-                setCurrentTime(playerRef.current.getCurrentTime());
-            }
-        }, 500);
-    };
-
-    const onPlayerReady = (event: { target: { getDuration: () => number; setVolume: (v: number) => void } }) => {
-        setDuration(event.target.getDuration());
-        event.target.setVolume(volume);
-    };
-
-    const onPlayerStateChange = (event: { data: number }) => {
-        const state = event.data;
-        if (window.YT && state === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
-            startTrackingProgress();
-        } else {
-            setIsPlaying(false);
-            stopTrackingProgress();
-        }
-    };
-
-    const initializePlayer = () => {
-        if (!window.YT || !window.YT.Player) return;
-        playerRef.current = new window.YT.Player(containerId, {
+    // YouTube Player Initialization
+    const initializeYTPlayer = () => {
+        if (!videoId || !window.YT || !window.YT.Player) return;
+        ytPlayerRef.current = new window.YT.Player(containerId, {
             height: '0',
             width: '0',
             videoId: videoId,
-            playerVars: {
-                playsinline: 1,
-                controls: 0,
-                disablekb: 1,
-                fs: 0,
-                rel: 0
-            },
+            playerVars: { playsinline: 1, controls: 0, disablekb: 1, fs: 0, rel: 0 },
             events: {
-                onReady: onPlayerReady,
-                onStateChange: onPlayerStateChange
+                onReady: (event: { target: { getDuration: () => number; setVolume: (v: number) => void } }) => {
+                    setDuration(event.target.getDuration());
+                    event.target.setVolume(volume);
+                },
+                onStateChange: (event: { data: number }) => {
+                    if (window.YT && event.data === window.YT.PlayerState.PLAYING) {
+                        setIsPlaying(true);
+                        stopTrackingProgress();
+                        progressIntervalRef.current = setInterval(() => {
+                            if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+                                setCurrentTime(ytPlayerRef.current.getCurrentTime());
+                            }
+                        }, 500);
+                    } else {
+                        setIsPlaying(false);
+                        stopTrackingProgress();
+                    }
+                }
             }
         });
     };
 
     useEffect(() => {
-        // Load YouTube Iframe API
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = 'https://www.youtube.com/iframe_api';
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-            window.onYouTubeIframeAPIReady = () => {
-                initializePlayer();
-            };
-        } else {
-            initializePlayer();
+        if (playerMode === 'youtube') {
+            if (!window.YT) {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+                window.onYouTubeIframeAPIReady = () => initializeYTPlayer();
+            } else {
+                initializeYTPlayer();
+            }
         }
 
         return () => {
             cleanupIntervals();
-            if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-                playerRef.current.destroy();
+            if (ytPlayerRef.current?.destroy) {
+                ytPlayerRef.current.destroy();
+            }
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [videoId]);
+    }, [videoId, playerMode]);
 
+    // Web Speech API Bangla TTS Functions
+    const speakSentence = (index: number) => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        const synth = window.speechSynthesis;
+
+        if (index >= sentencesRef.current.length) {
+            setIsPlaying(false);
+            stopTrackingProgress();
+            currentSentenceIdxRef.current = 0;
+            setCurrentTime(duration);
+            return;
+        }
+
+        synth.cancel(); // cancel previous
+        const sentenceText = sentencesRef.current[index];
+        const utterance = new SpeechSynthesisUtterance(sentenceText);
+        utterance.lang = 'bn-BD';
+        utterance.rate = speed;
+        utterance.volume = isMuted ? 0 : volume / 100;
+
+        // Select Bangla voice if available
+        const voices = synth.getVoices();
+        const banglaVoice = voices.find(
+            (v) =>
+                v.lang.startsWith('bn') ||
+                v.name.toLowerCase().includes('bangla') ||
+                v.name.toLowerCase().includes('bengali')
+        );
+        if (banglaVoice) {
+            utterance.voice = banglaVoice;
+        }
+
+        utterance.onend = () => {
+            if (isTtsActiveRef.current) {
+                currentSentenceIdxRef.current = index + 1;
+                speakSentence(index + 1);
+            }
+        };
+
+        utterance.onerror = (err) => {
+            console.warn('TTS utterance error, advancing to next sentence', err);
+            if (isTtsActiveRef.current) {
+                currentSentenceIdxRef.current = index + 1;
+                speakSentence(index + 1);
+            }
+        };
+
+        synth.speak(utterance);
+    };
+
+    const startTtsPlayback = () => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        const synth = window.speechSynthesis;
+
+        if (synth.paused && isTtsActiveRef.current) {
+            synth.resume();
+            setIsPlaying(true);
+            return;
+        }
+
+        isTtsActiveRef.current = true;
+        setIsPlaying(true);
+        ttsStartTimeRef.current = Date.now() - currentTime * 1000;
+
+        stopTrackingProgress();
+        progressIntervalRef.current = setInterval(() => {
+            setCurrentTime((prev) => {
+                const next = prev + 0.5 * speed;
+                return next >= duration ? duration : next;
+            });
+        }, 500);
+
+        speakSentence(currentSentenceIdxRef.current);
+    };
+
+    const pauseTtsPlayback = () => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        const synth = window.speechSynthesis;
+        isTtsActiveRef.current = false;
+        synth.pause();
+        setIsPlaying(false);
+        stopTrackingProgress();
+    };
+
+    // Control Handlers
     const handlePlayPause = () => {
-        if (!playerRef.current) return;
-        if (isPlaying) {
-            playerRef.current.pauseVideo();
+        if (playerMode === 'youtube') {
+            if (!ytPlayerRef.current) return;
+            if (isPlaying) ytPlayerRef.current.pauseVideo();
+            else ytPlayerRef.current.playVideo();
+        } else if (playerMode === 'audio') {
+            if (!audioRef.current) return;
+            if (isPlaying) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                void audioRef.current.play();
+                setIsPlaying(true);
+            }
         } else {
-            playerRef.current.playVideo();
+            // TTS Mode
+            if (isPlaying) {
+                pauseTtsPlayback();
+            } else {
+                startTtsPlayback();
+            }
         }
     };
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = parseFloat(e.target.value);
-        if (playerRef.current) {
-            playerRef.current.seekTo(val, true);
-            setCurrentTime(val);
+        setCurrentTime(val);
+
+        if (playerMode === 'youtube' && ytPlayerRef.current) {
+            ytPlayerRef.current.seekTo(val, true);
+        } else if (playerMode === 'audio' && audioRef.current) {
+            audioRef.current.currentTime = val;
+        } else if (playerMode === 'tts') {
+            if (sentencesRef.current.length > 0 && duration > 0) {
+                const ratio = val / duration;
+                const targetIdx = Math.floor(ratio * sentencesRef.current.length);
+                currentSentenceIdxRef.current = Math.min(targetIdx, sentencesRef.current.length - 1);
+                if (isPlaying) {
+                    speakSentence(currentSentenceIdxRef.current);
+                }
+            }
         }
     };
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseInt(e.target.value);
+        const val = parseInt(e.target.value, 10);
         setVolume(val);
-        if (playerRef.current) {
-            playerRef.current.setVolume(val);
-            if (isMuted && val > 0) {
-                setIsMuted(false);
-                playerRef.current.unMute();
+        setIsMuted(val === 0);
+
+        if (playerMode === 'youtube' && ytPlayerRef.current) {
+            ytPlayerRef.current.setVolume(val);
+        } else if (playerMode === 'audio' && audioRef.current) {
+            audioRef.current.volume = val / 100;
+        } else if (playerMode === 'tts') {
+            if (isPlaying) {
+                speakSentence(currentSentenceIdxRef.current);
             }
         }
     };
 
     const toggleMute = () => {
-        if (!playerRef.current) return;
-        if (isMuted) {
-            playerRef.current.unMute();
-            setIsMuted(false);
-        } else {
-            playerRef.current.mute();
-            setIsMuted(true);
+        const nextMuted = !isMuted;
+        setIsMuted(nextMuted);
+
+        if (playerMode === 'youtube' && ytPlayerRef.current) {
+            if (nextMuted) ytPlayerRef.current.mute();
+            else ytPlayerRef.current.unMute();
+        } else if (playerMode === 'audio' && audioRef.current) {
+            audioRef.current.muted = nextMuted;
+        } else if (playerMode === 'tts') {
+            if (isPlaying) {
+                speakSentence(currentSentenceIdxRef.current);
+            }
         }
     };
 
     const handleSpeedChange = (newSpeed: number) => {
         setSpeed(newSpeed);
-        if (playerRef.current && playerRef.current.setPlaybackRate) {
-            playerRef.current.setPlaybackRate(newSpeed);
+
+        if (playerMode === 'youtube' && ytPlayerRef.current?.setPlaybackRate) {
+            ytPlayerRef.current.setPlaybackRate(newSpeed);
+        } else if (playerMode === 'audio' && audioRef.current) {
+            audioRef.current.playbackRate = newSpeed;
+        } else if (playerMode === 'tts') {
+            if (isPlaying) {
+                speakSentence(currentSentenceIdxRef.current);
+            }
         }
     };
 
@@ -187,12 +349,16 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
             setSecondsRemaining(seconds);
 
             if (seconds <= 0) {
-                if (playerRef.current) {
-                    playerRef.current.pauseVideo();
+                if (playerMode === 'youtube' && ytPlayerRef.current) {
+                    ytPlayerRef.current.pauseVideo();
+                } else if (playerMode === 'audio' && audioRef.current) {
+                    audioRef.current.pause();
+                } else {
+                    pauseTtsPlayback();
                 }
                 setSleepTimer(null);
                 setSecondsRemaining(null);
-                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+                cleanupIntervals();
             }
         }, 1000);
     };
@@ -205,10 +371,22 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
 
     return (
         <div className="premium-audio-player fade-in">
-            <div id={containerId} style={{ display: 'none' }}></div>
+            {playerMode === 'youtube' && <div id={containerId} style={{ display: 'none' }}></div>}
+
+            {playerMode === 'audio' && audioUrl && (
+                <audio
+                    ref={audioRef}
+                    src={audioUrl}
+                    onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+                    onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+                    onEnded={() => setIsPlaying(false)}
+                />
+            )}
 
             <div className="player-header">
-                <span className="player-kicker">অডিওবুক ও গল্পপাঠ</span>
+                <span className="player-kicker">
+                    {playerMode === 'tts' ? '🎧 অডিওবুক ও গল্পপাঠ (বাংলা ভয়েস)' : 'অডিওবুক ও গল্পপাঠ'}
+                </span>
                 <h3 className="player-title">{title || 'গল্পকথা শুনুন'}</h3>
             </div>
 
@@ -219,7 +397,11 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
                 <div className={`vis-bar ${isPlaying ? 'playing' : ''}`}></div>
                 <div className={`vis-bar ${isPlaying ? 'playing' : ''}`}></div>
                 <div className={`vis-bar ${isPlaying ? 'playing' : ''}`}></div>
-                <Youtube className="vis-icon" size={32} />
+                {playerMode === 'youtube' ? (
+                    <Youtube className="vis-icon" size={32} />
+                ) : (
+                    <Volume2 className="vis-icon" size={32} />
+                )}
             </div>
 
             {/* Progress Slider */}
@@ -240,17 +422,30 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
 
             {/* Core Controls */}
             <div className="player-controls">
-                <button className="control-btn" onClick={() => playerRef.current?.seekTo(Math.max(0, currentTime - 10), true)}>
+                <button
+                    className="control-btn"
+                    onClick={() => {
+                        const target = Math.max(0, currentTime - 10);
+                        setCurrentTime(target);
+                        if (playerMode === 'youtube' && ytPlayerRef.current) ytPlayerRef.current.seekTo(target, true);
+                        if (playerMode === 'audio' && audioRef.current) audioRef.current.currentTime = target;
+                    }}
+                    title="১০ সেকেন্ড পেছনে যান"
+                >
                     <RotateCcw size={20} />
                 </button>
 
-                <button className="play-pause-btn" onClick={handlePlayPause}>
+                <button
+                    className="play-pause-btn"
+                    onClick={handlePlayPause}
+                    aria-label={isPlaying ? 'পজ করুন' : 'প্লে করুন'}
+                >
                     {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginLeft: 2 }} />}
                 </button>
 
                 <div className="volume-control-wrapper">
-                    <button className="control-btn" onClick={toggleMute}>
-                        {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    <button className="control-btn" onClick={toggleMute} title={isMuted ? 'আনমিউট করুন' : 'মিউট করুন'}>
+                        {isMuted || volume === 0 ? <VolumeX size={20} /> : volume < 50 ? <Volume1 size={20} /> : <Volume2 size={20} />}
                     </button>
                     <input
                         type="range"
@@ -263,7 +458,7 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
                 </div>
             </div>
 
-            {/* Premium Settings Row */}
+            {/* Settings Row */}
             <div className="player-settings-row">
                 {/* Speed Menu */}
                 <div className="player-dropdown-btn">
@@ -282,8 +477,8 @@ export default function PremiumPlayer({ videoId, title }: PremiumPlayerProps) {
                 <div className="player-dropdown-btn">
                     <Timer size={16} />
                     <span>
-                        {sleepTimer 
-                            ? `বন্ধ হবে: ${toBanglaNumber(Math.ceil((secondsRemaining || 0) / 60))} মি.` 
+                        {sleepTimer
+                            ? `বন্ধ হবে: ${toBanglaNumber(Math.ceil((secondsRemaining || 0) / 60))} মি.`
                             : 'স্লিপ টাইমার'}
                     </span>
                     <div className="player-dropdown-menu">

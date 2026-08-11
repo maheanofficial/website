@@ -1099,10 +1099,12 @@ const StoryDetailsPage = () => {
                     </div>
                 </div>
 
-                {/* Premium Audiobook Player */}
-                {youtubeVideoId && (
-                    <PremiumPlayer videoId={youtubeVideoId} title={story.title} />
-                )}
+                {/* Premium Audiobook / Bangla Voice Reader Player */}
+                <PremiumPlayer
+                    videoId={youtubeVideoId}
+                    text={currentPart?.content || story.content || story.excerpt}
+                    title={`${story.title}${totalParts > 1 ? ` — ${partLabel}` : ''}`}
+                />
 
                 {/* Parts Navigation Controls */}
                 <div className="parts-navigation-box">
