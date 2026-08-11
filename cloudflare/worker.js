@@ -168,6 +168,15 @@ const withSecurityHeaders = (request, response, pathname) => {
         headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
 
+    // Cache-Control headers to ensure instant updates on new deployments
+    if (pathname === '/sw.js' || pathname === '/index.html' || pathname === '/' || isKnownSpaRoute(pathname)) {
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
+    } else if (pathname.startsWith('/assets/')) {
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+
     const method = (request.method || 'GET').toUpperCase();
     const body = method === 'HEAD' ? null : response.body;
 
