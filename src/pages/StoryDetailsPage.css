@@ -442,6 +442,34 @@
     line-height: 2.1;
 }
 
+/* Reader Themes */
+.story-content-container.reader-theme-sepia {
+    background: #fbf0d9;
+    color: #43301a;
+    border-color: #e6d3b4;
+}
+.story-content-container.reader-theme-sepia .story-prose {
+    color: #2e2010;
+}
+
+.story-content-container.reader-theme-paper {
+    background: #ffffff;
+    color: #1e293b;
+    border-color: #e2e8f0;
+}
+.story-content-container.reader-theme-paper .story-prose {
+    color: #0f172a;
+}
+
+.story-content-container.reader-theme-night {
+    background: #000000;
+    color: #e2e8f0;
+    border-color: #1f1f1f;
+}
+.story-content-container.reader-theme-night .story-prose {
+    color: #f8fafc;
+}
+
 .story-prose {
     font-size: var(--text-lg);
     line-height: 1.8;

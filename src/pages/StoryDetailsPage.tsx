@@ -1211,6 +1211,7 @@ const StoryDetailsPage = () => {
                     </div>
 
                     <form className="story-comment-form" onSubmit={handleCommentSubmit}>
+                        <input type="text" name="website" tabIndex={-1} autoComplete="off" style={{ display: 'none', position: 'absolute', left: '-9999px' }} aria-hidden="true" />
                         {!currentUser && (
                             <div className="story-comment-guest-row" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
                                 <input

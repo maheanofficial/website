@@ -16,6 +16,7 @@ import PageSkeleton from './components/PageSkeleton';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
 import ReadingProgress from './components/ReadingProgress';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 import './index.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -98,6 +99,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && !isAuthRoute && <CookieConsent />}
       {!isAdminRoute && <BackToTop />}
+      {!isAdminRoute && <PwaInstallPrompt />}
     </>
   );
 };

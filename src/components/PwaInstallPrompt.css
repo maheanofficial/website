@@ -1,0 +1,105 @@
+.pwa-install-banner {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    max-width: 440px;
+    background: var(--bg-tertiary, #16213e);
+    border: 1px solid var(--accent-primary, #ff5c00);
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 92, 0, 0.2);
+    color: var(--text-primary, #fff);
+}
+
+.pwa-install-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff5c00 0%, #e04800 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.pwa-install-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.pwa-install-content strong {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.pwa-install-content p {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary, #ccc);
+}
+
+.pwa-install-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pwa-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.pwa-btn.primary {
+    background: var(--accent-primary, #ff5c00);
+    color: #fff;
+}
+
+.pwa-btn.primary:hover {
+    background: #e04800;
+    transform: translateY(-1px);
+}
+
+.pwa-btn.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary, #ccc);
+}
+
+.pwa-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.pwa-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary, #888);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 600px) {
+    .pwa-install-banner {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        max-width: none;
+        flex-wrap: wrap;
+    }
+}

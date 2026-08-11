@@ -372,6 +372,9 @@ export default async function handler(req, res) {
             const content = normalizeCommentBody(body.content);
             if (!content) {
                 json(res, 400, { error: 'Comment cannot be empty.' });
+            if (body.website || body.hp) {
+                // Silent drop for spam bots filling honeypot fields
+                json(res, 200, { comment: { id: randomUUID(), content, authorName: 'Guest' }, totalComments: 1 });
                 return;
             }
 

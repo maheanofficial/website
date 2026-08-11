@@ -6,10 +6,12 @@ import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
 import type { User } from '../utils/userManager';
 import BrandLogo from './BrandLogo';
+import LiveSearchModal from './LiveSearchModal';
 import './Header.css';
 
 export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [headerVisible, setHeaderVisible] = useState(true);
     const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -162,9 +164,10 @@ export default function Header() {
                             <button
                                 type="button"
                                 className="nav-icon-btn"
-                                aria-label="Search stories"
+                                aria-label="গল্প অনুসন্ধান করুন (Ctrl + K)"
+                                title="খুঁজুন (Ctrl + K)"
                                 onClick={() => {
-                                    navigate('/stories');
+                                    setIsSearchOpen(true);
                                     closeMenu();
                                 }}
                             >
@@ -223,6 +226,7 @@ export default function Header() {
                     </div>
                 </nav>
             </div>
+            <LiveSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
         </header>
     );
 }
