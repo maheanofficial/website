@@ -1,9 +1,31 @@
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowRight } from 'lucide-react';
+import { CheckCircle, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import PushSubscription from './PushSubscription';
 import './Footer.css';
 
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/contact@mahean.com';
+
 export default function Footer() {
+    const emailRef = useRef<HTMLInputElement>(null);
+    const [subState, setSubState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+    const handleSubscribe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const email = emailRef.current?.value?.trim();
+        if (!email) return;
+        setSubState('loading');
+        try {
+            const res = await fetch(FORMSPREE_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ email, _subject: 'Newsletter Subscription — mahean.com' }),
+            });
+            setSubState(res.ok ? 'success' : 'error');
+        } catch {
+            setSubState('error');
+        }
+    };
     return (
         <footer className="footer">
             <div className="container">
@@ -67,19 +89,34 @@ export default function Footer() {
                         <h4 className="footer-heading-sm">নতুন গল্পের আপডেট পান</h4>
                         <p className="footer-small-text">ইমেইল দিন, নতুন গল্প প্রকাশ হলে আগে জানুন</p>
 
-                        <form className="subscription-form" onSubmit={(event) => event.preventDefault()}>
-                            <div className="input-group">
-                                <Mail className="input-icon" size={18} />
-                                <input
-                                    type="email"
-                                    placeholder="আপনার ইমেইল লিখুন..."
-                                    className="subscription-input"
-                                />
+                        {subState === 'success' ? (
+                            <div className="subscription-success">
+                                <CheckCircle size={20} />
+                                <span>ধন্যবাদ! আপনাকে সাবস্ক্রাইব করা হয়েছে।</span>
                             </div>
-                            <button className="subscription-btn">
-                                সাবস্ক্রাইব করুন <ArrowRight size={16} />
-                            </button>
-                        </form>
+                        ) : subState === 'error' ? (
+                            <div className="subscription-error">
+                                <AlertCircle size={20} />
+                                <span>কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।</span>
+                            </div>
+                        ) : (
+                            <form className="subscription-form" onSubmit={(e) => void handleSubscribe(e)}>
+                                <div className="input-group">
+                                    <Mail className="input-icon" size={18} />
+                                    <input
+                                        ref={emailRef}
+                                        type="email"
+                                        placeholder="আপনার ইমেইল লিখুন..."
+                                        className="subscription-input"
+                                        required
+                                        disabled={subState === 'loading'}
+                                    />
+                                </div>
+                                <button className="subscription-btn" disabled={subState === 'loading'}>
+                                    {subState === 'loading' ? 'পাঠানো হচ্ছে...' : <><span>সাবস্ক্রাইব করুন</span> <ArrowRight size={16} /></>}
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
 

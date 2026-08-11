@@ -14,6 +14,8 @@ import HomePage from './pages/HomePage';
 import PageSkeleton from './components/PageSkeleton';
 
 import ScrollToTop from './components/ScrollToTop';
+import BackToTop from './components/BackToTop';
+import ReadingProgress from './components/ReadingProgress';
 import './index.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -89,11 +91,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <>
       {!isAdminRoute && !isAuthRoute && <AdSenseScript />}
       {!isAdminRoute && <Header />}
+      {!isAdminRoute && <ReadingProgress />}
       <main id="main-content">
         {children}
       </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && !isAuthRoute && <CookieConsent />}
+      {!isAdminRoute && <BackToTop />}
     </>
   );
 };

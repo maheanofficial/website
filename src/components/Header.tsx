@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Search } from 'lucide-react';
+import { Moon, Search, Sun } from 'lucide-react';
 import { buildAuthPageLink } from '../utils/authRedirect';
 import { getCurrentUser, onAuthStateChange, signOut } from '../utils/auth';
 import { APPEARANCE_STORAGE_KEY, applyTheme } from '../utils/theme';
@@ -12,6 +12,13 @@ export default function Header() {
     const [menuState, setMenuState] = useState({ open: false, path: '' });
     const [scrolled, setScrolled] = useState(false);
     const [headerVisible, setHeaderVisible] = useState(true);
+    const [isDarkTheme, setIsDarkTheme] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        const saved = localStorage.getItem('mahean_appearance');
+        if (saved === 'light') return false;
+        if (saved === 'dark') return true;
+        return document.documentElement.getAttribute('data-theme') !== 'light';
+    });
     const lastScrollY = useRef(0);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const location = useLocation();
@@ -107,6 +114,7 @@ export default function Header() {
         const next = resolved === 'light' ? 'dark' : 'light';
         localStorage.setItem(APPEARANCE_STORAGE_KEY, next);
         applyTheme(next);
+        setIsDarkTheme(next === 'dark');
     };
 
     const handleLogout = async () => {
@@ -166,10 +174,11 @@ export default function Header() {
                             <button
                                 type="button"
                                 className="nav-icon-btn"
-                                aria-label="Toggle theme"
+                                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                                title={isDarkTheme ? 'Light mode' : 'Dark mode'}
                                 onClick={handleThemeToggle}
                             >
-                                <Moon size={18} />
+                                {isDarkTheme ? <Sun size={18} /> : <Moon size={18} />}
                             </button>
                             <span className="nav-action-divider" aria-hidden="true" />
                             {currentUser ? (
