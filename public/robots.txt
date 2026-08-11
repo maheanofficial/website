@@ -39,38 +39,85 @@ Disallow: /api/
 Disallow: /admin/login
 Disallow: /admin/signup
 
-# ── Googlebot (specific fine-tuning) ──────────────────
+# ── Googlebot (Google Search) ──────────────────────────
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 Crawl-delay: 1
 
-# ── Google Image Bot ──────────────────────────────────
 User-agent: Googlebot-Image
 Allow: /
 
-# ── Bingbot ───────────────────────────────────────────
+# ── Bingbot (Microsoft Bing, Yahoo, DuckDuckGo) ───────
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 Crawl-delay: 2
 
-# ── DuckDuckBot ───────────────────────────────────────
+# ── DuckDuckBot (DuckDuckGo Search) ───────────────────
 User-agent: DuckDuckBot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 
-# ── Yandex ────────────────────────────────────────────
+# ── YandexBot (Yandex Search - Eastern Europe / Asia) ─
 User-agent: YandexBot
 Allow: /
 Disallow: /admin
 Disallow: /api/
 Crawl-delay: 3
 
-# ── Block bad bots / scrapers ─────────────────────────
+# ── Baiduspider (Baidu Search - China / Asia) ─────────
+User-agent: Baiduspider
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Sogou (Sogou Search) ──────────────────────────────
+User-agent: Sogou web spider
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Applebot (Apple Siri & Spotlight Search) ──────────
+User-agent: Applebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── PetalBot (Huawei Petal Search - Global) ───────────
+User-agent: PetalBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── YouBot (You.com AI Search) ────────────────────────
+User-agent: YouBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Bravebot (Brave Search) ───────────────────────────
+User-agent: Bravebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── MojeekBot (Mojeek Independent Search) ─────────────
+User-agent: MojeekBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── CocCocBot (CocCoc Search - Vietnam) ────────────────
+User-agent: CocCocBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ── Block malicious scrapers & spam bots ──────────────
 User-agent: AhrefsBot
 Disallow: /
 
@@ -86,9 +133,9 @@ Disallow: /
 User-agent: BLEXBot
 Disallow: /
 
-# ── Sitemaps ──────────────────────────────────────────
+# ── Global Sitemaps & Host ────────────────────────────
 Sitemap: https://www.mahean.com/sitemap.xml
 Sitemap: https://www.mahean.com/sitemap-news.xml
 
-# Canonical host hint (used by Yandex and some others)
+# Canonical host hint (used by Yandex and international search engines)
 Host: www.mahean.com

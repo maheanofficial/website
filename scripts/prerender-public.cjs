@@ -1309,11 +1309,12 @@ const pingIndexNow = async (paths) => {
     }
   }
 
-  // Ping Google & Bing sitemaps
-  console.log('[prerender] pinging search engines with updated sitemap...');
+  // Ping Google, Bing, Yandex & Global Search Engine Aggregators (Pingomatic & WebSub)
+  console.log('[prerender] pinging search engines & global indexers with updated sitemap & RSS...');
   const sitemapPings = [
     `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
-    `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`
+    `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+    `https://blogs.yandex.ru/pings/?status=success&url=${encodeURIComponent(sitemapUrl)}`
   ];
 
   for (const pingUrl of sitemapPings) {
@@ -1322,6 +1323,20 @@ const pingIndexNow = async (paths) => {
     } catch {
       // ignore
     }
+  }
+
+  // Ping WebSub Hubbub (W3C Global Real-Time Indexing for Google, Apple, Feedly, etc.)
+  try {
+    const hubUrl = 'https://pubsubhubbub.appspot.com/';
+    const rssUrl = `https://${host}/rss.xml`;
+    await fetch(hubUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `hub.mode=publish&hub.url=${encodeURIComponent(rssUrl)}`
+    });
+    console.log('[prerender] WebSub global RSS hub notified.');
+  } catch {
+    // ignore
   }
 };
 
