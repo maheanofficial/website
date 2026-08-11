@@ -726,7 +726,7 @@ const StoryDetailsPage = () => {
     const nextPartLabel = nextPartNumber ? getPartLabel(parts[nextPartNumber - 1], nextPartNumber - 1) : null;
     const readerFontClass = `reader-font-${readerFontScale}`;
     const commentCount = Math.max(Number(story.comments || 0), storyComments.length);
-    const loginToCommentPath = buildAuthPageLink('/login', storyPath, storyPath);
+    const loginToCommentPath = buildAuthPageLink('/reader/login', storyPath, storyPath);
 
     const handleBookmarkToggle = () => {
         if (!currentUser) {

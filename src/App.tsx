@@ -37,7 +37,8 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SeriesPage = lazy(() => import('./pages/SeriesPage'));
-const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ReaderLoginPage = lazy(() => import('./pages/ReaderLoginPage'));
+const ReaderSignupPage = lazy(() => import('./pages/ReaderSignupPage'));
 const SkillsPage = lazy(() => import('./pages/SkillsPage'));
 const StoriesPage = lazy(() => import('./pages/StoriesPage'));
 const StoryDetailsPage = lazy(() => import('./pages/StoryDetailsPage'));
@@ -150,12 +151,14 @@ export default function App() {
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/tags" element={<TagsPage />} />
                 <Route path="/submit" element={<SubmitStoryPage />} />
-                <Route path="/login" element={<AdminLoginPage />} />
+                <Route path="/login" element={<Navigate to="/reader/login" replace />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/update-password" element={<UpdatePasswordPage />} />
-                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/signup" element={<Navigate to="/reader/signup" replace />} />
                 <Route path="/admin/signup" element={<AdminSignupPage />} />
+                <Route path="/reader/login" element={<ReaderLoginPage />} />
+                <Route path="/reader/signup" element={<ReaderSignupPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/writer/dashboard" element={<WriterDashboard />} />
                 <Route path="/reader/dashboard" element={<Navigate to="/profile" replace />} />

@@ -27,8 +27,8 @@ export default function Header() {
     const navigate = useNavigate();
     const isMenuOpen = menuState.open && menuState.path === location.pathname;
     const currentPath = `${location.pathname}${location.search}${location.hash}`;
-    const loginPath = buildAuthPageLink('/login', currentPath);
-    const signupPath = buildAuthPageLink('/signup', currentPath);
+    const loginPath = buildAuthPageLink('/reader/login', currentPath);
+    const signupPath = buildAuthPageLink('/reader/signup', currentPath);
     const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'moderator';
     const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.username || '';
     const userBadgeLabel = isStaff ? 'Dashboard access' : 'Reader account';

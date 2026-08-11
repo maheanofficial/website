@@ -221,7 +221,7 @@ const ProfilePage = () => {
     }
 
     if (!currentUser) {
-        return <Navigate to={buildAuthPageLink('/login', '/profile', '/profile')} replace />;
+        return <Navigate to={buildAuthPageLink('/reader/login', '/profile', '/profile')} replace />;
     }
 
     const storyIndexes = buildStoryIndexes(stories);
