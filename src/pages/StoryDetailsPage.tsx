@@ -351,6 +351,7 @@ const StoryDetailsPage = () => {
     const [storyComments, setStoryComments] = useState<StoryComment[]>([]);
     const [isCommentsLoading, setIsCommentsLoading] = useState(false);
     const [commentDraft, setCommentDraft] = useState('');
+    const [guestName, setGuestName] = useState('');
     const [editingCommentId, setEditingCommentId] = useState('');
     const [commentEditDraft, setCommentEditDraft] = useState('');
     const [commentError, setCommentError] = useState('');
@@ -709,7 +710,6 @@ const StoryDetailsPage = () => {
     const readerFontClass = `reader-font-${readerFontScale}`;
     const commentCount = Math.max(Number(story.comments || 0), storyComments.length);
     const loginToCommentPath = buildAuthPageLink('/login', storyPath, storyPath);
-    const signupToCommentPath = buildAuthPageLink('/signup', storyPath, storyPath);
 
     const handleBookmarkToggle = () => {
         if (!currentUser) {
@@ -736,11 +736,6 @@ const StoryDetailsPage = () => {
     const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!currentUser) {
-            setCommentError('লগ ইন করলে মন্তব্য করতে পারবেন।');
-            return;
-        }
-
         const nextContent = commentDraft.trim();
         if (!nextContent) {
             setCommentError('মন্তব্য খালি রাখা যাবে না।');
@@ -755,11 +750,13 @@ const StoryDetailsPage = () => {
                 storyId: String(story.id),
                 storySlug: story.slug || undefined,
                 partNumber: activePartNumber,
-                content: nextContent
+                content: nextContent,
+                guestName: currentUser ? undefined : guestName.trim()
             });
 
             setStoryComments((prev) => [result.comment, ...prev]);
             setCommentDraft('');
+            setGuestName('');
             setStory((prev) => (
                 prev
                     ? { ...prev, comments: Math.max(Number(prev.comments || 0), result.totalComments || (prev.comments || 0)) }
@@ -1227,31 +1224,46 @@ const StoryDetailsPage = () => {
                         </div>
                     </div>
 
-                    {currentUser ? (
-                        <form className="story-comment-form" onSubmit={handleCommentSubmit}>
-                            <textarea
-                                value={commentDraft}
-                                onChange={(event) => setCommentDraft(event.target.value)}
-                                placeholder="এই গল্প সম্পর্কে আপনার মতামত লিখুন..."
-                                maxLength={1200}
-                                rows={4}
-                            />
-                            <div className="story-comment-form-footer">
-                                <span>{toBanglaNumber(commentDraft.trim().length)}/১২০০</span>
-                                <button type="submit" className="story-comment-submit" disabled={isCommentSubmitting}>
-                                    {isCommentSubmitting ? 'পাঠানো হচ্ছে...' : 'মন্তব্য পাঠান'}
-                                </button>
+                    <form className="story-comment-form" onSubmit={handleCommentSubmit}>
+                        {!currentUser && (
+                            <div className="story-comment-guest-row" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                <input
+                                    type="text"
+                                    value={guestName}
+                                    onChange={(e) => setGuestName(e.target.value)}
+                                    placeholder="আপনার নাম (ঐচ্ছিক, যেমন: রহিম)"
+                                    maxLength={40}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: '8px',
+                                        background: 'var(--bg-tertiary)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '0.85rem',
+                                        outline: 'none',
+                                        flex: 1,
+                                        minWidth: '180px'
+                                    }}
+                                />
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                                    অথবা <Link to={loginToCommentPath} style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>লগ ইন করুন</Link>
+                                </span>
                             </div>
-                        </form>
-                    ) : (
-                        <div className="story-comment-auth-prompt">
-                            <p>মন্তব্য করতে চাইলে আগে লগ ইন বা সাইন আপ করুন।</p>
-                            <div className="story-comment-auth-actions">
-                                <Link to={loginToCommentPath} className="story-comment-auth-link primary">লগ ইন</Link>
-                                <Link to={signupToCommentPath} className="story-comment-auth-link">সাইন আপ</Link>
-                            </div>
+                        )}
+                        <textarea
+                            value={commentDraft}
+                            onChange={(event) => setCommentDraft(event.target.value)}
+                            placeholder="এই গল্প সম্পর্কে আপনার মতামত লিখুন..."
+                            maxLength={1200}
+                            rows={4}
+                        />
+                        <div className="story-comment-form-footer">
+                            <span>{toBanglaNumber(commentDraft.trim().length)}/১২০০</span>
+                            <button type="submit" className="story-comment-submit" disabled={isCommentSubmitting}>
+                                {isCommentSubmitting ? 'পাঠানো হচ্ছে...' : 'মন্তব্য পাঠান'}
+                            </button>
                         </div>
-                    )}
+                    </form>
 
                     {commentError ? (
                         <p className="story-comments-feedback error">{commentError}</p>

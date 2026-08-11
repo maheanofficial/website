@@ -366,10 +366,6 @@ export default async function handler(req, res) {
     }
 
     const actor = await resolveActorFromSession(req);
-    if (!actor) {
-        json(res, 401, { error: 'Login required to comment.' });
-        return;
-    }
 
     try {
         if (action === 'create') {
@@ -388,15 +384,21 @@ export default async function handler(req, res) {
                     return;
                 }
             }
+
+            const guestName = normalizeCommentBody(body.guestName) || normalizeCommentBody(body.authorName);
+            const authorName = actor?.authorName || guestName || 'অতিথি পাঠক';
+            const userId = actor?.id || `guest_${randomUUID().slice(0, 8)}`;
+            const authorAvatar = actor?.authorAvatar;
+
             const comment = mapCommentRow({
                 id: randomUUID(),
                 storyId,
                 storySlug,
                 parentId,
                 partNumber: normalizePartNumber(body.partNumber),
-                userId: actor.id,
-                authorName: actor.authorName,
-                authorAvatar: actor.authorAvatar,
+                userId,
+                authorName,
+                authorAvatar,
                 content,
                 createdAt: new Date().toISOString()
             });
@@ -409,6 +411,11 @@ export default async function handler(req, res) {
                 comment,
                 totalComments: comments.length
             });
+            return;
+        }
+
+        if (!actor) {
+            json(res, 401, { error: 'Login required for this action.' });
             return;
         }
 
