@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { slugify } from './slugify';
 import { stripLegacyStorySlugSuffix } from './storySlug';
-import { getTrashItemsByType } from './trashManager';
+import { getTrashItemsByType, moveToTrash } from './trashManager';
 import { INITIAL_STORIES } from '../data/initialSiteData';
 
 export interface StoryPart {
@@ -1435,7 +1435,6 @@ export const deleteStory = async (id: string) => {
     const story = stories.find(s => s.id === id);
     if (!story) return;
 
-    const { moveToTrash } = await import('./trashManager');
     await moveToTrash('story', id, story, story.title);
 
     try {
@@ -1645,7 +1644,6 @@ export const deleteTagFromAllStories = async (tag: string): Promise<StoryBatchMu
         affectedStories
     };
 
-    const { moveToTrash } = await import('./trashManager');
     await moveToTrash(
         'tag',
         `tag-${Date.now().toString(36)}-${slugify(normalizedTag) || 'item'}`,

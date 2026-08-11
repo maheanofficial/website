@@ -71,19 +71,18 @@ export default function StoriesPage() {
     const [authors, setAuthors] = useState<Author[]>([]);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-    // Search and Filter State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    // sortBy is now declared below with urlParams logic
-
-    // Get category and sort from URL params
+    // Get category, sort, and search from URL params
     const urlParams = new URLSearchParams(location.search);
+    const searchFromUrl = urlParams.get('q')?.trim() || urlParams.get('search')?.trim() || '';
     const categoryFromUrl = normalizeCategoryFilterValue(urlParams.get('category')) || 'all';
     const sortFromUrl = urlParams.get('sort') || 'latest';
     const tabFromUrl = urlParams.get('tab');
     const tagFromUrl = normalizeTagFilterValue(urlParams.get('tag')) || null;
     const authorFromUrl = urlParams.get('author')?.trim() || null;
     const defaultCategoryForPage = authorFromUrl || tagFromUrl ? 'all' : categoryFromUrl;
+
+    const [searchQuery, setSearchQuery] = useState(searchFromUrl);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [authorFilter, setAuthorFilter] = useState<string | null>(authorFromUrl);
     const [selectedCategory, setSelectedCategory] = useState(defaultCategoryForPage);

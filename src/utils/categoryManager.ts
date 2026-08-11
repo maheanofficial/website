@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
 import { getAllStories, saveStory, type Story } from './storyManager';
-import { getTrashItemsByType } from './trashManager';
+import { getTrashItemsByType, moveToTrash } from './trashManager';
 import { INITIAL_CATEGORIES } from '../data/initialSiteData';
 
 export interface Category {
@@ -258,7 +258,6 @@ export const deleteCategory = async (id: string) => {
         }
     }
 
-    const { moveToTrash } = await import('./trashManager');
     await moveToTrash('category', id, {
         category,
         affectedStories: affectedStories.map((story) => ({

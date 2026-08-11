@@ -17,6 +17,7 @@ import { slugify } from '../../utils/slugify';
 import { resolveUniqueStorySlug, stripLegacyStorySlugSuffix } from '../../utils/storySlug';
 import { uploadDataUrlToStorage } from '../../utils/imageStorage';
 import { THUMBNAIL_LOGO_SRC } from '../../utils/brandAssets';
+import { moveToTrash } from '../../utils/trashManager';
 import ImageUploader from './ImageUploader';
 import type { User } from '../../utils/userManager';
 
@@ -967,7 +968,6 @@ const AdminStories = ({ user, initialViewMode = 'list' }: AdminStoriesProps) => 
         }
 
         if (removedParts.length > 0) {
-            const { moveToTrash } = await import('../../utils/trashManager');
             const trashTimestamp = Date.now();
             for (const { part, index } of removedParts) {
                 const partLabel = normalizeText(part.title || '') || `Part ${index + 1}`;

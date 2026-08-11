@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
+import { moveToTrash } from './trashManager';
 import { INITIAL_AUTHORS } from '../data/initialSiteData';
 
 export interface Author {
@@ -542,7 +543,6 @@ export const deleteAuthor = async (id: string) => {
     const author = authors.find(a => a.id === id);
     if (!author) return;
 
-    const { moveToTrash } = await import('./trashManager');
     await moveToTrash('author', id, author, author.name);
     invalidateDeletedAuthorIdsCache();
 
