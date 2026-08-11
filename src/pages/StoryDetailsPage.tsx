@@ -26,6 +26,7 @@ import {
 } from '../utils/readerExperience';
 import { slugify } from '../utils/slugify';
 import { SITE_URL, DEFAULT_OG_IMAGE } from '../utils/siteMeta';
+import { DEFAULT_GUEST_AVATAR } from '../utils/brandAssets';
 import {
     buildCategoryFilterPath,
     buildTagFilterPath,
@@ -1267,10 +1268,10 @@ const StoryDetailsPage = () => {
                                 <article key={comment.id} className="story-comment-card">
                                     <div className="story-comment-avatar">
                                         <SmartImage
-                                            src={comment.authorAvatar}
+                                            src={comment.authorAvatar || DEFAULT_GUEST_AVATAR}
                                             alt={comment.authorName}
                                             isRound={true}
-                                            showFullText={true}
+                                            showFullText={false}
                                         />
                                     </div>
                                     <div className="story-comment-body">

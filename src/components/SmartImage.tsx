@@ -62,11 +62,12 @@ const SmartImage: React.FC<SmartImageProps> = ({
 
         // 1. Logic for Avatars (Rounded)
         if (isRound) {
+            const initial = (text.trim()[0] || 'U').toUpperCase();
             return (
-                <div className={`${className || ''} bg-gradient-to-br ${colorGradient} rounded-full relative flex items-center justify-center text-white/90 select-none overflow-hidden p-1 shadow-inner aspect-square`}>
+                <div className={`${className || ''} bg-gradient-to-br ${colorGradient} rounded-full relative flex items-center justify-center text-white select-none overflow-hidden p-1 shadow-inner aspect-square`}>
                     {showFullText ? (
-                        <span className="text-[10px] text-center leading-tight font-black break-words w-full px-0.5" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)', fontWeight: 900 }}>
-                            {text}
+                        <span style={{ fontSize: '1.05rem', fontWeight: 900, textShadow: '0 1px 2px rgba(0,0,0,0.4)', lineHeight: 1 }}>
+                            {initial}
                         </span>
                     ) : (
                         <User size="60%" strokeWidth={1.5} className="drop-shadow-md" />
