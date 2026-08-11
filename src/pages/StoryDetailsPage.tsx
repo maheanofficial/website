@@ -48,7 +48,6 @@ import SmartImage from '../components/SmartImage';
 import SEO from '../components/SEO';
 import AdComponent from '../components/AdComponent';
 import StoryRating from '../components/StoryRating';
-import PremiumPlayer from '../components/PremiumPlayer';
 import ShareButtons from '../components/ShareButtons';
 import type { User } from '../utils/userManager';
 import './StoryDetailsPage.css';
@@ -975,14 +974,6 @@ const StoryDetailsPage = () => {
         `Please review this story for policy/copyright issue.\n\nURL: ${canonicalUrl}\nStory ID: ${story.id}\nReason:`
     )}`;
 
-    const extractYouTubeId = (text?: string | null) => {
-        if (!text) return undefined;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = text.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : undefined;
-    };
-
-    const youtubeVideoId = extractYouTubeId(story.content) || extractYouTubeId(story.excerpt) || extractYouTubeId(currentPart?.content || '');
 
     return (
         <article className="story-details-page fade-in-up">
@@ -1090,12 +1081,6 @@ const StoryDetailsPage = () => {
                     </div>
                 </div>
 
-                {/* Premium Audiobook / Bangla Voice Reader Player */}
-                <PremiumPlayer
-                    videoId={youtubeVideoId}
-                    text={currentPart?.content || story.content || story.excerpt}
-                    title={`${story.title}${totalParts > 1 ? ` — ${partLabel}` : ''}`}
-                />
 
                 {/* Parts Navigation Controls */}
                 <div className="parts-navigation-box">
