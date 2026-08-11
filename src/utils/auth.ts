@@ -120,11 +120,18 @@ const enforceStoredProviderRole = (user: LocalUser | null) => {
 };
 
 const resolveSelfServiceRole = (storedUser: LocalUser | null): LocalUser['role'] => {
-    if (storedUser?.role === 'admin') {
-        return 'admin';
+    if (storedUser?.role === 'admin' || storedUser?.role === 'moderator' || storedUser?.role === 'writer') {
+        return storedUser.role;
     }
-    if (storedUser?.role === 'moderator') {
-        return 'moderator';
+    if (typeof window !== 'undefined') {
+        try {
+            const intent = localStorage.getItem('mahean_auth_redirect_intent') || '';
+            if (intent.includes('/writer')) {
+                return 'writer';
+            }
+        } catch {
+            /* ignore */
+        }
     }
     return DEFAULT_SELF_SERVICE_ROLE;
 };
@@ -173,7 +180,7 @@ const normalizeAvatarUrl = (value?: string) => {
 };
 
 const toRole = (value?: string): LocalUser['role'] => {
-    if (value === 'admin' || value === 'moderator' || value === 'reader') {
+    if (value === 'admin' || value === 'moderator' || value === 'writer' || value === 'reader') {
         return value;
     }
     return DEFAULT_SELF_SERVICE_ROLE;
@@ -187,12 +194,14 @@ const roleFromMetadata = (metadata: unknown): LocalUser['role'] | null => {
     const roleValue = pickMetadataString((metadata as Record<string, unknown>).admin_panel_role)
         || pickMetadataString((metadata as Record<string, unknown>).role);
 
-    if (roleValue === 'admin' || roleValue === 'moderator' || roleValue === 'reader') {
+    if (roleValue === 'admin' || roleValue === 'moderator' || roleValue === 'writer' || roleValue === 'reader') {
         return toRole(roleValue);
     }
 
     return null;
 };
+
+
 
 const resolveSupabaseRole = (user: SupabaseUser, storedUser: LocalUser | null, email?: string): LocalUser['role'] => {
     const metadataRole = roleFromMetadata(user.app_metadata) || roleFromMetadata(user.user_metadata);
@@ -263,8 +272,6 @@ const syncSupabaseSession = (user: SupabaseUser | null) => {
 
 const getOAuthRedirectUrl = () => {
     if (typeof window === 'undefined') return '';
-    // Redirect to admin/dashboard after Google auth.
-    // restoreSessionFromUrl() on that page will detect ?code= and exchange it.
     const configured = (
         import.meta.env.VITE_GOOGLE_OAUTH_REDIRECT_URL as string | undefined
     );
@@ -279,11 +286,9 @@ const getOAuthRedirectUrl = () => {
         }
     }
 
-    const host = window.location.hostname.toLowerCase();
-    if (host === 'mahean.com' || host === 'www.mahean.com') {
-        return 'https://www.mahean.com/admin/dashboard';
-    }
-    return `${window.location.origin}/admin/dashboard`;
+    // Return origin + pathname so user lands back on the exact login page they initiated auth from
+    const currentUrl = new URL(window.location.href);
+    return `${currentUrl.origin}${currentUrl.pathname}`;
 };
 
 const getPasswordResetRedirectUrl = () => {
