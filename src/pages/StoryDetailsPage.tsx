@@ -1200,6 +1200,26 @@ const StoryDetailsPage = () => {
                     />
                 </div>
 
+                {nextPartNumber && nextPartLabel && (
+                    <section className="up-next-panel" aria-label="Up next" style={{ marginTop: '1.25rem', marginBottom: '1.5rem' }}>
+                        <div className="up-next-copy">
+                            <span className="up-next-kicker">পরের পর্ব</span>
+                            <h2>{nextPartLabel}</h2>
+                            <p>
+                                এক বসায় পড়ছেন? পরের পর্বে চলে যান, flow break হবে না।
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="up-next-btn"
+                            onClick={() => goToPart(nextPartNumber)}
+                        >
+                            <span>পরের পর্বে যান</span>
+                            <ChevronRight className="icon-sm" />
+                        </button>
+                    </section>
+                )}
+
                 {showCompletionBanner && (
                     <div className="completion-celebration" role="status">
                         <button
@@ -1364,25 +1384,7 @@ const StoryDetailsPage = () => {
                     )}
                 </section>
 
-                {nextPartNumber && nextPartLabel && (
-                    <section className="up-next-panel" aria-label="Up next">
-                        <div className="up-next-copy">
-                            <span className="up-next-kicker">পরের পর্ব</span>
-                            <h2>{nextPartLabel}</h2>
-                            <p>
-                                এক বসায় পড়ছেন? পরের পর্বে চলে যান, flow break হবে না.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            className="up-next-btn"
-                            onClick={() => goToPart(nextPartNumber)}
-                        >
-                            <span>পরের পর্বে যান</span>
-                            <ChevronRight className="icon-sm" />
-                        </button>
-                    </section>
-                )}
+
 
                 {relatedStories.length > 0 && (
                     <section className="related-stories-box" aria-label="Related stories">
