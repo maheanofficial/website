@@ -1280,28 +1280,48 @@ const pingIndexNow = async (paths) => {
   const key = '63133624986647138bb9a47cc15c5d86';
   const keyLocation = `https://${host}/${key}.txt`;
   const urls = paths.map((p) => `https://${host}${p}`);
+  const sitemapUrl = `https://${host}/sitemap.xml`;
 
-  console.log(`[prerender] submitting ${urls.length} URLs to IndexNow...`);
-  try {
-    const response = await fetch('https://api.indexnow.org/indexnow', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8'
-      },
-      body: JSON.stringify({
-        host,
-        key,
-        keyLocation,
-        urlList: urls
-      })
-    });
-    if (response.ok) {
-      console.log('[prerender] IndexNow URLs submitted successfully.');
-    } else {
-      console.warn(`[prerender] IndexNow submission failed: ${response.status}`);
+  console.log(`[prerender] submitting ${urls.length} URLs to IndexNow (Bing, Yandex, Naver, Seznam)...`);
+
+  const indexNowEndpoints = [
+    'https://api.indexnow.org/indexnow',
+    'https://www.bing.com/indexnow',
+    'https://yandex.com/indexnow'
+  ];
+
+  const payload = JSON.stringify({ host, key, keyLocation, urlList: urls });
+
+  for (const endpoint of indexNowEndpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: payload
+      });
+      if (response.ok || response.status === 202) {
+        console.log(`[prerender] IndexNow submitted via ${new URL(endpoint).hostname}.`);
+      } else {
+        console.warn(`[prerender] IndexNow (${new URL(endpoint).hostname}) status: ${response.status}`);
+      }
+    } catch (e) {
+      console.warn(`[prerender] IndexNow (${endpoint}) error:`, e.message || e);
     }
-  } catch (e) {
-    console.warn('[prerender] IndexNow connection failed:', e.message || e);
+  }
+
+  // Ping Google & Bing sitemaps
+  console.log('[prerender] pinging search engines with updated sitemap...');
+  const sitemapPings = [
+    `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
+    `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`
+  ];
+
+  for (const pingUrl of sitemapPings) {
+    try {
+      await fetch(pingUrl, { method: 'GET' });
+    } catch {
+      // ignore
+    }
   }
 };
 
