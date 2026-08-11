@@ -17,6 +17,7 @@ import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
 import ReadingProgress from './components/ReadingProgress';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import OfflineBanner from './components/OfflineBanner';
 import { ToastProvider } from './components/Toast';
 import './index.css';
 
@@ -132,6 +133,7 @@ export default function App() {
           <BackToTop />
           <CookieConsent />
           <PwaInstallPrompt />
+          <OfflineBanner />
           <Layout>
             <Suspense fallback={<PageLoadingFallback />}>
               <Routes>
