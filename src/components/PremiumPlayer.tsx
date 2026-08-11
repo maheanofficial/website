@@ -75,7 +75,6 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
     const currentSentenceIdxRef = useRef(0);
     const sentencesRef = useRef<string[]>([]);
     const isTtsActiveRef = useRef(false);
-    const ttsStartTimeRef = useRef(0);
 
     const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -158,9 +157,21 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
     }, [videoId, playerMode]);
 
     // Web Speech API Bangla TTS Functions
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+    }, []);
+
     const speakSentence = (index: number) => {
         if (typeof window === 'undefined' || !window.speechSynthesis) return;
         const synth = window.speechSynthesis;
+
+        if (!sentencesRef.current.length) {
+            sentencesRef.current = splitIntoSentences(cleanedText);
+        }
 
         if (index >= sentencesRef.current.length) {
             setIsPlaying(false);
@@ -170,8 +181,11 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             return;
         }
 
-        synth.cancel(); // cancel previous
+        synth.cancel(); // cancel previous to unblock queue
+
         const sentenceText = sentencesRef.current[index];
+        if (!sentenceText) return;
+
         const utterance = new SpeechSynthesisUtterance(sentenceText);
         utterance.lang = 'bn-BD';
         utterance.rate = speed;
@@ -183,7 +197,8 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             (v) =>
                 v.lang.startsWith('bn') ||
                 v.name.toLowerCase().includes('bangla') ||
-                v.name.toLowerCase().includes('bengali')
+                v.name.toLowerCase().includes('bengali') ||
+                v.name.toLowerCase().includes('india')
         );
         if (banglaVoice) {
             utterance.voice = banglaVoice;
@@ -191,24 +206,34 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
 
         utterance.onend = () => {
             if (isTtsActiveRef.current) {
-                currentSentenceIdxRef.current = index + 1;
-                speakSentence(index + 1);
+                const nextIdx = index + 1;
+                currentSentenceIdxRef.current = nextIdx;
+                speakSentence(nextIdx);
             }
         };
 
         utterance.onerror = (err) => {
             console.warn('TTS utterance error, advancing to next sentence', err);
-            if (isTtsActiveRef.current) {
-                currentSentenceIdxRef.current = index + 1;
-                speakSentence(index + 1);
+            if (isTtsActiveRef.current && index + 1 < sentencesRef.current.length) {
+                const nextIdx = index + 1;
+                currentSentenceIdxRef.current = nextIdx;
+                speakSentence(nextIdx);
+            } else {
+                setIsPlaying(false);
+                stopTrackingProgress();
             }
         };
 
         synth.speak(utterance);
+        // Fix for Chrome 15s TTS pause bug
+        synth.resume();
     };
 
     const startTtsPlayback = () => {
-        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        if (typeof window === 'undefined' || !window.speechSynthesis) {
+            alert('আপনার ব্রাউজারে ভয়েস ইঞ্জিন সাপোর্ট নেই।');
+            return;
+        }
         const synth = window.speechSynthesis;
 
         if (synth.paused && isTtsActiveRef.current) {
@@ -217,9 +242,13 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             return;
         }
 
+        synth.cancel();
         isTtsActiveRef.current = true;
         setIsPlaying(true);
-        ttsStartTimeRef.current = Date.now() - currentTime * 1000;
+
+        if (!sentencesRef.current || sentencesRef.current.length === 0) {
+            sentencesRef.current = splitIntoSentences(cleanedText);
+        }
 
         stopTrackingProgress();
         progressIntervalRef.current = setInterval(() => {

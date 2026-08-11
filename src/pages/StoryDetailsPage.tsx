@@ -978,20 +978,14 @@ const StoryDetailsPage = () => {
         `Please review this story for policy/copyright issue.\n\nURL: ${canonicalUrl}\nStory ID: ${story.id}\nReason:`
     )}`;
 
-    const extractYouTubeId = (text: string) => {
-        if (!text) return null;
+    const extractYouTubeId = (text?: string | null) => {
+        if (!text) return undefined;
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
         const match = text.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
+        return (match && match[2].length === 11) ? match[2] : undefined;
     };
 
-    const getSeedVideoId = (storyId: string) => {
-        const popularIds = ['3tmd-ClpJKA', 'coYw-MIdkGE', '9bZkp7q19f0', 'dQw4w9WgXcQ'];
-        const index = Math.abs(storyId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % popularIds.length;
-        return popularIds[index];
-    };
-
-    const youtubeVideoId = extractYouTubeId(story.content) || extractYouTubeId(story.excerpt) || getSeedVideoId(story.id);
+    const youtubeVideoId = extractYouTubeId(story.content) || extractYouTubeId(story.excerpt) || extractYouTubeId(currentPart?.content || '');
 
     return (
         <article className="story-details-page fade-in-up">
