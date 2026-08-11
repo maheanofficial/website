@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
+import { triggerToast } from '../components/Toast';
 import {
     getCachedStories,
     getCachedStoryByIdOrSlug,
@@ -747,6 +748,7 @@ const StoryDetailsPage = () => {
 
         setIsBookmarked(result.bookmarked);
         queueReaderStateSync(currentUser.id);
+        triggerToast(result.bookmarked ? 'গল্পটি বুকমার্কে সংরক্ষিত হয়েছে!' : 'বুকমার্ক সরানো হয়েছে।', result.bookmarked ? 'success' : 'info');
     };
 
     const getVisitorDeviceId = () => {
@@ -795,6 +797,7 @@ const StoryDetailsPage = () => {
                     ? { ...prev, comments: Math.max(Number(prev.comments || 0), result.totalComments || (prev.comments || 0)) }
                     : prev
             ));
+            triggerToast('আপনার মন্তব্য সফলভাবে প্রকাশিত হয়েছে!', 'success');
         } catch (error) {
             setCommentError(error instanceof Error ? error.message : 'মন্তব্য পাঠানো যায়নি।');
         } finally {

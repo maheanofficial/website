@@ -17,6 +17,7 @@ import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
 import ReadingProgress from './components/ReadingProgress';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import { ToastProvider } from './components/Toast';
 import './index.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -76,134 +77,104 @@ const DashboardRedirect = ({ defaultTarget = '/profile' }: { defaultTarget?: str
   return <Navigate to={targetPath} replace />;
 };
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin')
-    || location.pathname.startsWith('/dashboard')
-    || location.pathname.startsWith('/author/dashboard');
-  const isAuthRoute = location.pathname === '/login'
-    || location.pathname === '/signup'
-    || location.pathname === '/admin/login'
-    || location.pathname === '/admin/signup'
-    || location.pathname === '/forgot-password'
-    || location.pathname === '/update-password';
+
+  useEffect(() => {
+    trackVisit();
+  }, [location.pathname]);
 
   return (
-    <>
-      {!isAdminRoute && !isAuthRoute && <AdSenseScript />}
-      {!isAdminRoute && <Header />}
-      {!isAdminRoute && <ReadingProgress />}
-      <main id="main-content">
-        {children}
-      </main>
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && !isAuthRoute && <CookieConsent />}
-      {!isAdminRoute && <BackToTop />}
-      {!isAdminRoute && <PwaInstallPrompt />}
-    </>
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200">
+      <Header />
+      <main id="main-content">{children}</main>
+      <Footer />
+    </div>
   );
-};
+}
 
-function App() {
+export default function App() {
   useEffect(() => {
     initTheme(getStoredTheme());
-    void trackVisit();
+    trackVisit();
   }, []);
 
   useEffect(() => {
-    let activeUserId = '';
-    let syncIntervalId: number | null = null;
     let isMounted = true;
-
-    const clearSyncInterval = () => {
-      if (syncIntervalId) {
-        window.clearInterval(syncIntervalId);
-        syncIntervalId = null;
-      }
-    };
-
-    const startSyncForUser = async (userId?: string) => {
-      const normalizedUserId = String(userId || '').trim();
-      clearSyncInterval();
-      activeUserId = normalizedUserId;
-      if (!normalizedUserId) return;
-      await hydrateReaderStateFromCloud(normalizedUserId);
+    const syncState = async () => {
+      const user = await getCurrentUser();
       if (!isMounted) return;
-      syncIntervalId = window.setInterval(() => {
-        queueReaderStateSync(normalizedUserId);
-      }, 20_000);
-    };
-
-    void getCurrentUser()
-      .then((user) => startSyncForUser(user?.id))
-      .catch(() => undefined);
-
-    const subscription = onAuthStateChange((_event, session) => {
-      void startSyncForUser(session?.user?.id);
-    });
-
-    const flushSync = () => {
-      if (activeUserId) {
-        queueReaderStateSync(activeUserId);
+      if (user?.id) {
+        await hydrateReaderStateFromCloud(user.id);
       }
     };
+    void syncState();
 
-    window.addEventListener('beforeunload', flushSync);
+    const sub = onAuthStateChange((_evt, session) => {
+      if (session?.user?.id) {
+        queueReaderStateSync(session.user.id);
+      }
+    });
 
     return () => {
       isMounted = false;
-      clearSyncInterval();
-      window.removeEventListener('beforeunload', flushSync);
-      subscription?.unsubscribe?.();
+      sub?.unsubscribe?.();
     };
   }, []);
 
   return (
     <ErrorBoundary>
-      <Router>
-        <ScrollToTop />
-        <Layout>
-          <Suspense fallback={<PageLoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/audiobooks" element={<AudiobooksPage />} />
-              <Route path="/stories" element={<StoriesPage />} />
-              <Route path="/series" element={<SeriesPage />} />
-              <Route path="/authors" element={<AuthorsPage />} />
-              <Route path="/authors/:slug" element={<AuthorProfilePage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/tags" element={<TagsPage />} />
-              <Route path="/stories/:id/:partNumber" element={<StoryDetailsPage />} />
-              <Route path="/stories/:id/part/:partNumber" element={<StoryDetailsPage />} />
-              <Route path="/stories/:id" element={<StoryPartsPage />} />
-              <Route path="/login" element={<SubmitStoryPage />} />
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/update-password" element={<UpdatePasswordPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/admin/signup" element={<AdminSignupPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/writer/dashboard" element={<WriterDashboard />} />
-              <Route path="/reader/dashboard" element={<Navigate to="/profile" replace />} />
-              <Route path="/admin/dashboard/*" element={<AdminPage />} />
-              <Route path="/author/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
-              <Route path="/user/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
-              <Route path="/skills" element={<SkillsPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/disclaimer" element={<DisclaimerPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/links" element={<LinksPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Suspense>
-        </Layout>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AdSenseScript />
+          <ScrollToTop />
+          <ReadingProgress />
+          <BackToTop />
+          <CookieConsent />
+          <PwaInstallPrompt />
+          <Layout>
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/audiobooks" element={<AudiobooksPage />} />
+                <Route path="/stories" element={<StoriesPage />} />
+                <Route path="/stories/:id" element={<StoryDetailsPage />} />
+                <Route path="/stories/:id/part/:partNumber" element={<StoryDetailsPage />} />
+                <Route path="/stories/:id/:partNumber" element={<StoryDetailsPage />} />
+                <Route path="/story-parts/:id" element={<StoryPartsPage />} />
+                <Route path="/series" element={<SeriesPage />} />
+                <Route path="/authors" element={<AuthorsPage />} />
+                <Route path="/authors/:id" element={<AuthorProfilePage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/tags" element={<TagsPage />} />
+                <Route path="/submit" element={<SubmitStoryPage />} />
+                <Route path="/login" element={<AdminLoginPage />} />
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/update-password" element={<UpdatePasswordPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/admin/signup" element={<AdminSignupPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/writer/dashboard" element={<WriterDashboard />} />
+                <Route path="/reader/dashboard" element={<Navigate to="/profile" replace />} />
+                <Route path="/admin/dashboard/*" element={<AdminPage />} />
+                <Route path="/author/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
+                <Route path="/user/dashboard/*" element={<DashboardRedirect defaultTarget="/profile" />} />
+                <Route path="/skills" element={<SkillsPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/disclaimer" element={<DisclaimerPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/links" element={<LinksPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </Layout>
+        </Router>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }
-
-export default App;
