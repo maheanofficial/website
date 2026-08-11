@@ -685,11 +685,26 @@ const StoryDetailsPage = () => {
         );
     }
 
-    const parts = story.parts ?? [];
+    const rawParts = story.parts ?? [];
+    const parts: StoryPart[] = rawParts.length > 0
+        ? rawParts.map((p, idx) => ({
+            ...p,
+            content: p.content?.trim() || (idx === 0 ? story.content?.trim() || story.excerpt?.trim() || '' : '')
+        }))
+        : [{
+            title: 'পর্ব 01',
+            content: story.content?.trim() || story.excerpt?.trim() || ''
+        }];
+
     const totalParts = Math.max(1, parts.length);
     const activePartIndex = resolvePartIndexFromParam(parts, partNumber);
     const activePartNumber = activePartIndex + 1;
     const currentPart = parts[activePartIndex] || parts[0];
+
+    const currentPartContent = currentPart?.content?.trim()
+        || story.content?.trim()
+        || story.excerpt?.trim()
+        || 'এই পর্বের লেখা প্রস্তুত হচ্ছে। অনুগ্রহ করে কিছু সময় পর আবার চেষ্টা করুন।';
 
     if (!currentPart) {
         return null;
@@ -1196,7 +1211,7 @@ const StoryDetailsPage = () => {
                 >
                     <div
                         className="story-prose"
-                        dangerouslySetInnerHTML={renderFormattedText(currentPart.content)}
+                        dangerouslySetInnerHTML={renderFormattedText(currentPartContent)}
                     />
                 </div>
 

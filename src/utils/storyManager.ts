@@ -639,11 +639,36 @@ const normalizeStory = (story: Story): Story => {
         || repairMojibakeText(story.category ?? story.categoryId ?? '');
     const normalizedSlug = slugify(story.slug || '') || slugify(story.title || '');
 
+    const storyContentClean = repairMojibakeText(story.content ?? '').trim();
+    const storyExcerptClean = cleanExcerptText(story.excerpt).trim();
+    let storyParts = toStoryParts(story.parts);
+
+    if (storyParts.length > 0) {
+        storyParts = storyParts.map((part, index) => {
+            const partContentClean = (part.content || '').trim();
+            if (!partContentClean) {
+                const fillContent = index === 0 ? (storyContentClean || storyExcerptClean) : storyContentClean;
+                return { ...part, content: fillContent };
+            }
+            return part;
+        });
+    }
+
+    if (storyParts.length === 0 || !storyParts.some((p) => p.content?.trim())) {
+        const defaultContent = storyContentClean || storyExcerptClean;
+        if (defaultContent) {
+            storyParts = [{
+                title: 'পর্ব 01',
+                content: defaultContent
+            }];
+        }
+    }
+
     return {
         ...story,
         title: repairMojibakeText(story.title ?? ''),
-        excerpt: cleanExcerptText(story.excerpt),
-        content: repairMojibakeText(story.content ?? ''),
+        excerpt: storyExcerptClean,
+        content: storyContentClean,
         slug: normalizedSlug || undefined,
         views: story.views ?? 0,
         comments: story.comments ?? 0,
@@ -656,7 +681,7 @@ const normalizeStory = (story: Story): Story => {
         authorId: story.authorId ?? story.submittedBy ?? '',
         author: repairMojibakeText(story.author ?? story.submittedBy ?? ''),
         tags: toStringArray(story.tags),
-        parts: toStoryParts(story.parts),
+        parts: storyParts,
         updatedAt: story.updatedAt
     };
 };
