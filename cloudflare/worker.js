@@ -4,9 +4,12 @@ import cleanupTrashHandler from '../api/cleanup-trash.js';
 import commentsHandler from '../api/comments.js';
 import dbHandler from '../api/db.js';
 import readerStateHandler from '../api/reader-state.js';
+import rssHandler from '../api/rss.js';
+import searchHandler from '../api/search.js';
 import sitemapHandler from '../api/sitemap.js';
 import sitemapNewsHandler from '../api/sitemap-news.js';
 import storyRedirectHandler from '../api/story-redirect.js';
+import syncDataHandler from '../api/sync-data.js';
 import uploadImageHandler from '../api/upload-image.js';
 import { tryServeStorySeoPage } from '../api/_story-seo-page.js';
 import { runNodeHandler } from './node-handler-adapter.js';
@@ -19,8 +22,10 @@ const API_HANDLERS = new Map([
     ['/api/comments', commentsHandler],
     ['/api/db', dbHandler],
     ['/api/reader-state', readerStateHandler],
+    ['/api/search', searchHandler],
     ['/api/upload-image', uploadImageHandler],
-    ['/api/story-redirect', storyRedirectHandler]
+    ['/api/story-redirect', storyRedirectHandler],
+    ['/api/sync-data', syncDataHandler]
 ]);
 
 const SPA_EXACT_PATHS = new Set([
@@ -31,11 +36,14 @@ const SPA_EXACT_PATHS = new Set([
     '/authors',
     '/categories',
     '/tags',
+    '/submit',
     '/login',
     '/forgot-password',
     '/update-password',
     '/signup',
     '/profile',
+    '/reader/dashboard',
+    '/writer/dashboard',
     '/admin',
     '/dashboard',
     '/user/dashboard',
@@ -51,6 +59,8 @@ const SPA_EXACT_PATHS = new Set([
 
 const SPA_PREFIX_PATHS = [
     '/stories/',
+    '/story-parts/',
+    '/authors/',
     '/admin/',
     '/dashboard/',
     '/user/dashboard/',
@@ -314,6 +324,11 @@ export default {
 
         if (pathname === '/sitemap-news.xml') {
             const response = await runAppHandler(request, env, sitemapNewsHandler);
+            return withSecurityHeaders(request, response, pathname);
+        }
+
+        if (pathname === '/rss.xml' || pathname === '/feed.xml') {
+            const response = await runAppHandler(request, env, rssHandler);
             return withSecurityHeaders(request, response, pathname);
         }
 

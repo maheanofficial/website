@@ -1,29 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from 'lucide-react';
+import { setGlobalToastHandler, ToastContext, type ToastMessage, type ToastType } from './toastContext';
 import './Toast.css';
-
-export type ToastType = 'success' | 'info' | 'warning' | 'error';
-
-export interface ToastMessage {
-    id: string;
-    message: string;
-    type: ToastType;
-    leaving?: boolean;
-}
-
-interface ToastContextType {
-    showToast: (message: string, type?: ToastType, duration?: number) => void;
-}
-
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-let globalShowToast: ((message: string, type?: ToastType, duration?: number) => void) | null = null;
-
-export const triggerToast = (message: string, type: ToastType = 'success', duration = 3500) => {
-    if (globalShowToast) {
-        globalShowToast(message, type, duration);
-    }
-};
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -49,9 +27,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [removeToast]);
 
     useEffect(() => {
-        globalShowToast = showToast;
+        setGlobalToastHandler(showToast);
         return () => {
-            globalShowToast = null;
+            setGlobalToastHandler(null);
         };
     }, [showToast]);
 
@@ -88,12 +66,4 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             </div>
         </ToastContext.Provider>
     );
-};
-
-export const useToast = () => {
-    const context = useContext(ToastContext);
-    if (!context) {
-        return { showToast: triggerToast };
-    }
-    return context;
 };

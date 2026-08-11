@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { slugify } from './slugify';
 import { stripLegacyStorySlugSuffix } from './storySlug';
 import { getTrashItemsByType, moveToTrash } from './trashManager';
-import { INITIAL_STORIES } from '../data/initialSiteData';
+import { loadInitialStories } from '../data/initialDataLoader';
 
 export interface StoryPart {
     id?: string;
@@ -686,6 +686,23 @@ const normalizeStory = (story: Story): Story => {
     };
 };
 
+let initialStoriesPromise: Promise<Story[]> | null = null;
+
+// Full story text is intentionally loaded only when the API and browser cache are
+// unavailable. Keeping this legacy fallback out of the initial bundle saves several
+// megabytes on every normal visit while retaining an offline recovery path.
+const loadInitialStoriesFallback = () => {
+    if (!initialStoriesPromise) {
+        initialStoriesPromise = loadInitialStories()
+            .then((stories) => sanitizeStorySecurity((stories as unknown as Story[]).map(normalizeStory)))
+            .catch((error) => {
+                console.warn('Failed to load bundled story fallback', error);
+                return [];
+            });
+    }
+    return initialStoriesPromise;
+};
+
 const sortStoriesByDate = (stories: Story[]) =>
     [...stories].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -909,67 +926,60 @@ const getRawStories = (): Story[] => {
     if (inMemoryStoriesCache.length) {
         return inMemoryStoriesCache;
     }
-    if (typeof window === 'undefined') return (INITIAL_STORIES as Story[]).map(normalizeStory);
+    if (typeof window === 'undefined') return [];
     let stored: string | null = null;
     try {
         stored = localStorage.getItem(STORAGE_KEY);
     } catch (error) {
         console.warn('Failed to read stories from localStorage; using memory cache.', error);
-        return inMemoryStoriesCache.length ? inMemoryStoriesCache : (INITIAL_STORIES as Story[]).map(normalizeStory);
+        return inMemoryStoriesCache;
     }
     if (!stored) {
         invalidateRemoteStoryCacheReady();
-        const initialStories = (INITIAL_STORIES as Story[]).map(normalizeStory);
-        storeStories(initialStories);
-        return initialStories;
+        return [];
     }
     try {
         const parsed = JSON.parse(stored) as unknown;
         if (!Array.isArray(parsed) || parsed.length === 0) {
-            const initialStories = (INITIAL_STORIES as Story[]).map(normalizeStory);
-            storeStories(initialStories);
-            return initialStories;
+            return [];
         }
 
         const normalized = parsed.map((story) => normalizeStory(story as Story));
         const sanitized = sanitizeStorySecurity(
             normalized.filter((story) => !LEGACY_SEEDED_STORY_IDS.has(String(story.id || '').trim()))
         );
-        inMemoryStoriesCache = sanitized.length ? sanitized : (INITIAL_STORIES as Story[]).map(normalizeStory);
+        inMemoryStoriesCache = sanitized;
         return inMemoryStoriesCache;
     } catch (error) {
         console.warn('Failed to parse local stories cache; resetting.', error);
         invalidateRemoteStoryCacheReady();
-        const initialStories = (INITIAL_STORIES as Story[]).map(normalizeStory);
-        storeStories(initialStories);
-        return initialStories;
+        return [];
     }
 };
 
 const getRawPublicStories = (): Story[] => {
-    const initialStories = (INITIAL_STORIES as Story[]).map(normalizeStory);
-    if (typeof window === 'undefined') return initialStories;
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(PUBLIC_STORAGE_KEY);
     if (!stored) {
         invalidateRemoteStoryCacheReady();
-        return initialStories;
+        return [];
     }
 
     try {
         const parsed = JSON.parse(stored) as unknown;
         if (!Array.isArray(parsed) || parsed.length === 0) {
-            return initialStories;
+            return [];
         }
 
         const normalized = parsed.map((story) => normalizeStory(story as Story));
         const sanitized = sanitizeStorySecurity(
             normalized.filter((story) => !LEGACY_SEEDED_STORY_IDS.has(String(story.id || '').trim()))
         );
-        return sanitized.length ? sanitized : initialStories;
+        return sanitized;
     } catch (error) {
         console.warn('Failed to parse public stories cache; resetting.', error);
         clearPublicStoryCache();
-        return initialStories;
+        return [];
     }
 };
 
@@ -1108,7 +1118,9 @@ const queueStorySync = (fallbackStories: Story[], options?: { force?: boolean })
             .catch(async (error) => {
                 console.warn('Supabase stories fetch failed', error);
                 const latestLocalStories = getRawPublicStories();
-                const localStories = latestLocalStories.length ? latestLocalStories : fallbackStories;
+                const localStories = latestLocalStories.length
+                    ? latestLocalStories
+                    : (fallbackStories.length ? fallbackStories : await loadInitialStoriesFallback());
                 return getLocalVisibleStories(localStories);
             })
             .finally(() => {
@@ -1290,7 +1302,11 @@ export const getPublishedStoryByIdOrSlug = async (storyId?: string): Promise<Sto
         console.warn('Supabase published story lookup failed', error);
     }
 
-    return getCachedStoryByIdOrSlug(needle);
+    const cachedFallback = getCachedStoryByIdOrSlug(needle);
+    if (cachedFallback) return cachedFallback;
+
+    const initialStories = await loadInitialStoriesFallback();
+    return findBestMatchingStory(initialStories, needle, { requireContent: true, publishedOnly: true });
 };
 
 // Admin facing - all stories
@@ -1310,7 +1326,8 @@ export const getAllStories = async (): Promise<Story[]> => {
         return visibleStories;
     } catch (error) {
         console.warn('Supabase stories fetch failed', error);
-        return getLocalVisibleStories(localStories);
+        const fallbackStories = localStories.length ? localStories : await loadInitialStoriesFallback();
+        return getLocalVisibleStories(fallbackStories);
     }
 };
 
@@ -1344,11 +1361,13 @@ export const getStoryById = async (id: string): Promise<Story | null> => {
         remoteLookupFailed = true;
     }
 
-    if (!remoteLookupFailed || !hasReadyRemoteStoryCache()) {
+    if (!remoteLookupFailed) {
         return null;
     }
 
-    return localStories.find(s => s.id === id) || null;
+    return localStories.find(s => s.id === id)
+        || (await loadInitialStoriesFallback()).find((story) => story.id === id)
+        || null;
 };
 
 export const saveStory = async (story: Story): Promise<StoryMutationResult> => {

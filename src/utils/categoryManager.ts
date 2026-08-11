@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
 import { getAllStories, saveStory, type Story } from './storyManager';
 import { getTrashItemsByType, moveToTrash } from './trashManager';
-import { INITIAL_CATEGORIES } from '../data/initialSiteData';
+import { loadInitialCategories } from '../data/initialDataLoader';
 
 export interface Category {
     id: string;
@@ -156,18 +156,15 @@ const storeCategories = (categories: Category[]) => {
 };
 
 const getLocalCategories = (): Category[] => {
-    const initialCategories = (INITIAL_CATEGORIES as Category[]);
-    if (typeof window === 'undefined') return initialCategories;
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-        storeCategories(initialCategories);
-        return initialCategories;
+        return [];
     }
     try {
         const parsed = JSON.parse(stored) as unknown;
         if (!Array.isArray(parsed) || parsed.length === 0) {
-            storeCategories(initialCategories);
-            return initialCategories;
+            return [];
         }
         const categories = parsed
             .filter((entry): entry is Partial<Category> => Boolean(entry) && typeof entry === 'object')
@@ -179,11 +176,10 @@ const getLocalCategories = (): Category[] => {
                 image: typeof entry.image === 'string' ? entry.image : undefined
             }))
             .filter((entry) => entry.id && entry.name);
-        return categories.length ? categories : initialCategories;
+        return categories;
     } catch (error) {
         console.warn('Failed to parse categories cache; resetting.', error);
-        storeCategories(initialCategories);
-        return initialCategories;
+        return [];
     }
 };
 
@@ -202,7 +198,8 @@ export const getAllCategories = async (): Promise<Category[]> => {
         return categories;
     } catch (error) {
         console.warn('Supabase categories fetch failed', error);
-        return localCategories;
+        if (localCategories.length) return localCategories;
+        return filterDeletedCategories((await loadInitialCategories()) as Category[]);
     }
 };
 

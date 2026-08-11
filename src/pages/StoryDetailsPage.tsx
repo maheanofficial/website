@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, ArrowLeft, Calendar, Eye, MessageCircle, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
-import { triggerToast } from '../components/Toast';
+import { triggerToast } from '../components/toastContext';
 import {
     getCachedStories,
     getCachedStoryByIdOrSlug,

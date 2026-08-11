@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { repairMojibakeText } from './textRepair';
 import { moveToTrash } from './trashManager';
-import { INITIAL_AUTHORS } from '../data/initialSiteData';
+import { loadInitialAuthors } from '../data/initialDataLoader';
 
 export interface Author {
     id: string;
@@ -228,6 +228,19 @@ let inMemoryAuthorsCache: Author[] = [];
 let hasAttemptedRemoteBackfill = false;
 let authorSyncPromise: Promise<Author[]> | null = null;
 let lastAuthorSyncAt = 0;
+let initialAuthorsPromise: Promise<Author[]> | null = null;
+
+const loadInitialAuthorsFallback = () => {
+    if (!initialAuthorsPromise) {
+        initialAuthorsPromise = loadInitialAuthors()
+            .then((authors) => authors.map((author) => normalizeAuthor(author as Author)))
+            .catch((error) => {
+                console.warn('Failed to load bundled author fallback', error);
+                return [];
+            });
+    }
+    return initialAuthorsPromise;
+};
 let deletedAuthorIdsCache: { expiresAt: number; ids: Set<string>; } | null = null;
 
 const normalizeId = (value: unknown) => normalizeKey(typeof value === 'string' ? value : String(value ?? ''));
@@ -340,14 +353,13 @@ const markRemoteAuthorCacheReady = () => {
 };
 
 const getLocalAuthors = (): Author[] => {
-    const initialAuthors = (INITIAL_AUTHORS as Author[]).map(normalizeAuthor);
-    if (typeof window === 'undefined') return inMemoryAuthorsCache.length ? inMemoryAuthorsCache : initialAuthors;
+    if (typeof window === 'undefined') return inMemoryAuthorsCache;
     let stored: string | null = null;
     try {
         stored = localStorage.getItem(STORAGE_KEY);
     } catch (error) {
         console.warn('Failed to read authors from localStorage; using memory cache.', error);
-        return inMemoryAuthorsCache.length ? inMemoryAuthorsCache : initialAuthors;
+        return inMemoryAuthorsCache;
     }
     if (!stored) {
         try {
@@ -358,8 +370,7 @@ const getLocalAuthors = (): Author[] => {
         if (inMemoryAuthorsCache.length > 0) {
             return inMemoryAuthorsCache;
         }
-        storeAuthors(initialAuthors);
-        return initialAuthors;
+        return [];
     }
     try {
         const parsed = JSON.parse(stored) as unknown;
@@ -447,7 +458,9 @@ const queueAuthorSync = (fallbackAuthors: Author[], options?: { force?: boolean 
             .catch(async (error) => {
                 console.warn('Supabase authors fetch failed', error);
                 const latestLocalAuthors = getLocalAuthors();
-                const localAuthors = latestLocalAuthors.length ? latestLocalAuthors : fallbackAuthors;
+                const localAuthors = latestLocalAuthors.length
+                    ? latestLocalAuthors
+                    : (fallbackAuthors.length ? fallbackAuthors : await loadInitialAuthorsFallback());
                 return getLocalVisibleAuthors(localAuthors);
             })
             .finally(() => {
@@ -468,7 +481,7 @@ export const getAllAuthors = async (): Promise<Author[]> => {
 
     if (localVisibleAuthors.length > 0) {
         void queueAuthorSync(localAuthors, { force: !hasReadyRemoteAuthorCache() && !hasRecentSyncAttempt });
-        return localVisibleAuthors;
+        return localVisibleAuthors.length ? localVisibleAuthors : getLocalVisibleAuthors(await loadInitialAuthorsFallback());
     }
 
     const syncPromise = queueAuthorSync(localAuthors, { force: true });

@@ -128,11 +128,14 @@ const SPA_EXACT_PATHS = new Set([
     '/authors',
     '/categories',
     '/tags',
+    '/submit',
     '/login',
     '/forgot-password',
     '/update-password',
     '/signup',
     '/profile',
+    '/reader/dashboard',
+    '/writer/dashboard',
     '/admin',
     '/dashboard',
     '/skills',
@@ -146,8 +149,11 @@ const SPA_EXACT_PATHS = new Set([
 
 const SPA_PREFIX_PATHS = [
     '/stories/',
+    '/story-parts/',
+    '/authors/',
     '/admin/',
     '/dashboard/',
+    '/user/dashboard/',
     '/author/dashboard/'
 ];
 
