@@ -43,14 +43,26 @@ const cleanTextForSpeech = (rawText?: string): string => {
         .trim();
 };
 
-// Split text into Bangla sentences for smooth Web Speech API playback
+// Split text into short Bangla sentence chunks (under 160 chars for TTS URL limits)
 const splitIntoSentences = (text: string): string[] => {
     if (!text) return [];
-    // Split by Bangla dari (।), question mark (?), exclamation (!), or period (.)
-    return text
-        .split(/(?<=[।?!.\n])\s+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+    const rawChunks = text.split(/(?<=[।?!.\n])\s+/);
+    const chunks: string[] = [];
+
+    for (const chunk of rawChunks) {
+        const trimmed = chunk.trim();
+        if (!trimmed) continue;
+        if (trimmed.length <= 160) {
+            chunks.push(trimmed);
+        } else {
+            // Split long chunks by commas or spaces into ~120 char pieces
+            const subParts = trimmed.match(/.{1,140}(?:\s+|$)/g) || [trimmed];
+            for (const sub of subParts) {
+                if (sub.trim()) chunks.push(sub.trim());
+            }
+        }
+    }
+    return chunks;
 };
 
 export default function PremiumPlayer({ videoId, audioUrl, text, title }: PremiumPlayerProps) {
@@ -69,6 +81,7 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
     // Refs
     const ytPlayerRef = useRef<YTPlayer | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
     const containerId = useRef(`yt-player-${Math.random().toString(36).slice(2, 9)}`).current;
 
     // TTS Refs
@@ -149,6 +162,9 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             if (ytPlayerRef.current?.destroy) {
                 ytPlayerRef.current.destroy();
             }
+            if (ttsAudioRef.current) {
+                ttsAudioRef.current.pause();
+            }
             if (typeof window !== 'undefined' && window.speechSynthesis) {
                 window.speechSynthesis.cancel();
             }
@@ -156,19 +172,52 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [videoId, playerMode]);
 
-    // Web Speech API Bangla TTS Functions
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-            window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
-            };
-        }
-    }, []);
-
-    const speakSentence = (index: number) => {
+    // Web Speech API Fallback
+    const playWebSpeechUtterance = (index: number) => {
         if (typeof window === 'undefined' || !window.speechSynthesis) return;
         const synth = window.speechSynthesis;
+        synth.cancel();
 
+        const sentenceText = sentencesRef.current[index];
+        if (!sentenceText) return;
+
+        const utterance = new SpeechSynthesisUtterance(sentenceText);
+        utterance.lang = 'bn-BD';
+        utterance.rate = speed;
+        utterance.volume = isMuted ? 0 : volume / 100;
+
+        const voices = synth.getVoices();
+        const banglaVoice = voices.find(
+            (v) =>
+                v.lang.startsWith('bn') ||
+                v.name.toLowerCase().includes('bangla') ||
+                v.name.toLowerCase().includes('bengali')
+        );
+        if (banglaVoice) utterance.voice = banglaVoice;
+
+        utterance.onend = () => {
+            if (isTtsActiveRef.current) {
+                currentSentenceIdxRef.current = index + 1;
+                playSentenceAudio(index + 1);
+            }
+        };
+
+        utterance.onerror = () => {
+            if (isTtsActiveRef.current && index + 1 < sentencesRef.current.length) {
+                currentSentenceIdxRef.current = index + 1;
+                playSentenceAudio(index + 1);
+            } else {
+                setIsPlaying(false);
+                stopTrackingProgress();
+            }
+        };
+
+        synth.speak(utterance);
+        synth.resume();
+    };
+
+    // Bangla Google Audio TTS Stream + Fallback
+    const playSentenceAudio = (index: number) => {
         if (!sentencesRef.current.length) {
             sentencesRef.current = splitIntoSentences(cleanedText);
         }
@@ -181,68 +230,48 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             return;
         }
 
-        synth.cancel(); // cancel previous to unblock queue
-
         const sentenceText = sentencesRef.current[index];
         if (!sentenceText) return;
 
-        const utterance = new SpeechSynthesisUtterance(sentenceText);
-        utterance.lang = 'bn-BD';
-        utterance.rate = speed;
-        utterance.volume = isMuted ? 0 : volume / 100;
+        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q=${encodeURIComponent(sentenceText)}`;
 
-        // Select Bangla voice if available
-        const voices = synth.getVoices();
-        const banglaVoice = voices.find(
-            (v) =>
-                v.lang.startsWith('bn') ||
-                v.name.toLowerCase().includes('bangla') ||
-                v.name.toLowerCase().includes('bengali') ||
-                v.name.toLowerCase().includes('india')
-        );
-        if (banglaVoice) {
-            utterance.voice = banglaVoice;
+        if (!ttsAudioRef.current) {
+            ttsAudioRef.current = new Audio();
         }
 
-        utterance.onend = () => {
+        const audio = ttsAudioRef.current;
+        audio.src = ttsUrl;
+        audio.playbackRate = speed;
+        audio.volume = isMuted ? 0 : volume / 100;
+
+        audio.onended = () => {
             if (isTtsActiveRef.current) {
                 const nextIdx = index + 1;
                 currentSentenceIdxRef.current = nextIdx;
-                speakSentence(nextIdx);
+                playSentenceAudio(nextIdx);
             }
         };
 
-        utterance.onerror = (err) => {
-            console.warn('TTS utterance error, advancing to next sentence', err);
-            if (isTtsActiveRef.current && index + 1 < sentencesRef.current.length) {
-                const nextIdx = index + 1;
-                currentSentenceIdxRef.current = nextIdx;
-                speakSentence(nextIdx);
-            } else {
-                setIsPlaying(false);
-                stopTrackingProgress();
-            }
+        audio.onerror = () => {
+            // Fallback to Web Speech API if Google TTS is blocked or offline
+            console.warn('Google TTS audio load failed, using WebSpeech API fallback');
+            playWebSpeechUtterance(index);
         };
 
-        synth.speak(utterance);
-        // Fix for Chrome 15s TTS pause bug
-        synth.resume();
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    setIsPlaying(true);
+                })
+                .catch((err) => {
+                    console.warn('Google TTS audio playback blocked, using WebSpeech fallback:', err);
+                    playWebSpeechUtterance(index);
+                });
+        }
     };
 
     const startTtsPlayback = () => {
-        if (typeof window === 'undefined' || !window.speechSynthesis) {
-            alert('আপনার ব্রাউজারে ভয়েস ইঞ্জিন সাপোর্ট নেই।');
-            return;
-        }
-        const synth = window.speechSynthesis;
-
-        if (synth.paused && isTtsActiveRef.current) {
-            synth.resume();
-            setIsPlaying(true);
-            return;
-        }
-
-        synth.cancel();
         isTtsActiveRef.current = true;
         setIsPlaying(true);
 
@@ -258,14 +287,18 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             });
         }, 500);
 
-        speakSentence(currentSentenceIdxRef.current);
+        playSentenceAudio(currentSentenceIdxRef.current);
     };
 
     const pauseTtsPlayback = () => {
-        if (typeof window === 'undefined' || !window.speechSynthesis) return;
-        const synth = window.speechSynthesis;
         isTtsActiveRef.current = false;
-        synth.pause();
+        if (ttsAudioRef.current) {
+            ttsAudioRef.current.pause();
+        }
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.cancel();
+        }
         setIsPlaying(false);
         stopTrackingProgress();
     };
@@ -309,7 +342,7 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
                 const targetIdx = Math.floor(ratio * sentencesRef.current.length);
                 currentSentenceIdxRef.current = Math.min(targetIdx, sentencesRef.current.length - 1);
                 if (isPlaying) {
-                    speakSentence(currentSentenceIdxRef.current);
+                    playSentenceAudio(currentSentenceIdxRef.current);
                 }
             }
         }
@@ -324,10 +357,8 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             ytPlayerRef.current.setVolume(val);
         } else if (playerMode === 'audio' && audioRef.current) {
             audioRef.current.volume = val / 100;
-        } else if (playerMode === 'tts') {
-            if (isPlaying) {
-                speakSentence(currentSentenceIdxRef.current);
-            }
+        } else if (playerMode === 'tts' && ttsAudioRef.current) {
+            ttsAudioRef.current.volume = val / 100;
         }
     };
 
@@ -340,10 +371,8 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             else ytPlayerRef.current.unMute();
         } else if (playerMode === 'audio' && audioRef.current) {
             audioRef.current.muted = nextMuted;
-        } else if (playerMode === 'tts') {
-            if (isPlaying) {
-                speakSentence(currentSentenceIdxRef.current);
-            }
+        } else if (playerMode === 'tts' && ttsAudioRef.current) {
+            ttsAudioRef.current.muted = nextMuted;
         }
     };
 
@@ -354,10 +383,8 @@ export default function PremiumPlayer({ videoId, audioUrl, text, title }: Premiu
             ytPlayerRef.current.setPlaybackRate(newSpeed);
         } else if (playerMode === 'audio' && audioRef.current) {
             audioRef.current.playbackRate = newSpeed;
-        } else if (playerMode === 'tts') {
-            if (isPlaying) {
-                speakSentence(currentSentenceIdxRef.current);
-            }
+        } else if (playerMode === 'tts' && ttsAudioRef.current) {
+            ttsAudioRef.current.playbackRate = newSpeed;
         }
     };
 
