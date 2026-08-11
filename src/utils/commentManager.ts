@@ -167,6 +167,7 @@ export const createStoryComment = async (input: {
     guestName?: string;
     formLoadedAt?: number;
     hp?: string;
+    deviceId?: string;
 }) => {
     const response = await fetch('/api/comments', {
         method: 'POST',
@@ -183,7 +184,8 @@ export const createStoryComment = async (input: {
             content: input.content,
             guestName: input.guestName,
             formLoadedAt: input.formLoadedAt,
-            hp: input.hp
+            hp: input.hp,
+            deviceId: input.deviceId
         })
     });
 

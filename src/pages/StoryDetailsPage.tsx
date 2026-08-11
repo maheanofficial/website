@@ -734,6 +734,16 @@ const StoryDetailsPage = () => {
         queueReaderStateSync(currentUser.id);
     };
 
+    const getVisitorDeviceId = () => {
+        if (typeof window === 'undefined') return '';
+        let deviceId = localStorage.getItem('mahean_visitor_device_id_v1');
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+            localStorage.setItem('mahean_visitor_device_id_v1', deviceId);
+        }
+        return deviceId;
+    };
+
     const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -750,6 +760,7 @@ const StoryDetailsPage = () => {
         setCommentError('');
 
         try {
+            const deviceId = getVisitorDeviceId();
             const result = await createStoryComment({
                 storyId: String(story.id),
                 storySlug: story.slug || undefined,
@@ -757,7 +768,8 @@ const StoryDetailsPage = () => {
                 content: nextContent,
                 guestName: currentUser ? undefined : guestName.trim(),
                 formLoadedAt: formLoadedAtRef.current,
-                hp: hpValue
+                hp: hpValue,
+                deviceId
             });
 
             setStoryComments((prev) => [result.comment, ...prev]);

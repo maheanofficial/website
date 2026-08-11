@@ -64,6 +64,8 @@ const mapCommentRow = (row) => ({
     parentId: normalizeCommentId(row?.parentId) || '',
     partNumber: normalizePartNumber(row?.partNumber),
     userId: toTrimmedString(row?.userId),
+    userIp: toTrimmedString(row?.userIp) || '',
+    deviceId: toTrimmedString(row?.deviceId) || '',
     authorName: toTrimmedString(row?.authorName) || 'Reader',
     authorAvatar: toTrimmedString(row?.authorAvatar) || '',
     content: normalizeCommentBody(row?.content),
@@ -442,6 +444,38 @@ export default async function handler(req, res) {
                 }
             }
 
+            const clientIp = getClientIp(req) || req.headers?.['cf-connecting-ip'] || req.headers?.['x-forwarded-for'] || 'guest_ip';
+            const deviceId = toTrimmedString(body.deviceId);
+
+            // 6. Monthly Comment Limit (1 comment per story per 30 days per IP & Device)
+            const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+            const storyCommentsList = await listCommentsForStory(storyId);
+            const nowMs = Date.now();
+
+            const existingMonthlyComment = storyCommentsList.find((c) => {
+                const commentTime = new Date(c.createdAt).getTime();
+                if (Number.isNaN(commentTime)) return false;
+                const diff = nowMs - commentTime;
+                if (diff >= THIRTY_DAYS_MS) return false;
+
+                const sameUser = actor && c.userId && c.userId === actor.id;
+                const sameIp = clientIp && c.userIp && c.userIp === clientIp;
+                const sameDev = deviceId && c.deviceId && c.deviceId === deviceId;
+
+                return sameUser || sameIp || sameDev;
+            });
+
+            if (existingMonthlyComment) {
+                const commentDate = new Date(existingMonthlyComment.createdAt);
+                const nextAllowedDate = new Date(commentDate.getTime() + THIRTY_DAYS_MS);
+                const dateFormatted = nextAllowedDate.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                json(res, 429, {
+                    error: `আপনি এই গল্পে চলতি মাসে ইতিমধ্যে ১টি মন্তব্য করেছেন। একই গল্পে মাসে ১টির বেশি মন্তব্য করা যাবে না। আগামী ${dateFormatted} তারিখের পর পুনরায় মন্তব্য করতে পারবেন।`
+                });
+                return;
+            }
+
             const guestName = normalizeCommentBody(body.guestName) || normalizeCommentBody(body.authorName);
             const authorName = actor?.authorName || guestName || 'অতিথি পাঠক';
             const userId = actor?.id || `guest_${randomUUID().slice(0, 8)}`;
@@ -454,6 +488,8 @@ export default async function handler(req, res) {
                 parentId,
                 partNumber: normalizePartNumber(body.partNumber),
                 userId,
+                userIp: clientIp,
+                deviceId,
                 authorName,
                 authorAvatar,
                 content,
