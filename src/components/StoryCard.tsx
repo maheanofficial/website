@@ -5,7 +5,7 @@ import { ArrowUpRight, Clock3, Eye, Layers3, Star } from 'lucide-react';
 import { getCachedAuthors, getAllAuthors, type Author } from '../utils/authorManager';
 import { formatDate } from '../utils/dateFormatter';
 import { toBanglaNumber } from '../utils/numberFormatter';
-import type { Story } from '../utils/storyManager';
+import { getPublishedStoryByIdOrSlug, type Story } from '../utils/storyManager';
 import { buildTagFilterPath, formatTagLabel } from '../utils/storyFilters';
 import SmartImage from './SmartImage';
 import './StoryCard.css';
@@ -49,45 +49,35 @@ const syncPopulateAuthorAvatarCache = () => {
             if (author.username) authorAvatarCache.set(normalizeAuthorKey(author.username), author.avatar);
             if (author.id) authorAvatarCache.set(normalizeAuthorKey(author.id), author.avatar);
         });
-    } catch {
-        // ignore
-    }
+    } catch { /* ignore */ }
 };
 
-const resolveAuthorAvatarSync = (authorName: string, authorId?: string): string => {
+const resolveAuthorAvatarSync = (authorName?: string, authorId?: string) => {
     syncPopulateAuthorAvatarCache();
-    const key = normalizeAuthorKey(authorName);
-    const idKey = normalizeAuthorKey(authorId);
-    if (key && authorAvatarCache.has(key)) return authorAvatarCache.get(key) || '';
-    if (idKey && authorAvatarCache.has(idKey)) return authorAvatarCache.get(idKey) || '';
+    const keyName = normalizeAuthorKey(authorName);
+    const keyId = normalizeAuthorKey(authorId);
+    if (keyName && authorAvatarCache.has(keyName)) return authorAvatarCache.get(keyName) || '';
+    if (keyId && authorAvatarCache.has(keyId)) return authorAvatarCache.get(keyId) || '';
     return '';
 };
 
-const resolveAuthorAvatar = async (authorName: string, authorId?: string) => {
+const resolveAuthorAvatar = async (authorName?: string, authorId?: string) => {
     const syncResult = resolveAuthorAvatarSync(authorName, authorId);
     if (syncResult) return syncResult;
 
-    const authorKey = normalizeAuthorKey(authorName);
-
     if (!authorDirectoryPromise) {
-        authorDirectoryPromise = getAllAuthors().catch((error) => {
-            console.warn('Failed to load authors for story cards.', error);
-            authorDirectoryPromise = null;
-            return [];
-        });
+        authorDirectoryPromise = getAllAuthors().catch(() => getCachedAuthors());
     }
 
-    const authors = await authorDirectoryPromise;
-    const matchedAuthor = authors.find((author) => {
-        const nameKey = normalizeAuthorKey(author.name);
-        const usernameKey = normalizeAuthorKey(author.username);
-        const idKey = normalizeAuthorKey(author.id);
-        return nameKey === authorKey || usernameKey === authorKey || (authorId && idKey === normalizeAuthorKey(authorId));
+    const list = await authorDirectoryPromise;
+    list.forEach((author) => {
+        if (!author.avatar) return;
+        if (author.name) authorAvatarCache.set(normalizeAuthorKey(author.name), author.avatar);
+        if (author.username) authorAvatarCache.set(normalizeAuthorKey(author.username), author.avatar);
+        if (author.id) authorAvatarCache.set(normalizeAuthorKey(author.id), author.avatar);
     });
 
-    const avatar = matchedAuthor?.avatar?.trim() || '';
-    if (authorKey && avatar) authorAvatarCache.set(authorKey, avatar);
-    return avatar;
+    return resolveAuthorAvatarSync(authorName, authorId);
 };
 
 const estimateStoryReadMinutes = (story: Story) => {
@@ -114,6 +104,12 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
         : 1;
     const readMinutes = estimateStoryReadMinutes(story);
 
+    const handlePrefetch = () => {
+        if (story?.id || story?.slug) {
+            void getPublishedStoryByIdOrSlug(story.slug || story.id);
+        }
+    };
+
     useEffect(() => {
         let isMounted = true;
 
@@ -133,6 +129,8 @@ export default function StoryCard({ story, index = 0 }: StoryCardProps) {
     return (
         <article
             className="story-card story-card-premium fade-in-up"
+            onMouseEnter={handlePrefetch}
+            onTouchStart={handlePrefetch}
             style={{ animationDelay: `${index * 0.1}s` }}
         >
             <Link to={`/stories/${story.slug || story.id}`} className="story-card-cover-link">
