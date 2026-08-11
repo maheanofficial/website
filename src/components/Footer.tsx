@@ -51,9 +51,11 @@ export default function Footer() {
                     </div>
 
                     <div className="footer-section">
-                        <h3 className="footer-heading">সামাজিক মিডিয়া</h3>
+                        <h3 className="footer-heading">সামাজিক মিডিয়া</h3>
                         <div className="footer-links">
-                            <a href="https://www.facebook.com/maheanahmedofficial" className="footer-link">Facebook</a>
+                            <a href="https://www.facebook.com/maheanofficial/" className="footer-link">Facebook পেজ</a>
+                            <a href="https://www.facebook.com/groups/625486086686426" className="footer-link">Facebook গ্রুপ</a>
+                            <a href="https://www.instagram.com/mahean_ahmed/" className="footer-link">Instagram</a>
                             <a href="https://youtube.com/@maheanstoryvoice" className="footer-link">YouTube</a>
                             <PushSubscription />
                         </div>

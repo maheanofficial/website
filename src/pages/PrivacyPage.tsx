@@ -109,7 +109,7 @@ const PrivacyPage = () => {
                         গোপনীয়তা নীতি সম্পর্কে কোনো প্রশ্ন থাকলে আমাদের সাথে যোগাযোগ করুন:
                     </p>
                     <p>
-                        <strong>ইমেইল:</strong> <a href="mailto:maheanofficial@gmail.com">maheanofficial@gmail.com</a><br />
+                        <strong>ইমেইল:</strong> <a href="mailto:contact@mahean.com">contact@mahean.com</a><br />
                         <strong>ওয়েবসাইট:</strong> <a href="https://mahean.com">mahean.com</a>
                     </p>
                 </section>

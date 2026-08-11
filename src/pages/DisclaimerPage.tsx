@@ -94,7 +94,7 @@ const DisclaimerPage = () => {
                     <p>
                         ইমেইল:
                         {' '}
-                        <a href="mailto:maheanofficial@gmail.com">maheanofficial@gmail.com</a>
+                        <a href="mailto:contact@mahean.com">contact@mahean.com</a>
                         <br />
                         ওয়েবসাইট:
                         {' '}

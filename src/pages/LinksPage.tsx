@@ -42,23 +42,22 @@ const LinksPage = () => {
     const otherSocial = [
         {
             name: 'Facebook Page',
-            url: 'https://www.facebook.com/maheanahmedofficial',
+            url: 'https://www.facebook.com/maheanofficial/',
             icon: <Facebook size={32} />,
             color: '#1877F2'
         },
         {
-            name: 'Facebook Profile',
-            url: 'https://www.facebook.com/maheanahmedofficial',
+            name: 'Facebook Group',
+            url: 'https://www.facebook.com/groups/625486086686426',
             icon: <User size={32} />,
             color: '#1877F2'
         },
         {
             name: 'Instagram',
-            url: 'https://www.instagram.com/mahean_ahmed',
+            url: 'https://www.instagram.com/mahean_ahmed/',
             icon: <Instagram size={32} />,
             color: '#E4405F'
         },
-        // আরও social media links যোগ হবে
     ];
 
     return (
@@ -139,7 +138,7 @@ const LinksPage = () => {
 
                     {/* Contact Section */}
                     <div className="links-footer">
-                        <p>যোগাযোগ: <a href="mailto:maheanofficial@gmail.com">maheanofficial@gmail.com</a></p>
+                        <p>যোগাযোগ: <a href="mailto:contact@mahean.com">contact@mahean.com</a></p>
                     </div>
                 </div>
             </div>

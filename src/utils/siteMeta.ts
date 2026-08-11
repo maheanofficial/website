@@ -24,8 +24,10 @@ export const PUBLISHER = {
 export const SOCIAL_PROFILES = [
   'https://www.youtube.com/@banglaaudiobooks.mahean',
   'https://www.youtube.com/@maheanstoryvoice',
-  'https://www.facebook.com/maheanahmedofficial',
+  'https://www.facebook.com/maheanofficial/',
+  'https://www.facebook.com/groups/625486086686426',
+  'https://www.instagram.com/mahean_ahmed/',
   'https://twitter.com/mahean_ahmed',
 ];
 
-export const CONTACT_EMAIL = 'maheanofficial@gmail.com';
+export const CONTACT_EMAIL = 'contact@mahean.com';

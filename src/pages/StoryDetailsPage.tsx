@@ -972,7 +972,7 @@ const StoryDetailsPage = () => {
         ]
     };
 
-    const reportIssueMailto = `mailto:maheanofficial@gmail.com?subject=${encodeURIComponent(
+    const reportIssueMailto = `mailto:contact@mahean.com?subject=${encodeURIComponent(
         `Content report: ${story.title}`
     )}&body=${encodeURIComponent(
         `Please review this story for policy/copyright issue.\n\nURL: ${canonicalUrl}\nStory ID: ${story.id}\nReason:`

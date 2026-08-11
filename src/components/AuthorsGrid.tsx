@@ -29,15 +29,20 @@ const isStoryOwnedByAuthor = (story: Story, author: Author) => {
 const AuthorsGrid = () => {
     const [authors, setAuthors] = useState<Author[]>([]);
     const [allStories, setAllStories] = useState<Story[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         let isMounted = true;
 
         const loadData = async () => {
-            const [authorData, storyData] = await Promise.all([getAllAuthors(), getStories()]);
-            if (!isMounted) return;
-            setAuthors(authorData);
-            setAllStories(storyData);
+            try {
+                const [authorData, storyData] = await Promise.all([getAllAuthors(), getStories()]);
+                if (!isMounted) return;
+                setAuthors(authorData);
+                setAllStories(storyData);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
         };
 
         void loadData();
@@ -61,6 +66,26 @@ const AuthorsGrid = () => {
         })
         .filter((author) => author.storyCount > 0)
         .sort((left, right) => right.totalViews - left.totalViews);
+
+    if (isLoading) {
+        return (
+            <section className="authors-grid-section">
+                <div className="authors-grid-shell">
+                    <div className="authors-grid">
+                        {Array.from({ length: 4 }, (_, i) => (
+                            <div key={i} className="author-card" style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                                <div style={{ height: '180px', background: 'var(--bg-tertiary)', borderRadius: '12px 12px 0 0' }} />
+                                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ width: '60%', height: '14px', background: 'var(--bg-tertiary)', borderRadius: '6px' }} />
+                                    <div style={{ width: '80%', height: '12px', background: 'var(--bg-tertiary)', borderRadius: '6px' }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     if (!authorsWithStats.length) {
         return (

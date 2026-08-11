@@ -123,7 +123,7 @@ const AboutPage = () => {
                         আপনার কোনো প্রশ্ন, পরামর্শ বা সহযোগিতার প্রস্তাব থাকলে আমার সাথে যোগাযোগ করতে পারেন:
                     </p>
                     <p>
-                        <strong>ইমেইল:</strong> <a href="mailto:maheanofficial@gmail.com">maheanofficial@gmail.com</a><br />
+                        <strong>ইমেইল:</strong> <a href="mailto:contact@mahean.com">contact@mahean.com</a><br />
                         <strong>YouTube:</strong> <a href="https://www.youtube.com/@maheanstoryvoice" target="_blank" rel="noopener noreferrer">@maheanstoryvoice</a>
                     </p>
                 </section>
